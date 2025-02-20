@@ -223,7 +223,7 @@ syn match forthEscape "\C\\x\x\x" contained
 
 " comments {{{2
 
-syn keyword forthTodo contained TODO FIXME XXX
+syn keyword forthTodo contained TODO FIXME XXX 
 
 " Some special, non-FORTH keywords
 syn match forthTodo contained "\<\%(TODO\|FIXME\|XXX\)\%(\>\|:\@=\)"
@@ -254,6 +254,7 @@ syn region forthComment start='\<\.(\>' end=')' end='$' contains=@Spell,forthTod
 
 " ABORT {{{2
 syn keyword forthForth ABORT
+syn keyword forthComment ?? .S
 syn region forthForth start=+\<ABORT"\s+ end=+"\>+ end=+$+
 
 " The optional Block word set {{{1
