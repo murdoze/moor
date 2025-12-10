@@ -1,34 +1,26 @@
 \
 \\ Optimizer
 \
-
+								\\ Optimizer states
+:: REGALLOCING		:state
+:: ASSEMBLING		:state
+:: DEALLOCING		:state
 								\\ Regallocing and assembling states
-: (%>)     | INTERPRETING >< behavior >>> REGALLOCING >< does ;	\ ( xt -- )		Sets word's register allocation semantics to its execution semantics
-: %>       ' (%>) ;						\ ( "<name>" -- )	Sets register allocation semantics to execution semantics
-: <%       latest (%>) ;					\ ( -- )		Sets latest word's register allocation semantics to execution semantics
+: (:)      : ;							\ 			Redefine : to enable REGALLOCING state TODO: ANALYZE
+: :        (:) INTERPRETING latest behavior REGALLOCING latest does ;
 
-: (:)      : ;							\ 			Redefine : to enable REGALLOCING state
-: :        (:) <% ;
+:: REGALLOCING!! code rstate REGALLOCING mov.i, ret,		\ ( -- )		Sets state to REGALLOCING without address interpreter involvement
+	INTERPRETING latest behavior REGALLOCING latest does
+	INTERPRETING latest behavior ASSEMBLING  latest does
+:: ASSEMBLING!!  code rstate ASSEMBLING  mov.i, ret,		\ ( -- )		Sets state to ASSEMBLING without address interpreter involvement
+	INTERPRETING latest behavior REGALLOCING latest does
+:: DEALLOCING!!  code rstate DEALLOCING  mov.i, ret,		\ ( -- )		Sets state to DEALLOCING without address interpreter involvement
+	INTERPRETING latest behavior REGALLOCING latest does
 
-: ($>)     | INTERPRETING >< behavior >>> ASSEMBLING >< does ;	\ ( xt -- )		Sets word's register allocation semantics to its execution semantics
-: $>       ' ($>) ;						\ ( "<name>" -- )	Sets register allocation semantics to execution semantics
-: <$       latest ($>) ;					\ ( -- )		Sets latest word's register allocation semantics to execution semantics
-
-: INTERPRETING! INTERPRETING state! ;
-
-: REGALLOCING! REGALLOCING state! ;
-:: REGALLOCING!!  code rstate REGALLOCING mov.i, ret, <% <$	\ ( -- )		Sets state to REGALLOCING without address interpreter involvement
-
-: ASSEMBLING! ASSEMBLING state! ;
-:: ASSEMBLING!!  code rstate ASSEMBLING mov.i, ret, <%		\ ( -- )		Sets state to ASSEMBLING without address interpreter involvement
-
-: DEALLOCING! DEALLOCING state! ;
-:: DEALLOCING!!  code rstate DEALLOCING mov.i, ret, <%		\ ( -- )		Sets state to DEALLOCING without address interpreter involvement
-
-: regalloc REGALLOCING! execute interpreting! INTERPRETING! ;	\ ( xt -- )		Sets STATE to REGALLOCING for the XT
+: regalloc 							\ ( xt -- )		Run XT in REGALLOCING state
+	REGALLOCING state! execute interpreting! INTERPRETING state! ;
 
 : :%       : compile interpreting! ;
-
 								\\ Register allocation
 :: #regs     10 val						\ Number of CPU registers
 :: regs      adr #regs allot					\ Register alias count
@@ -184,7 +176,7 @@
 								\\ Regallocing semantics definitions
 : noop ;
 
-: $        here (exec) ASSEMBLING ' | >r does r> _		\ ( "<name>" --  )	Creates new semantics for assembling state
+: $        here exec ASSEMBLING ' does 				\ ( "<name>" --  )	Creates new semantics for assembling state
            compile interpreting!
 	   ] ;
 : $;       compile ASSEMBLING!! compile exit [compile] [ ; immediate
@@ -200,7 +192,7 @@ INTERPRETING ' interpreting! behavior DEALLOCING ' interpreting! does
 : assm     ;
 $ assm     $;
 
-: %        here (exec) REGALLOCING ' | >r does 			\ ( "<name>" --  )	Creates new semantics for register allocation state,
+: %        here exec REGALLOCING ' | >r does 			\ ( "<name>" --  )	Creates new semantics for register allocation state,
            ASSEMBLING   ['] assm behavior ASSEMBLING r> | >r does
            INTERPRETING ['] assm behavior DEALLOCING r> | >r does r>
            compile interpreting! 				\			which equals to execution semantics of its constituents
@@ -235,7 +227,7 @@ $ assm     $;
 
 : ;%								\			Finish REGALLOCING definition and start DEALLOCING definition
            [compile] %;
-           here (exec) DEALLOCING opt-xt @ does
+           here exec DEALLOCING opt-xt @ does
 	   compile interpreting!
 	   ] ; immediate
 
@@ -682,6 +674,8 @@ $ (repeat-post) $;
 	   ['] exit %.debug %.S cr %.used-regs
 	   cr .dump
 
+           1 opt-debug !
+
 	   cr white ." PASS=1 Initial code generation" norm
 	   OPT-PASS-BRANCHLEN opt-pass !
 	   0 opt-index !
@@ -694,6 +688,8 @@ $ (repeat-post) $;
 	   r> | >r regalloc
 	   ['] exit %.debug %.S %.used-regs
 	   cr .dump
+
+           1 opt-debug !
 
 	   cr white ." PASS=2 Final code generation" norm
 	   OPT-PASS-BRANCHLEN opt-pass !
