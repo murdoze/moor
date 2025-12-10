@@ -182,13 +182,8 @@
 : var      , does> ;						\ :: a 12345 var
 : val      , does> @ ;						\ :: b 98765 val
 
-								\\ Dictionary structure manipulation
-: >cfa     cells + cell - cell - ;				\ ( xt state -- cfa )	Returns CFA for given state for XT
-: cfa@     | @ >< cell + @ >< ;					\ ( cfa -- param code )	Returns param and code for CFA
-: >cfa@    >cfa cfa@ ;						\ ( xt state -- param code)	Returns param and code for given state for XT
-: behavior >< >cfa@ ;						\ ( state xt -- param code)	Same as >cfa@, with input parameters swapped for aesthetics
 
-: >name    22 cells - @ ; 					\ ( xt -- c-addr )	Returns address of the name counted string
+: >name    23 cells - @ ; 					\ ( xt -- c-addr )	Returns address of the name counted string
 
 								\\ Control structures								_control
 : >mark    here 0 , ;						\ ( -- a )		Address for forward branch fixup
@@ -406,7 +401,7 @@
 :: <=      code #1 r1 load, r0 r1 cmp, setle0, off, ret,	\ ( a b -- a<=b )	
 :: >       code #1 r1 load, r0 r1 cmp, setg0, off, ret,		\ ( a b -- a>b )	
 :: >=      code #1 r1 load, r0 r1 cmp, setge0, off, ret,	\ ( a b -- a>=b )	
-
+								\\ Control structures: helpers
 : lodsq,   48 ` ad ` ;						\			lodsq	rax, qword ptr [rsi]
 : skip,    48 ` 8d ` 34 ` c6 ` ;				\			lea	rsi, [rsi + rax*8]
 
@@ -422,18 +417,23 @@
 
 :: self    code |, rtop rpc mov, rtop 8 sub.i, ret,		\ ( a -- )		Returns RPC for the calling word
 								\			If SELF is the first compiled word, it returns caller's XT
-
+								\\ Stack, continued
+: depth,   #0 r0 store, r0 rstack mov, r0 neg, on, ;			\ ( -- # )		Stack depth 
+:: depth   code depth, ret,
 								\\ States									_states
 :: MAX_STATE	 0 var
 : :state   MAX_STATE @ | -20 < if | val 2 - MAX_STATE !
            else .. bad57a7e 0f10 .abort then ;
-
+								\\ Built-in states
 :: INTERPRETING		:state
 :: COMPILING   		:state 
 :: DECOMPILING		:state
-:: REGALLOCING		:state
-:: ASSEMBLING		:state
-:: DEALLOCING		:state
+								\\ Dictionary structure manipulation
+: >cfa     cells + cell - cell - ;				\ ( xt state -- cfa )	Returns CFA for given state for XT
+: cfa@     | @ >< cell + @ >< ;					\ ( cfa -- param code )	Returns param and code for CFA
+: >cfa@    >cfa cfa@ ;						\ ( xt state -- param code)	Returns param and code for given state for XT
+: behavior >< >cfa@ ;						\ ( state xt -- param code)	Same as >cfa@, with input parameters swapped for aesthetics
+: exec     (exec) ;						\ ( -- _exec )			Returns address of _exec entry point (param should point to threaded code)
 								\\ Here
 :: here!   code rhere rtop mov, _, ret,
 								\\ Return stack									_return_stack
