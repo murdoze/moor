@@ -1,1 +1,1 @@
-cat core.moor opti.moor test.moor | ./moordt
+cat core.moor opti.moor type.moor test.moor | ./moordt
