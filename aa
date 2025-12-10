@@ -1,0 +1,3 @@
+aarch64-linux-gnu-as amur.asm -g -am -amhls=amur.lst -o amur.o
+aarch64-linux-gnu-ld amur.o -N -o amur
+
