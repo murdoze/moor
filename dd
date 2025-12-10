@@ -1,4 +1,4 @@
-cat core.moor opti.moor test.moor > q.moor
+cat core.moor opti.moor type.moor test.moor > q.moor
 gdb moordt -ex "r < ./q.moor"
 
 
