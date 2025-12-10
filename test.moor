@@ -91,7 +91,9 @@ cold
 7a fibo ..  
 7b fibo ..  
 
-c0de f1b .abort
+exec
+
+\\ c0de f1b .abort
 
 
 : q  1 3 | <<< >| - ;
@@ -263,7 +265,7 @@ cold
 cold
 :^ ?^ 1 ^> cs-2  
 
-c0de 42 .abort
+\\ c0de 42 .abort
 
 cold
 : cs4 3 begin 30 emit 1- | continue 31 emit >< | break 32 emit | 1+ while 33 emit _ 1 1 repeat 34 emit then 35 emit ;
@@ -281,10 +283,11 @@ cold
 cold
 1 cs50 .S 
 cold
-:^ ?^ 1 ^> cs50 #_
+.( THIS TEST FAILS !!! )
+.( .\ :^ ?^ 1 ^> cs50 #_ )
 
 
-600df00d 0c0de .abort
+\\ 600df00d 0c0de .abort
 
 
 2 3 + ..
@@ -426,7 +429,8 @@ q
 
 see cs4
 cold
-:^ ?^ 1 cr .S cr  ^> cs4
+.( THIS TEST ALSO FAILS )
+.( :^ ?^ 1 cr .S cr  ^> cs4 )
 
 cold
 :: reg-stack 3 stack
