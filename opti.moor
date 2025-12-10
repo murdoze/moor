@@ -1,9 +1,6 @@
 \
 \\ Optimizer
 \
-								\\ Debug output
-: ..S .S ;
-: .S blue ..S norm ;						\ Blue stack
 
 								\\ Regallocing and assembling states
 : (%>)     | INTERPRETING >cfa@ >>> REGALLOCING >< does ;	\ ( xt -- )		Sets word's register allocation semantics to its execution semantics

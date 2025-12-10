@@ -1349,6 +1349,7 @@ _find_:
 	ret
 
 # TODO: BUG: Input -?branch causes stack underflow
+# TODO: BUG: Minus can be at the end of a number, or in the middle of a number, and it is ok
 # NUMBER ( c-addr -- n -1 | 0 )
 # Parses string as a number (in HEX base)
 word	number

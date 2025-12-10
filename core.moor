@@ -36,6 +36,9 @@
 : .abort   red . . norm cr abort ;				\ ( code message -- )	Prints code and message as hexadecimal numbers and aborts
 : ..       blue . norm ;
 : ??       dup .. ;
+								\\ Debug output
+: ..S .S ;
+: .S blue ..S norm ;						\ Blue stack
 
 .( Moore Forth System ) cr
 
@@ -179,13 +182,6 @@
 : var      , does> ;						\ :: a 12345 var
 : val      , does> @ ;						\ :: b 98765 val
 
-								\\ States									_states
-:: INTERPRETING  0 val
-:: COMPILING    -2 val
-:: DECOMPILING  -4 val
-:: REGALLOCING  -6 val
-:: ASSEMBLING   -8 val
-:: DEALLOCING   -a val
 								\\ Dictionary structure
 : >cfa     cells + cell - cell - ;				\ ( xt state -- cfa )	Returns CFA for given state for XT
 : cfa@     | @ >< cell + @ >< ;					\ ( cfa -- param code )	Returns param and code for CFA
@@ -403,12 +399,12 @@
 : setg0,   r0 .g setf,  movzxc, ;						\ 			setl	cl ; movzx rcx, cl
 : setge0,  r0 .ge setf, movzxc, ;						\ 			setle	cl ; movzx rcx, cl
 
-:: =       code #1 r1 load, r1 r0 cmp, setz0, off, ret,		\ ( a b -- a=b )	Compare two top elements, return 1 if equal and 0 otherwise
-:: <>      code #1 r1 load, r1 r0 cmp, setnz0, off, ret,	\ ( a b -- a<>b )	Compare two top elements, return 1 if not equal and 0 otherwise
-:: <       code #1 r1 load, r1 r0 cmp, setl0, off, ret,		\ ( a b -- a<b )	
-:: <=      code #1 r1 load, r1 r0 cmp, setle0, off, ret,	\ ( a b -- a<=b )	
-:: >       code #1 r1 load, r1 r0 cmp, setg0, off, ret,		\ ( a b -- a>b )	
-:: >=      code #1 r1 load, r1 r0 cmp, setge0, off, ret,	\ ( a b -- a>=b )	
+:: =       code #1 r1 load, r0 r1 cmp, setz0, off, ret,		\ ( a b -- a=b )	Compare two top elements, return 1 if equal and 0 otherwise
+:: <>      code #1 r1 load, r0 r1 cmp, setnz0, off, ret,	\ ( a b -- a<>b )	Compare two top elements, return 1 if not equal and 0 otherwise
+:: <       code #1 r1 load, r0 r1 cmp, setl0, off, ret,		\ ( a b -- a<b )	
+:: <=      code #1 r1 load, r0 r1 cmp, setle0, off, ret,	\ ( a b -- a<=b )	
+:: >       code #1 r1 load, r0 r1 cmp, setg0, off, ret,		\ ( a b -- a>b )	
+:: >=      code #1 r1 load, r0 r1 cmp, setge0, off, ret,	\ ( a b -- a>=b )	
 
 : lodsq,   48 ` ad ` ;						\			lodsq	rax, qword ptr [rsi]
 : skip,    48 ` 8d ` 34 ` c6 ` ;				\			lea	rsi, [rsi + rax*8]
@@ -424,7 +420,19 @@
 		rwork push, rtmp push, ret,
 
 :: self    code |, rtop rpc mov, rtop 8 sub.i, ret,		\ ( a -- )		Returns RPC for the calling word
-								\			If SELF if the first compiled word, it returns caller's XT
+								\			If SELF is the first compiled word, it returns caller's XT
+
+								\\ States									_states
+:: MAX_STATE	 0 var
+: :state   MAX_STATE @ | -20 < if | val 2 - MAX_STATE !
+           else .. bad57a7e 0f10 .abort then ;
+
+:: INTERPRETING		:state
+:: COMPILING   		:state 
+:: DECOMPILING		:state
+:: REGALLOCING		:state
+:: ASSEMBLING		:state
+:: DEALLOCING		:state
 
 								\\ Here
 :: here!   code rhere rtop mov, _, ret,

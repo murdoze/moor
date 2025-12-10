@@ -118,6 +118,7 @@ syn keyword forthLoop +DO -DO -LOOP ?LEAVE DONE FOR K NEXT U+DO U-DO
 "syn match   forthColonDef      "\<:*[^ \t]\+\>"
 syn match   forthColon      "\<\:\>"
 syn match   forthColon      "\<\:\:\>"
+syn match   forthColon      "\<\:state\>"
 "syn match   forthColonDef      "\<\:\s*\w*\>"
 "syn match   forthColonDef      "\<(\:\:|\:)\s*[0-9a-zA-z\+\-\,\(\)\<\>\@\!\.\#\/\\\!\*]*\>"
 "syn match   forthColonDef      "\<\:\:\s*[0-9a-zA-z\+\-\,\(\)\<\>\@\!\.]*\>"
