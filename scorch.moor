@@ -18,7 +18,8 @@ scorch definitions
 :: WALL		2 val
 
 :: screen adr SIZE 4 * allot						\ Screen contains pixels; should correspond to arena roughly
-screen SIZE 4 * 0 .S fill
+: clear-screen screen SIZE 4 * 0 fill ;
+clear-screen
 
 :: FLYAWAY	0 val
 :: OTHERSIDE	1 val
@@ -54,36 +55,37 @@ screen SIZE 4 * 0 .S fill
 	_
 ;
 
+:: mountain-color 00ff00 var
+
 : draw-mountains1
 	WIDTH 4 - for
 		00ff00 WIDTH I - 2 - HEIGHT 2 - random 1+ | { at-screen } HEIGHT >< - screen-vline _
 	over
 ;
 : draw-mountains
-	HEIGHT 2 - random						\ start at this height
+	HEIGHT 2/ | random +						\ start at this height
 	\ HEIGHT 2/
 	0								\ height change
 	1								\ steps left
 	WIDTH 4 -							\ total columns
 	for
 		1- 
-		| -if
+		| -if 
 			_ _
-			0a random 5 - 80 random 1+
+			20 random 10 - ?? 100 random 2 + random  ??
 		then
 
 		>>> | 50 < if <<< >< negate >< else <<< then
 		>>> | HEIGHT 4 - >= if <<< >< negate >< else <<< then
 		{ | {
-			+
-			| 0 < if _ 0 then
+			>< 2* 2* + 2/ 2/
+			| 80 < if _ 80 then
 			| HEIGHT 4 - >= if _ HEIGHT 4 - then
 			
-			| { 00ff00 WIDTH I - 2 - } | { at-screen } HEIGHT 2 - >< - screen-vline _
+			| { mountain-color @ WIDTH I - 2 - } | { at-screen } HEIGHT 2 - >< - screen-vline _
 		} }
-			
-		
 	over
+	_ _ _ 
 ;
 
 xwin
@@ -95,16 +97,20 @@ xwin
 		\ 10 10 WIDTH 10 screen XDrawImage
 		LEFT 0a XLocate 002b36 XBg
 		\ aa0000 XFg X." SCORCHED " ff0000 XFg X." EARTH"
-		ff0000 " SCORCHED EARTH" count cr .S for cr red .S norm
-			{ | XFg 180000 - | 0 < if _ 0 then } 
+		ff0000 " SCORCHED EARTH KAZAP IS DEAD" count cr .S for cr red .S norm
+			{ | XFg 80000 - | 0 < if _ 0 then } 
 			| c@ XEmit 1+
-		over _
+		over _ _
 		LEFT TOP WIDTH HEIGHT screen 20 XDrawImageByLines
 	else
 	| KeyPress = if >|
 		| KEY_ESC   = if _ bye else
+		| KEY_ENTER = if _ _
+			clear-screen draw-mountains
+			LEFT TOP WIDTH HEIGHT screen 20 XDrawImageByLines
+		else
 			_ _
-		then
+		then then
 	else
 		_
 	then then
