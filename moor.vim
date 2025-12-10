@@ -115,15 +115,20 @@ syn keyword forthLoop ?DO AGAIN
 syn keyword forthLoop +DO -DO -LOOP ?LEAVE DONE FOR K NEXT U+DO U-DO
 
 " new words {{{2
-syn match   forthColonDef      "\<:*[^ \t]\+\>"
+"syn match   forthColonDef      "\<:*[^ \t]\+\>"
+syn match   forthColon      "\<\:\>"
+syn match   forthColon      "\<\:\:\>"
+"syn match   forthColonDef      "\<\:\s*\w*\>"
+"syn match   forthColonDef      "\<(\:\:|\:)\s*[0-9a-zA-z\+\-\,\(\)\<\>\@\!\.\#\/\\\!\*]*\>"
+"syn match   forthColonDef      "\<\:\:\s*[0-9a-zA-z\+\-\,\(\)\<\>\@\!\.]*\>"
 syn keyword forthEndOfColonDef ;
 syn keyword forthEndOfColonDef ret,
-syn match   forthDefine "\<><\>"
-syn match   forthDefine "\<>>>\>"
-syn match   forthDefine "\<..\>"
-syn match   forthDefine "\<|\>"
-syn match   forthDefine "\<_\>"
-syn match   forthDefine "\<>|\>"
+"syn match   forthDefine "\<><\>"
+"syn match   forthDefine "\<>>>\>"
+"syn match   forthDefine "\<..\>"
+"syn match   forthDefine "\<|\>"
+"syn match   forthDefine "\<_\>"
+"syn match   forthDefine "\<>|\>"
 syn keyword forthDefine ' , C, CONSTANT CREATE DOES> EXECUTE IMMEDIATE LITERAL
 syn keyword forthDefine POSTPONE STATE VARIABLE ]
 syn match   forthDefine "\<\[']\>"
@@ -422,17 +427,22 @@ syn keyword forthConversion XHOLD
 syn keyword forthString     -TRAILING-GARBAGE
 
 " Define the default highlighting {{{1
-hi def forthCommentNorm ctermfg=Red
+hi def forthCommentNorm ctermfg=14
 hi def forthCommentBold ctermfg=Red cterm=bold
 hi def forthCommentTodo ctermfg=Yellow cterm=bold
 hi def forthConditionalBold ctermfg=LightCyan cterm=bold
+hi def forthDefine ctermfg=Red cterm=bold
+hi def forthColonDef ctermfg=Red cterm=bold
+hi def forthColon ctermfg=LightCyan cterm=bold
+hi def forthEndOfColonDef ctermfg=LightCyan cterm=bold
+hi def forthInteger ctermfg=Green cterm=bold
 
 hi def link forthBoolean Boolean
 hi def link forthCharacter Character
 hi def link forthTodo Todo
 hi def link forthOperators Operator
 hi def link forthMath Number
-hi def link forthInteger Comment
+"hi def link forthInteger Comment
 hi def link forthFloat Float
 hi def link forthStack Special
 hi def link forthRstack Special
@@ -443,9 +453,9 @@ hi def link forthAdrArith Function
 hi def link forthMemBlks Function
 hi def link forthCond forthConditionalBold
 hi def link forthLoop forthConditionalBold
-hi def link forthColonDef Special
-hi def link forthEndOfColonDef Special
-hi def link forthDefine Special
+"hi def link forthColonDef Function
+"hi def link forthEndOfColonDef Function
+"hi def link forthDefine Function
 hi def link forthDebug Debug
 hi def link forthAssembler Include
 hi def link forthCharOps Character
@@ -464,7 +474,7 @@ hi def link forthEndOfObjectDef Define
 hi def link forthInclude Include
 hi def link forthLocals Type " nothing else uses type and locals must stand out
 hi def link forthFileMode Function
-hi def link forthFunction Special
+hi def link forthFunction Function
 hi def link forthFileWords Statement
 hi def link forthBlocks Statement
 hi def link forthSpaceError Error
