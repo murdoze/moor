@@ -118,7 +118,12 @@ syn keyword forthLoop +DO -DO -LOOP ?LEAVE DONE FOR K NEXT U+DO U-DO
 "syn match   forthColonDef      "\<:*[^ \t]\+\>"
 syn match   forthColon      "\<\:\>"
 syn match   forthColon      "\<\:\:\>"
+syn match   forthColon      "\<T\:\>"
+syn match   forthColon      "\<\;T\>"
 syn match   forthColon      "\<\:state\>"
+syn match   forthColon      "\<\:type\>"
+syn match   forthColon      "\<state\!\>"
+syn keyword forthColon      var val adr
 "syn match   forthColonDef      "\<\:\s*\w*\>"
 "syn match   forthColonDef      "\<(\:\:|\:)\s*[0-9a-zA-z\+\-\,\(\)\<\>\@\!\.\#\/\\\!\*]*\>"
 "syn match   forthColonDef      "\<\:\:\s*[0-9a-zA-z\+\-\,\(\)\<\>\@\!\.]*\>"
@@ -133,6 +138,7 @@ syn keyword forthEndOfColonDef ret,
 syn keyword forthDefine ' , C, CONSTANT CREATE DOES> EXECUTE IMMEDIATE LITERAL
 syn keyword forthDefine POSTPONE STATE VARIABLE ]
 syn keyword forthDefine DOES BEHAVIOR
+syn keyword forthDefine ABORT .ABORT
 syn match   forthDefine "\<\[']\>"
 syn match   forthDefine "\<\[\>"
   " extension words
@@ -260,7 +266,7 @@ endif
 syn region forthComment start='\<\.(\>' end=')' end='$' contains=@Spell,forthTodo,forthSpaceError
 
 " ABORT {{{2
-syn keyword forthForth ABORT
+"syn keyword forthForth ABORT .ABORT
 syn keyword forthComment ?? .S
 syn region forthForth start=+\<ABORT"\s+ end=+"\>+ end=+$+
 
@@ -326,7 +332,7 @@ syn match forthInclude '^NEEDS\s\+'
 " The optional Floating-Point word set {{{1
 
 " numbers
-syn match   forthFloat      '\<[+-]\=\d\+\.\=\d*[DdEe][+-]\=\d*\>'
+"syn match   forthFloat      '\<[+-]\=\d\+\.\=\d*[DdEe][+-]\=\d*\>'
 
 syn keyword forthConversion >FLOAT D>F F>D
 syn keyword forthAdrArith   FALIGN FALIGNED FLOAT+ FLOATS
