@@ -1,0 +1,9 @@
+\ Terminal ANSI and Sixels
+
+: 10/mod | 01999999A * 20 sar | a * >>> >< - >< ;
+: dig 10/mod ;
+: digit dup 9 > if 7 + then [char] 0 + ; 
+: .3digits dig dig dig drop digit emit digit emit digit emit ;
+
+: at 1b emit [char] [ .3digits [char] ; emit .3digits [char] H emit ;				\ ( x y -- )	Move cursor to x,y
+
