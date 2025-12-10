@@ -1,0 +1,49 @@
+\
+\\ Type check
+\
+								\\ Static type check
+:: TYPECHECKING		:state
+
+INTERPRETING ' exit 	     behavior TYPECHECKING ' exit          does
+INTERPRETING ' interpreting! behavior TYPECHECKING ' interpreting! does
+
+:: TYPECHECKING!!  code rstate TYPECHECKING  mov.i, ret,		\ ( -- )	Sets state to TYPECHECKING without address interpreter involvement
+\\	INTERPRETING latest behavior REGALLOCING latest does
+								\\ Type registration
+:: ~Number
+:: ~Xt
+
+: T:								\ ( "<name>" -- )	Defines static typecheck behavior for a word
+	here exec TYPECHECKING ' does
+        compile interpreting!
+	] 
+;
+: ;T	compile TYPECHECKING!! compile exit [compile] [ ; immediate
+
+: typecheck							\ ( xt -- )		Run XT in static type checking mode
+	TYPECHECKING state!
+	execute
+	interpreting! INTERPRETING state! ;
+
+: (:)      : ;							\ 			Redefine : to enable REGALLOCING state TODO: ANALYZE
+: :        (:) INTERPRETING latest behavior TYPECHECKING latest does ;
+
+: assert-type <> if 71b0cecc e4404 .abort then ;		\ ( t -- | ABORT )	Abort on type mismatch
+
+
+
+								\\ Typechecking tests
+.( Typechecking tests... )
+
+T: lit	skip ~Number ;T
+T: emit ~Number assert-type ;T
+
+: type-test-1 2a emit ;
+type-test-1
+
+cr .S
+' type-test-1 trace typecheck notrace
+
+cr .S
+
+\\ 71b0ccec 7e57 .abort
