@@ -182,10 +182,11 @@
 : var      , does> ;						\ :: a 12345 var
 : val      , does> @ ;						\ :: b 98765 val
 
-								\\ Dictionary structure
+								\\ Dictionary structure manipulation
 : >cfa     cells + cell - cell - ;				\ ( xt state -- cfa )	Returns CFA for given state for XT
 : cfa@     | @ >< cell + @ >< ;					\ ( cfa -- param code )	Returns param and code for CFA
 : >cfa@    >cfa cfa@ ;						\ ( xt state -- param code)	Returns param and code for given state for XT
+: behavior >< >cfa@ ;						\ ( state xt -- param code)	Same as >cfa@, with input parameters swapped for aesthetics
 
 : >name    22 cells - @ ; 					\ ( xt -- c-addr )	Returns address of the name counted string
 
@@ -433,7 +434,6 @@
 :: REGALLOCING		:state
 :: ASSEMBLING		:state
 :: DEALLOCING		:state
-
 								\\ Here
 :: here!   code rhere rtop mov, _, ret,
 								\\ Return stack									_return_stack
@@ -452,7 +452,7 @@
 :: (over-post) code
                 rtmp pop, rwork pop, rindex pop, 
 		rwork push, rtmp push, ret,
-' branch DECOMPILING >cfa@ DECOMPILING ' (over) does
+DECOMPILING ' branch behavior DECOMPILING ' (over) does
 
 :: (-leave) code 						\ ( f -- )		Leave FOR loop if the flag is false
            rtmp rtop mov,
@@ -460,7 +460,7 @@
 	   skip,
 	   rtmp pop, rwork pop, rindex pop,
 	   rwork push, rtmp push, ret,
-' branch DECOMPILING >cfa@ DECOMPILING ' (-leave) does
+DECOMPILING ' branch behavior DECOMPILING ' (-leave) does
 
 
 : for      compile (for) <mark ; immediate			\ ... n for ... [ aft ] ... [ then ] ... over ...
