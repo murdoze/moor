@@ -504,7 +504,7 @@ xcb_poly_line_request struct: xpolyline_request
 ;
 
 : XRun
-	100 xtimeout !
+	-1 xtimeout !
         XSocket XConnect XSetup
 	XNextId | gc_id ! XNextId drawable_id ! window_root_id @ ><
 	XCreateGC
@@ -533,6 +533,7 @@ xwin definitions internal
 : KeyRelease KeyRelease ;
 
 : KEY_ESC KEY_ESC ;
+: KEY_ENTER KEY_ENTER ;
 
 : MyHandler
 	purple cr ." In My Handler !!!!"
