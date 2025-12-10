@@ -17,3 +17,10 @@ iabbrev phii <C-v>u03c6
 iabbrev bar <C-v>u0a6
 iabbrev bb <C-v>u2588
 
+function! SynGroup()
+    let l:s = synID(line('.'), col('.'), 1)
+    echo synIDattr(l:s, 'name') . ' -> ' . synIDattr(synIDtrans(l:s), 'name') . "\t fg=" . synIDattr(synIDtrans(l:s), "fg#") . " bg=" . synIDattr(synIDtrans(l:s), "bg#") . " bold=" . synIDattr(synIDtrans(l:s), "bold")
+endfun
+
+
+nmap <C-\> :call SynGroup()<CR>
