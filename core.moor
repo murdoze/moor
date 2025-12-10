@@ -391,7 +391,7 @@
 	    ret,
 
 : rdtsc,   0f ` 31 ` ;						\			RDTSC EDX:EAX
-:: timestamp code here						\			64-bit timestamp
+:: timestamp code 						\			64-bit timestamp
            |, rdtsc, rtop rdx mov, 20 shl0, rtop rax or, ret,
 
 
