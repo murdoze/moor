@@ -12,6 +12,7 @@
 # https://forth-standard.org/standard/words
 # https://www.mpeforth.com/resource-links/downloads/
 # https://iforth.nl/
+# https://github.com/orgMINT/MINT
 # TODO: Benchmarks
 # https://github.com/quepas/Compiler-benchmark-suites
 # https://github.com/embench/embench-iot/
@@ -238,6 +239,7 @@ _tib:
 .endm
 
 .macro	word	name, fname, immediate, does=code, param, decomp, decomp_param, regalloc, regalloc_param
+	.endfunc
 	.align	16
 \name\()_str0:
 	.byte	\name\()_strend - \name\()_str
@@ -298,6 +300,7 @@ _tib:
 .endif
 
 	# TODO: Add a "canary"/hash to make sure an XT is actually an XT
+.func	name
 \name\():
 	latest_word = .
 	latest_name = _\name
@@ -305,6 +308,8 @@ _tib:
 
 # Words
 .p2align	4, 0x90
+
+.func	words
 
 # FORTH
 # The root vocabulary
@@ -595,7 +600,6 @@ _emit:
 	mov	rax, 0x1	# sys_write
 	syscall
 	pop	rwork
-
 	pop	rdi
 	pop	rsi
 	pop	rdx
@@ -915,6 +919,8 @@ _word:
 	pop	rtmp
 	cmp	rtop, rbx
 	je	1b
+	cmp	rtop, 0xd
+	je	1b
 	cmp	rtop, 0xa
 	je	7f
 	cmp	rtop, 0x9
@@ -936,6 +942,8 @@ _word:
 	pop	rtmp
 	cmp	rtop, rbx
 	je	7f
+	cmp	rtop, 0xd
+	je	6f
 	cmp	rtop, 0xa
 	je	7f
 	cmp	rtop, 0x9
@@ -950,6 +958,7 @@ _word:
 	mov	rax, rtop
 	stosb
 	inc	rtmp
+	6:
 	call	_drop
 	jmp	3b
 
@@ -1134,7 +1143,7 @@ _codeword:
 	.quad	does
 
 	.quad	lit, 0
-	.quad	lit, _decomp
+	.quad	lit, _decomp_code
 	.quad	lit, DECOMPILING
 	.quad	latest
 	.quad	does
@@ -1693,15 +1702,27 @@ _summoner:
 word	cold
 	jmp	_abort
 
+_hello_msg:
+	.byte _hello_msg$ - _hello_msg - 1
+	.ascii	"\r\n\x1b[31mHELLO! \x1b[0m\x1b[33m \x1b[1m\x1b[7m MOOR \x1b[0m\n"
+_hello_msg$:
+	
+
 # WARM
 # Warm start
 word	warm,,, forth
 _warm:
+	.quad	lit, _hello_msg
+	.quad	count
+	.quad	type
+
+
 	.quad	quit
 	.quad	bye
 	.quad	exit # Not needed here, for decompiler only for now
 
 # LATEST
+	.endfunc
 	.equ	last, latest_word
 .align	16
 here0:
