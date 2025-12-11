@@ -453,6 +453,33 @@ cold
 11 22 33 44 55 .S cr
 0 #| .. 1 #| .. 2 #| .. 3 #| .. 4 #| ..
 
+.\ Typecheck tests
+cr  cr cr cr cr cr .( Typecheck tests )
+cold
+
+: #type count type ;
+
+\\ ' #type typecheck
+
+: print1 " Printing 1" count type cr ;
+print1
+' print1 typecheck 
+
+
+
+: type-test-1 2a emit ;
+type-test-1
+
+cr .S
+' type-test-1 trace typecheck notrace
+
+cr .S
+see fib
+' fib trace typecheck notrace
+
+
+
+
 words
 .\ Tests finished successfully
 

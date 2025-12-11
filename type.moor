@@ -12,6 +12,8 @@ INTERPRETING ' interpreting! behavior TYPECHECKING ' interpreting! does
 								\\ Type registration
 :: ~Number
 :: ~Xt
+:: ~'#Str
+:: ~Str
 
 : T:								\ ( "<name>" -- )	Defines static typecheck behavior for a word
 	here exec TYPECHECKING ' does
@@ -28,22 +30,34 @@ INTERPRETING ' interpreting! behavior TYPECHECKING ' interpreting! does
 : (:)      : ;							\ 			Redefine : to enable REGALLOCING state TODO: ANALYZE
 : :        (:) INTERPRETING latest behavior TYPECHECKING latest does ;
 
-: assert-type <> if 71b0cecc e4404 .abort then ;		\ ( t -- | ABORT )	Abort on type mismatch
+: assert-depth depth < if 71b0cecc deb76 .abort then ;
 
-
+: assert-type
+	compile <>
+	[compile] if
+		71b0cecc [compile] literal
+		a55e47 [compile] literal 
+		latest [compile] literal
+		compile >name compile count compile blue compile type 
+		compile bl compile emit compile .abort 
+	[compile] then
+; immediate
 
 								\\ Typechecking tests
 .( Typechecking tests... )
 
 T: lit	skip ~Number ;T
+: _emit ~Number [ trace ] assert-type [ notrace ] ;
+: __emit _emit ;
 T: emit ~Number assert-type ;T
+T: count ~'#Str assert-type ;T
 
-: type-test-1 2a emit ;
-type-test-1
+see assert-type
+see _emit
+~Number _emit
+\\ 11 __emit
 
-cr .S
-' type-test-1 trace typecheck notrace
-
-cr .S
+INTERPRETING ' (") behavior TYPECHECKING ' (") does
 
 \\ 71b0ccec 7e57 .abort
+
