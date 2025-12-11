@@ -186,7 +186,7 @@ _trace:
 
 _canary_fail:
 	# TODO: Nice error message
-	lea	rtop, qword ptr [_canary_fail_errm1]
+	lea	rtop, qword ptr [.L_canary_fail_errm1]
 	call	_count
 	call	_type
 
@@ -195,18 +195,17 @@ _canary_fail:
 .endif
 	jmp	_abort
 
-_canary_fail_errm1:
-	.byte _state_notimpl_errm1$ - _state_notimpl_errm1 - 1
+.L_canary_fail_errm1:
+	.byte .L_canary_fail_errm1$ - .L_canary_fail_errm1 - 1
 	.ascii	"\r\n\x1b[31mERROR! \x1b[0m\x1b[33m \x1b[1m\x1b[7m Canary DEAD \x1b[0m \r\n"
-
-_canary_fail_errm1$:
+.L_canary_fail_errm1$:
 
 _state_notimpl:
 	push	rstate
 	push	rwork
 
 	call	_dup
-	lea	rtop, qword ptr [_state_notimpl_errm1]
+	lea	rtop, qword ptr [.L_state_notimpl_errm1]
 	call	_count
 	call	_type
 	
@@ -219,7 +218,7 @@ _state_notimpl:
 	call	_type
 
 	call	_dup
-	lea	rtop, qword ptr [_state_notimpl_errm2]
+	lea	rtop, qword ptr [.L_state_notimpl_errm2]
 	call	_count
 	call	_type
 
@@ -230,7 +229,7 @@ _state_notimpl:
 	call	_dot
 
 	call	_dup
-	lea	rtop, qword ptr [_state_notimpl_errm3]
+	lea	rtop, qword ptr [.L_state_notimpl_errm3]
 	call	_count
 	call	_type
 
@@ -241,20 +240,20 @@ _state_notimpl:
 
 	9:
 	ret
-_state_notimpl_errm1:
-	.byte _state_notimpl_errm1$ - _state_notimpl_errm1 - 1
+.L_state_notimpl_errm1:
+	.byte .L_state_notimpl_errm1$ - .L_state_notimpl_errm1 - 1
 	.ascii	"\r\n\x1b[31mERROR! \x1b[0m\x1b[33mWord \x1b[1m\x1b[7m "
-_state_notimpl_errm1$:
+.L_state_notimpl_errm1$:
 
-_state_notimpl_errm2:
-	.byte _state_notimpl_errm2$ - _state_notimpl_errm2 - 1
+.L_state_notimpl_errm2:
+	.byte .L_state_notimpl_errm2$ - .L_state_notimpl_errm2 - 1
 	.ascii	" \x1b[0m does not implement state \x1b[7m "
-_state_notimpl_errm2$:
+.L_state_notimpl_errm2$:
 
-_state_notimpl_errm3:
-	.byte _state_notimpl_errm3$ - _state_notimpl_errm3 - 1
+.L_state_notimpl_errm3:
+	.byte .L_state_notimpl_errm3$ - .L_state_notimpl_errm3 - 1
 	.ascii	"\x1b[0m\r\n"
-_state_notimpl_errm3$:
+.L_state_notimpl_errm3$:
 
 _tib:
 	.quad	0
@@ -305,7 +304,7 @@ _sigsegv_handler:
 	mov	qword ptr [rdx + 168], rax
 	mov	qword ptr [rdx + 0], rax
 
-	lea	rtop, qword ptr [_sigsegv_errm1]
+	lea	rtop, qword ptr [.L_sigsegv_errm1]
 	call	_count
 	call	_type
 
@@ -319,7 +318,7 @@ _sigsegv_handler:
 	.type __rt_restorer, @function
 __rt_restorer:	
 _sigsegv_restorer:
-	lea	rtop, qword ptr [_sigsegv_errm2]
+	lea	rtop, qword ptr [.L_sigsegv_errm2]
 	call	_count
 	call	_type
 
@@ -327,14 +326,14 @@ _sigsegv_restorer:
 	syscall
 
 	ret
-_sigsegv_errm1:
-	.byte _sigsegv_errm1$ - _sigsegv_errm1 - 1
+.L_sigsegv_errm1:
+	.byte .L_sigsegv_errm1$ - .L_sigsegv_errm1 - 1
 	.ascii	"\r\n\x1b[41;30m\x1b[1m\x1b[7m SIGSEGV \x1b[0m\x1b[33m Handler \x1b[34mRIP=\x1b[0m"
-_sigsegv_errm1$:
-_sigsegv_errm2:
-	.byte _sigsegv_errm2$ - _sigsegv_errm2 - 1
+.L_sigsegv_errm1$:
+.L_sigsegv_errm2:
+	.byte .L_sigsegv_errm2$ - .L_sigsegv_errm2 - 1
 	.ascii	"\r\n\x1b[42;30m\x1b[1m\x1b[7m SIGSEGV \x1b[0m\x1b[33m Restorer \x1b[0m"
-_sigsegv_errm2$:
+.L_sigsegv_errm2$:
 
 #
 # Word definition
@@ -354,17 +353,17 @@ _sigsegv_errm2$:
 .macro	word	name, fname, immediate, does=code, param, decomp, decomp_param, regalloc, regalloc_param
 	.endfunc
 	.align	16
-\name\()_str0:
-	.byte	\name\()_strend - \name\()_str
-\name\()_str:
+.L\name\()_str0:
+	.byte	.L\name\()_strend - .L\name\()_str
+.L\name\()_str:
 .ifc "\fname",""
 	.ascii	"\name"
 .else
 	.ascii	"\fname"
 .endif
-\name\()_strend:
+.L\name\()_strend:
 	.p2align	4, 0x00
-	.quad	\name\()_str0	/* NFA */
+	.quad	.L\name\()_str0	/* NFA */
 	.quad	latest_word	/* LFA */
 	.quad	CANARY	
 
@@ -1158,7 +1157,7 @@ _header:
 	jmp	9f
 
 	6:
-	lea	rtop, qword ptr [_header_errm]
+	lea	rtop, qword ptr [.L_header_errm]
 	call	_count
 	call	_type
 .ifdef	DEBUG
@@ -1172,10 +1171,10 @@ _header:
 	9:
 	ret
 
-_header_errm:
-	.byte _header_errm$ - _header_errm - 1
+.L_header_errm:
+	.byte .L_header_errm$ - .L_header_errm - 1
 	.ascii	"\r\n\x1b[31mERROR! \x1b[0m\x1b[7m\x1b[1m\x1b[33m Refusing to create word header with empty name \x1b[0m\r\n"
-_header_errm$:
+.L_header_errm$:
 
 # HERE ( -- a )
 # Returns address of the first available byte of the code space
@@ -1677,7 +1676,7 @@ _quit_:
 	jmp	9f
 
 	6:
-	lea	rtop, qword ptr [_quit_errm1]
+	lea	rtop, qword ptr [.L_quit_errm1]
 	call	_count
 	call	_type
 	call	_dup
@@ -1685,7 +1684,7 @@ _quit_:
 	call	_count
 	call	_type
 	call	_dup
-	lea	rtop, qword ptr [_quit_errm2]
+	lea	rtop, qword ptr [.L_quit_errm2]
 	call	_count
 	call	_type
 .ifdef	DEBUG
@@ -1699,14 +1698,14 @@ _quit_:
 
 	9:
 	ret
-_quit_errm1:
-	.byte _quit_errm1$ - _quit_errm1 - 1
+.L_quit_errm1:
+	.byte .L_quit_errm1$ - .L_quit_errm1 - 1
 	.ascii	"\r\n\x1b[31mERROR! \x1b[0m\x1b[33mWord \x1b[1m\x1b[7m "
-_quit_errm1$:
-_quit_errm2:
-	.byte _quit_errm2$ - _quit_errm2 - 1
+.L_quit_errm1$:
+.L_quit_errm2:
+	.byte .L_quit_errm2$ - .L_quit_errm2 - 1
 	.ascii	" \x1b[27m\x1b[22m not found, or invalid hex number\x1b[0m\r\n"
-_quit_errm2$:
+.L_quit_errm2$:
 
 # QUIT
 # Interpret loop
@@ -1726,7 +1725,7 @@ _qcsp:
 	jmp	9f
 
 	6:
-	lea	rtop, qword ptr [_qcsp_errm]
+	lea	rtop, qword ptr [.L_qcsp_errm]
 	call	_count
 	call	_type
 .ifdef	DEBUG
@@ -1736,10 +1735,10 @@ _qcsp:
 
 	9:
 	ret
-_qcsp_errm:
-	.byte _qcsp_errm$ - _qcsp_errm - 1
+.L_qcsp_errm:
+	.byte .L_qcsp_errm$ - .L_qcsp_errm - 1
 	.ascii	"\r\n\r\n\x1b[31mERROR! \x1b[33m\x1b[7m Stack underflow \x1b[0m\r\n"
-_qcsp_errm$:
+.L_qcsp_errm$:
 
 # .\ ( "ccc<EOL>" -- )
 # Prints string till the end of line
@@ -1821,17 +1820,11 @@ _summoner:
 word	cold
 	jmp	_abort
 
-_hello_msg:
-	.byte _hello_msg$ - _hello_msg - 1
-	.ascii	"\r\n\x1b[31mHELLO! \x1b[0m\x1b[33m \x1b[1m\x1b[7m MOOR \x1b[0m\n"
-_hello_msg$:
-	
-
 # WARM
 # Warm start
 word	warm,,, forth
 _warm:
-	.quad	lit, _hello_msg
+	.quad	lit, .L_hello_msg
 	.quad	count
 	.quad	type
 
@@ -1840,6 +1833,11 @@ _warm:
 	.quad	bye
 	.quad	exit # Not needed here, for decompiler only for now
 
+.L_hello_msg:
+	.byte .L_hello_msg$ - .L_hello_msg - 1
+	.ascii	"\r\n\x1b[31mHELLO! \x1b[0m\x1b[33m \x1b[1m\x1b[7m MOOR \x1b[0m\n"
+.L_hello_msg$:
+	
 # LATEST
 	.endfunc
 	.equ	last, latest_word
