@@ -213,7 +213,7 @@
 								\ TODO: Allow for multiple BREAKs, as with CONTINUE
 
 : if       compile (if) compile ?branch >mark ; immediate
-: -if       compile (if) compile -?branch >mark ; immediate
+: -if      compile (if) compile -?branch >mark ; immediate
 : else     compile (else-pre) compile branch >mark compile (else-post) >< >resolve ; immediate
 : then     compile (then) >resolve ; immediate
 : begin    compile (begin) <mark ; immediate
