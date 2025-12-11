@@ -1,0 +1,9 @@
+rm mur.o
+as mur.asm --defsym ORG=0x100000 --defsym QEMU=1 -n -g -O0 --64 -am -amhls=mur.lst -o mur.o
+ld mur.o --section-start=.text=0x000000 -N -o mur
+mv mur moorq
+
+objcopy -O binary --only-section=.text ./moorq ./moorq.bin
+dd if=./moorq.bin of=./moorq0.bin bs=1 skip=1048576 count=65536
+
+cat header.bin moorq0.bin > bzMoorq
