@@ -4,6 +4,8 @@
 								\\ Static type check
 :: TYPECHECKING		:state
 
+:: latest-typecheck	latest var
+
 INTERPRETING ' exit 	     behavior TYPECHECKING ' exit          does
 INTERPRETING ' interpreting! behavior TYPECHECKING ' interpreting! does
 
@@ -16,7 +18,7 @@ INTERPRETING ' interpreting! behavior TYPECHECKING ' interpreting! does
 :: ~Str
 
 : T:								\ ( "<name>" -- )	Defines static typecheck behavior for a word
-	here exec TYPECHECKING ' does
+	here exec TYPECHECKING ' | latest-typecheck ! does
         compile interpreting!
 	] 
 ;
@@ -32,12 +34,12 @@ INTERPRETING ' interpreting! behavior TYPECHECKING ' interpreting! does
 
 : assert-depth depth < if 71b0cecc deb76 .abort then ;
 
-: assert-type
+: assert-type							\ ( t1 t2 -- | ABORT)
 	compile <>
 	[compile] if
 		71b0cecc [compile] literal
 		a55e47 [compile] literal 
-		latest [compile] literal
+		latest-typecheck @ [compile] literal
 		compile >name compile count compile blue compile type 
 		compile bl compile emit compile .abort 
 	[compile] then
