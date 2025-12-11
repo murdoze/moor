@@ -48,7 +48,15 @@
 # Initialization
 
 .p2align	16, 0x90
+
+	.org	ORG
+
 _start:
+	# Check if we're in 32-bit mode in QEMU
+
+	call	_setup_sigsegv_handler
+
+_restart:
 	lea	rwork, last
 	mov	[forth_], rwork
 	lea	rwork, [forth_]
@@ -76,9 +84,10 @@ _exit:
 	pop	rpc
 _next:
 	lodsq
-	movabs	r11, CANARY
-	cmp	qword ptr [rwork - STATES * 16 - 8], r11
-	jne	_canary_fail
+	# Canary does not save from GPF, so let's think...
+	#movabs	r11, CANARY
+	#cmp	qword ptr [rwork - STATES * 16 - 8], r11
+	#jne	_canary_fail
 _doxt:
 .ifdef DEBUG
 .ifdef TRACE
@@ -250,8 +259,86 @@ _state_notimpl_errm3$:
 _tib:
 	.quad	0
 
-# Word definition
+#
+# SIGSEGV signal handler
+#
+	.equ	SIGSEGV, 11
+	
+_sigaction:
+	.quad	_sigsegv_handler
+	.quad	0x0000000004000004
+	.quad	_sigsegv_restorer,   0x0000000000000000
+	.quad	0x0000000000000000, 0x0000000000000000
+	.quad	0x0000000000000000, 0x0000000000000000
+	.quad	0x0000000000000000, 0x0000000000000000
+	.quad	0x0000000000000000, 0x0000000000000000
+	.quad	0x0000000000000000, 0x0000000000000000
+	.quad	0x0000000000000000, 0x0000000000000000
+	.quad	0x0000000000000000, 0x0000000000000000
+	.quad	0x0000000000000000, 0x0000000000000000
 
+#$2 = {__sigaction_handler = {sa_handler = 0x555555555229 <handler>, sa_sigaction = 0x555555555229 <handler>}, sa_mask = {__val = {0, 32768, 14680064, 14680064, 2097152, 32768, 140737488345016,
+#      730144440326, 140737488350123, 140737354087638, 0, 0, 0, 0, 0, 0}}, sa_flags = 4, sa_restorer = 0x7fffffffd8d0}
+
+_setup_sigsegv_handler:
+	# rax             rdi      rsi                          rdx                     r10
+	# 13 rt_sigaction int sig, const struct sigaction *act, struct sigaction *oact, size_t sigsetsize
+
+	lea	rax, [_sigsegv_handler]
+	mov	[_sigaction], rax
+	mov	rax, 13
+	mov	rdi, SIGSEGV
+	lea	rsi, [_sigaction]
+	xor	rdx, rdx
+	mov	r10, 8
+	syscall
+
+	ret
+
+_sigsegv_handler:
+	# rdi = sig, rsi = siginfo_t , rdx = ucontext_t
+
+	mov	rax, qword ptr [rdx + 168] # context->uc_mcontext->gregs[16] = RIP, see <sys/ucontext.h>
+	push	rax
+
+	lea	rax, [_start]
+	mov	qword ptr [rdx + 168], rax
+	mov	qword ptr [rdx + 0], rax
+
+	lea	rtop, qword ptr [_sigsegv_errm1]
+	call	_count
+	call	_type
+
+	pop	rtop
+	call	_dot
+
+	ret
+
+	nop
+	.align 16
+	.type __rt_restorer, @function
+__rt_restorer:	
+_sigsegv_restorer:
+	lea	rtop, qword ptr [_sigsegv_errm2]
+	call	_count
+	call	_type
+
+	mov	rax, 15	# rt_sigreturn
+	syscall
+
+	ret
+_sigsegv_errm1:
+	.byte _sigsegv_errm1$ - _sigsegv_errm1 - 1
+	.ascii	"\r\n\x1b[41;30m\x1b[1m\x1b[7m SIGSEGV \x1b[0m\x1b[33m Handler \x1b[34mRIP=\x1b[0m"
+_sigsegv_errm1$:
+_sigsegv_errm2:
+	.byte _sigsegv_errm2$ - _sigsegv_errm2 - 1
+	.ascii	"\r\n\x1b[42;30m\x1b[1m\x1b[7m SIGSEGV \x1b[0m\x1b[33m Restorer \x1b[0m"
+_sigsegv_errm2$:
+
+#
+# Word definition
+#
 	latest_word	= 0
 
 .macro	reserve_cfa does, reserve=(STATES - 3)
