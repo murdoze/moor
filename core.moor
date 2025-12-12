@@ -395,12 +395,12 @@
 : setg0,   r0 .g setf,  movzxc, ;						\ 			setl	cl ; movzx rcx, cl
 : setge0,  r0 .ge setf, movzxc, ;						\ 			setle	cl ; movzx rcx, cl
 
-:: =       code #1 r1 load, r0 r1 cmp, setz0, off, ret,		\ ( a b -- a=b )	Compare two top elements, return 1 if equal and 0 otherwise
-:: <>      code #1 r1 load, r0 r1 cmp, setnz0, off, ret,	\ ( a b -- a<>b )	Compare two top elements, return 1 if not equal and 0 otherwise
-:: <       code #1 r1 load, r0 r1 cmp, setl0, off, ret,		\ ( a b -- a<b )	
-:: <=      code #1 r1 load, r0 r1 cmp, setle0, off, ret,	\ ( a b -- a<=b )	
-:: >       code #1 r1 load, r0 r1 cmp, setg0, off, ret,		\ ( a b -- a>b )	
-:: >=      code #1 r1 load, r0 r1 cmp, setge0, off, ret,	\ ( a b -- a>=b )	
+:: =       code #1 r1 load, r1 r0 cmp, setz0, off, ret,		\ ( a b -- a=b )	Compare two top elements, return 1 if equal and 0 otherwise
+:: <>      code #1 r1 load, r1 r0 cmp, setnz0, off, ret,	\ ( a b -- a<>b )	Compare two top elements, return 1 if not equal and 0 otherwise
+:: <       code #1 r1 load, r1 r0 cmp, setl0, off, ret,		\ ( a b -- a<b )	
+:: <=      code #1 r1 load, r1 r0 cmp, setle0, off, ret,	\ ( a b -- a<=b )	
+:: >       code #1 r1 load, r1 r0 cmp, setg0, off, ret,		\ ( a b -- a>b )	
+:: >=      code #1 r1 load, r1 r0 cmp, setge0, off, ret,	\ ( a b -- a>=b )	
 								\\ Control structures: helpers
 : lodsq,   48 ` ad ` ;						\			lodsq	rax, qword ptr [rsi]
 : skip,    48 ` 8d ` 34 ` c6 ` ;				\			lea	rsi, [rsi + rax*8]
@@ -422,7 +422,7 @@
 :: depth   code depth, ret,
 								\\ States									_states
 :: MAX_STATE	 0 var
-: :state   MAX_STATE @ | -20 < if | val 2 - MAX_STATE !
+: :state   MAX_STATE @ | -20 > if | val 2 - MAX_STATE !
            else .. bad57a7e 0f10 .abort then ;
 								\\ Built-in states
 :: INTERPRETING		:state
