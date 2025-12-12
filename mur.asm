@@ -22,7 +22,7 @@
 # https://gist.github.com/uobikiemukot/c2be4d7515e977fd9e85
 	.globl _start
 
-.text
+.text	
 	.equ	STATES, 16	/* Number of possible address interpreter states */
 	.equ	INTERPRETING, 0
 	.equ	COMPILING, -2
@@ -1970,6 +1970,3 @@ _warm:
 .bss
 
 here0:
-	.rep	0x1000
-	.quad	0
-	.endr
