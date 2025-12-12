@@ -72,6 +72,8 @@ _mode_64:
 	mov	rax, 12
 	lea	rdi, [here0]
 	syscall
+	# TODO check for error here
+	mov	[_mem_reserved], rax
 
 
 _restart:
@@ -82,7 +84,7 @@ _restart:
 	lea	rwork, [forth_]
 	mov	[_current], rwork
 	mov	[_context], rwork
-	lea	rhere, [here0]
+	mov	rhere, [_mem_reserved]
 _abort:
 _cold:
 	xor	rtop, rtop
@@ -96,6 +98,10 @@ _cold:
 	lea	rwork, [rsp - 0x2000]
 	mov	qword ptr [_tib], rwork
 	xor	rwork, rwork
+
+	call	_dup
+	mov	rtop, [_mem_reserved]
+	call	_dot
 
 	push	rpc
 
@@ -316,61 +322,50 @@ _setup_sigsegv_handler:
 _sigsegv_handler:
 	# rdi = sig, rsi = siginfo_t , rdx = ucontext_t
 
-	push	rdx
-	mov	r9, rdx
-	call	_dup
-	lea	rtop, qword ptr [.L_avail_mem_msg]
-	call	_count
-	call	_type
-	call	_dup
-	mov	rtop, qword ptr [r9 + 40 + 8 * 16]
-	call	_dot
-	call	_dup
-	mov	rtop,  qword ptr [r9 + 40 + 8 * 8]
-	call	_dot
-	call	_dup
-	mov	rtop, [_mem_reserved]
-	call	_dot
-	pop	rdx	
-
 	mov	rax, qword ptr [rdx + 40 + 8 * 8]	# RDI, see <sys/ucontext.h>
 	cmp	rax, [_mem_reserved]
 	jb	5f					# cause of fault is not ALLOT
 
+	#	mmap()
+	# 	rdi = unsigned long addr, rsi = unsigned long len, rdx = unsigned long prot, r10 = unsigned long flags, r8 = unsigned long fd, r9 = unsigned long off
+
+_sigsegv_handler_needalloc:
 	mov	rdi, rax
 	push	rdi
-	add	rdi, 0x1000				# ask for 4K more memory that current HERE value (because we write data larger that 1 byte beyong HERE)
-	mov	rax, 12					# brk()
-	syscall
-	
-	push	rax
 	push	rdx
-	mov	r9, rax
-	call	_dup
-	lea	rtop, qword ptr [.L_alloc_mem_msg]
-	call	_count
-	call	_type
-	call	_dup
-	mov	rtop, r9
-	call	_dot
+	test	rdi, 0x0fff
+	jz	1f
+	and	rdi, 0xfffffffffffff000
+	1:
+	mov	rsi, rdi
+	mov	rdi, [_mem_reserved]
+	sub	rsi, rdi
+	jnz	3f
+	add	rsi, 0x2000
+	3:
+	mov	rdx, 7					# RWX
+	mov	r10, 0x22				# MAP_PRIVATE | MAP_ANONYMOUS
+	mov	r8, -1
+	mov	r9, 0
+	mov	rax, 9					# mmap()
+	syscall
+	mov	r9, rdi	
+	or	rax, rax
 	pop	rdx
-	pop	rax
-	
-	mov	r9, rax
-	cmp	rax, rdi
 	pop	rdi
-	jb	4f					# if returned brk value lower than requested, no memory
+	jz	4f					# if returned brk value lower than requested, no memory
 
+	add	r9, rsi
 	mov	[_mem_reserved], r9			# update reserved memory pointer
 
-	mov	rax, qword ptr [rdx + 40 + 8 * 16]	# RIP
-	push	rax
+	push	rdx
 	call	_dup
-	lea	rtop, qword ptr [.L_alloc_mem_msg]
+	lea	rtop, [.L_avail_mem_msg]
 	call	_count
 	call	_type
 	call	_dup
-	pop	rtop
+	pop	rdx
+	mov	rtop, qword ptr [rdx + 40 + 8 * 16]
 	call	_dot
 	call	_dup
 	mov	rtop, rdi
@@ -378,7 +373,6 @@ _sigsegv_handler:
 	call	_dup
 	mov	rtop, [_mem_reserved]
 	call	_dot
-
 
 	jmp	9f
 
@@ -1976,6 +1970,6 @@ _warm:
 .bss
 
 here0:
-	.rep	0x100000
+	.rep	0x1000
 	.quad	0
 	.endr
