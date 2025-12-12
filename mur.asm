@@ -54,9 +54,23 @@
 _start:
 	# Check if we're in 32-bit mode in QEMU
 
+	push	rax
+	mov	rax, rsp
+	push	rax
+	mov	rbx, rsp
+	sub	rax, rbx
+	cmp	rbx, 8
+	pop	rax
+	pop	rax
+	je	_mode_64
+
+	# 32-bit mode, assume we're under QEMU as a kernel
+_mode_32:
+
+_mode_64:    
+_restart:
 	call	_setup_sigsegv_handler
 
-_restart:
 	lea	rwork, last
 	mov	[forth_], rwork
 	lea	rwork, [forth_]
@@ -300,7 +314,7 @@ _sigsegv_handler:
 	mov	rax, qword ptr [rdx + 168] # context->uc_mcontext->gregs[16] = RIP, see <sys/ucontext.h>
 	push	rax
 
-	lea	rax, [_start]
+	lea	rax, [_restart]
 	mov	qword ptr [rdx + 168], rax
 	mov	qword ptr [rdx + 0], rax
 
@@ -1076,6 +1090,18 @@ _word:
 	jmp	3b
 
 	7:
+	mov	rcx, rdi
+	and	rcx, 0x7	# zero fill rest of tib till mod 8
+	jz	9f
+	sub	rcx, 8
+	neg	rcx
+	xor	al, al
+	8:
+	stosb
+	dec	rcx
+	jnz	8b
+
+	9:
 	pop	rdi
 
 	mov	al, dl
@@ -1835,7 +1861,7 @@ _warm:
 
 .L_hello_msg:
 	.byte .L_hello_msg$ - .L_hello_msg - 1
-	.ascii	"\r\n\x1b[31mHELLO! \x1b[0m\x1b[33m \x1b[1m\x1b[7m MOOR \x1b[0m\n"
+	.ascii	"\r\n\x1b[31mHello \x1b[0m\x1b[42;37m\x1b[1m MOOR \x1b[0m\n\n"
 .L_hello_msg$:
 	
 # LATEST
