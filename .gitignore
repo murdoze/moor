@@ -2,7 +2,15 @@ amur
 moor
 moord
 moordt
+
+moorq
+moorq.bim
+moorq0.bin
+bzImage
+bzMoor
+
 test
+
 *.lst
 *.o
 q.moor
