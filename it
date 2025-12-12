@@ -1,2 +1,2 @@
 tabs -8
-cat core.moor - | with-readline -- ./moordt
+cat core.moor opti.moor type.moor font.moor xwin.moor test.moor - | with-readline -- ./moor

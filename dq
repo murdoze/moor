@@ -1,0 +1,1 @@
+qemu-system-x86_64 -bios /usr/share/qemu/OVMF.fd -device loader,file=moor,cpu-num=0 -debugcon file:/dev/tty -nographic -S -gdb tcp::1235
