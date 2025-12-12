@@ -59,7 +59,7 @@ _start:
 	push	rax
 	mov	rbx, rsp
 	sub	rax, rbx
-	cmp	rbx, 8
+	cmp	rax, 8
 	pop	rax
 	pop	rax
 	je	_mode_64
@@ -67,6 +67,8 @@ _start:
 	# 32-bit mode, assume we're under QEMU as a kernel
 _mode_32:
 
+
+	jmp	_restart
 _mode_64:    
 
 	mov	rax, 12
@@ -75,9 +77,9 @@ _mode_64:
 	# TODO check for error here
 	mov	[_mem_reserved], rax
 
+	call	_setup_sigsegv_handler
 
 _restart:
-	call	_setup_sigsegv_handler
 
 	lea	rwork, last
 	mov	[forth_], rwork
@@ -350,14 +352,15 @@ _sigsegv_handler_needalloc:
 	mov	rax, 9					# mmap()
 	syscall
 	mov	r9, rdi	
-	or	rax, rax
+	cmp	rax, 0
 	pop	rdx
 	pop	rdi
-	jz	4f					# if returned brk value lower than requested, no memory
+	jle	4f					
 
 	add	r9, rsi
 	mov	[_mem_reserved], r9			# update reserved memory pointer
 
+.if	0						# might be useful for debugging later, let is stay here for now
 	push	rdx
 	call	_dup
 	lea	rtop, [.L_avail_mem_msg]
@@ -373,6 +376,7 @@ _sigsegv_handler_needalloc:
 	call	_dup
 	mov	rtop, [_mem_reserved]
 	call	_dot
+.endif
 
 	jmp	9f
 
@@ -391,12 +395,16 @@ _sigsegv_handler_needalloc:
 	lea	rax, [_restart]
 	mov	qword ptr [rdx + 40 + 8 * 16], rax # continue execution from _restart
 
+.if	0
 	call	_dup
 	lea	rtop, qword ptr [.L_sigsegv_errm1]
 	call	_count
 	call	_type
+.endif
 
 	pop	rtop
+
+.if	0
 	call	_dup
 	call	_dot
 	call	_dup
@@ -405,7 +413,8 @@ _sigsegv_handler_needalloc:
 	call	_dup
 	mov	rtop, [_mem_reserved]
 	call	_dot
-	
+.endif
+
 	9:
 	ret
 
@@ -414,14 +423,14 @@ _sigsegv_handler_needalloc:
 	.type __rt_restorer, @function
 __rt_restorer:	
 _sigsegv_restorer:
+
+.if	0
 	lea	rtop, qword ptr [.L_sigsegv_errm2]
 	call	_count
 	call	_type
-
+.endif
 	mov	rax, 15	# rt_sigreturn
 	syscall
-
-	ret
 
 .L_sigsegv_errm1:
 	.byte .L_sigsegv_errm1$ - .L_sigsegv_errm1 - 1
