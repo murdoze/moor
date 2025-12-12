@@ -68,6 +68,12 @@ _start:
 _mode_32:
 
 _mode_64:    
+
+	mov	rax, 12
+	lea	rdi, [here0]
+	syscall
+
+
 _restart:
 	call	_setup_sigsegv_handler
 
@@ -76,7 +82,7 @@ _restart:
 	lea	rwork, [forth_]
 	mov	[_current], rwork
 	mov	[_context], rwork
-	lea	rhere, here0
+	lea	rhere, [here0]
 _abort:
 _cold:
 	xor	rtop, rtop
@@ -90,6 +96,7 @@ _cold:
 	lea	rwork, [rsp - 0x2000]
 	mov	qword ptr [_tib], rwork
 	xor	rwork, rwork
+
 	push	rpc
 
 # Address Interpreter and Compiler
@@ -191,6 +198,10 @@ _do_trace:
 	.p2align	3, 0x90
 _state:
 	.quad	INTERPRETING
+_tib:
+	.quad	0
+_mem_reserved:
+	.quad	0	# used to allocate more memory by brk() when ALLOT causes SIGSEGV
 _current:
 	.quad	0
 _context:
@@ -269,9 +280,6 @@ _state_notimpl:
 	.ascii	"\x1b[0m\r\n"
 .L_state_notimpl_errm3$:
 
-_tib:
-	.quad	0
-
 #
 # SIGSEGV signal handler
 #
@@ -289,9 +297,6 @@ _sigaction:
 	.quad	0x0000000000000000, 0x0000000000000000
 	.quad	0x0000000000000000, 0x0000000000000000
 	.quad	0x0000000000000000, 0x0000000000000000
-
-#$2 = {__sigaction_handler = {sa_handler = 0x555555555229 <handler>, sa_sigaction = 0x555555555229 <handler>}, sa_mask = {__val = {0, 32768, 14680064, 14680064, 2097152, 32768, 140737488345016,
-#      730144440326, 140737488350123, 140737354087638, 0, 0, 0, 0, 0, 0}}, sa_flags = 4, sa_restorer = 0x7fffffffd8d0}
 
 _setup_sigsegv_handler:
 	# rax             rdi      rsi                          rdx                     r10
@@ -311,20 +316,103 @@ _setup_sigsegv_handler:
 _sigsegv_handler:
 	# rdi = sig, rsi = siginfo_t , rdx = ucontext_t
 
-	mov	rax, qword ptr [rdx + 168] # context->uc_mcontext->gregs[16] = RIP, see <sys/ucontext.h>
+	push	rdx
+	mov	r9, rdx
+	call	_dup
+	lea	rtop, qword ptr [.L_avail_mem_msg]
+	call	_count
+	call	_type
+	call	_dup
+	mov	rtop, qword ptr [r9 + 40 + 8 * 16]
+	call	_dot
+	call	_dup
+	mov	rtop,  qword ptr [r9 + 40 + 8 * 8]
+	call	_dot
+	call	_dup
+	mov	rtop, [_mem_reserved]
+	call	_dot
+	pop	rdx	
+
+	mov	rax, qword ptr [rdx + 40 + 8 * 8]	# RDI, see <sys/ucontext.h>
+	cmp	rax, [_mem_reserved]
+	jb	5f					# cause of fault is not ALLOT
+
+	mov	rdi, rax
+	push	rdi
+	add	rdi, 0x1000				# ask for 4K more memory that current HERE value (because we write data larger that 1 byte beyong HERE)
+	mov	rax, 12					# brk()
+	syscall
+	
+	push	rax
+	push	rdx
+	mov	r9, rax
+	call	_dup
+	lea	rtop, qword ptr [.L_alloc_mem_msg]
+	call	_count
+	call	_type
+	call	_dup
+	mov	rtop, r9
+	call	_dot
+	pop	rdx
+	pop	rax
+	
+	mov	r9, rax
+	cmp	rax, rdi
+	pop	rdi
+	jb	4f					# if returned brk value lower than requested, no memory
+
+	mov	[_mem_reserved], r9			# update reserved memory pointer
+
+	mov	rax, qword ptr [rdx + 40 + 8 * 16]	# RIP
+	push	rax
+	call	_dup
+	lea	rtop, qword ptr [.L_alloc_mem_msg]
+	call	_count
+	call	_type
+	call	_dup
+	pop	rtop
+	call	_dot
+	call	_dup
+	mov	rtop, rdi
+	call	_dot
+	call	_dup
+	mov	rtop, [_mem_reserved]
+	call	_dot
+
+
+	jmp	9f
+
+	4:
+	call	_dup
+	lea	rtop, qword ptr [.L_out_of_memory_errm1]
+	call	_count
+	call	_type
+	jmp	_bye
+	
+	5:
+	push	rax					# RDI
+	mov	rax, qword ptr [rdx + 40 + 8 * 16]	# RIP
 	push	rax
 
 	lea	rax, [_restart]
-	mov	qword ptr [rdx + 168], rax
-	mov	qword ptr [rdx + 0], rax
+	mov	qword ptr [rdx + 40 + 8 * 16], rax # continue execution from _restart
 
+	call	_dup
 	lea	rtop, qword ptr [.L_sigsegv_errm1]
 	call	_count
 	call	_type
 
 	pop	rtop
+	call	_dup
 	call	_dot
-
+	call	_dup
+	pop	rtop
+	call	_dot
+	call	_dup
+	mov	rtop, [_mem_reserved]
+	call	_dot
+	
+	9:
 	ret
 
 	nop
@@ -340,15 +428,30 @@ _sigsegv_restorer:
 	syscall
 
 	ret
+
 .L_sigsegv_errm1:
 	.byte .L_sigsegv_errm1$ - .L_sigsegv_errm1 - 1
-	.ascii	"\r\n\x1b[41;30m\x1b[1m\x1b[7m SIGSEGV \x1b[0m\x1b[33m Handler \x1b[34mRIP=\x1b[0m"
+	.ascii	"\r\n\x1b[41;30m\x1b[1m\x1b[7m SIGSEGV \x1b[0m\x1b[33m Handler  \x1b[34mIP/HERE/RESERVED = \x1b[0m"
 .L_sigsegv_errm1$:
 .L_sigsegv_errm2:
 	.byte .L_sigsegv_errm2$ - .L_sigsegv_errm2 - 1
 	.ascii	"\r\n\x1b[42;30m\x1b[1m\x1b[7m SIGSEGV \x1b[0m\x1b[33m Restorer \x1b[0m"
 .L_sigsegv_errm2$:
 
+.L_avail_mem_msg:
+	.byte .L_avail_mem_msg$ - .L_avail_mem_msg - 1
+	.ascii	"\r\n\x1b[41;30m\x1b[1m\x1b[7m Available \x1b[0m\x1b[33m memory \x1b[34mIP/HERE/RESERVED = \x1b[0m"
+.L_avail_mem_msg$:
+
+.L_alloc_mem_msg:
+	.byte .L_alloc_mem_msg$ - .L_alloc_mem_msg - 1
+	.ascii	"\r\n\x1b[41;30m\x1b[1m\x1b[7m Allocated \x1b[0m\x1b[33m memory \x1b[34mIP/HERE/RESERVED = \x1b[0m"
+.L_alloc_mem_msg$:
+
+.L_out_of_memory_errm1:
+	.byte .L_out_of_memory_errm1$ - .L_out_of_memory_errm1 - 1
+	.ascii	"\r\n\x1b[41;30m\x1b[1m\x1b[7m Out of memory \x1b[0m\x1b[33m Aborting \x1b[0m"
+.L_out_of_memory_errm1$:
 #
 # Word definition
 #
@@ -956,6 +1059,7 @@ word	allot
 	add	rhere, rtop
 	call	_drop
 	ret
+
 # @ ( a -- n )
 # FETCH
 word	fetch, "@"
@@ -1867,7 +1971,10 @@ _warm:
 # LATEST
 	.endfunc
 	.equ	last, latest_word
-.align	16
+
+	.align	4096
+.bss
+
 here0:
 	.rep	0x100000
 	.quad	0
