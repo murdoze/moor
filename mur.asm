@@ -20,6 +20,9 @@
 # http://liujunming.top/2019/10/22/libdrm-samples/
 # https://dvdhrm.wordpress.com/2012/09/13/linux-drm-mode-setting-api/
 # https://gist.github.com/uobikiemukot/c2be4d7515e977fd9e85
+# https://stackoverflow.com/questions/34268518/creating-a-bootable-iso-image-with-custom-bootloader
+
+
 	.globl _start
 
 .text	
@@ -52,23 +55,123 @@
 	.org	ORG
 
 _start:
-	# Check if we're in 32-bit mode in QEMU
+	# Check if we're in 16/32/64-bit mode
 
 	push	rax
-	mov	rax, rsp
+	mov	eax, esp
 	push	rax
-	mov	rbx, rsp
-	sub	rax, rbx
-	cmp	rax, 8
-	pop	rax
-	pop	rax
-	je	_mode_64
+	mov	ebx, esp
+	sub	eax, ebx
+	pop	rbx
+	pop	rbx
+	cmp	eax, 2
+	je	_mode_16
+	cmp	eax, 4
+	je	_mode_32
+	jmp	_mode_64
 
-	# 32-bit mode, assume we're under QEMU as a kernel
 _mode_32:
+	# 32-bit mode, assume we're booting like Linux kernel at 0x100000
+
+	jmp	_boot_32
+
+_mode_16:
+	# 16-bit mode, bootloader at 0x7c00
+	.byte	0xea			# jmp far 0:0x7c00+x
+	.word	_boot_16 - _start + 0x7c00, 0x0000
+
+_boot_16:
+.code16
+	mov	ax, 0xb800
+	mov	fs, ax
+
+	mov	byte ptr fs:[0], 0x2b
+	mov	byte ptr fs:[2], 0x2e
+	mov	byte ptr fs:[3], 0x2e
+	mov	byte ptr fs:[4], 0x41
 
 
-	jmp	_restart
+					# DL contains disk number (normally 0x80)
+	mov	bx, 0x1000		# load sector to memory address 0x1000 
+	mov	es, bx                 
+	mov	bx, 0x0			# ES:BX = 0x1000:0x0
+	mov	si, 128			# 128 sectors = 64 KB (to avoid crossing segment boundary for now)
+
+	mov	dh, 0x0			# head 0
+	mov	ch, 0x0			# cylinder 0
+	mov	cl, 0x1			# starting sector to read from disk - 1
+
+	sub	bh, 0x2
+
+	mov	di, 6			# debug print
+
+.L_next_sector:
+	mov	byte ptr fs:[di], 0x2a
+	inc	di
+	inc	di
+
+	inc	cl
+	dec	si
+	jz	.L_loaded
+
+	add	bh, 0x2
+
+.L_load1:
+	mov	ax, 0x0201              # # of sectors to read, 0x40 = 64 * 512 = 32KB
+	int	0x13                    # BIOS interrupts for disk functions
+	jc	.L_disk_error
+
+	cmp	cl, 63
+	jne	.L_next_sector
+	inc	dh
+	cmp	dh, 0xf			# Number of heads
+	jna	.L_forward
+	xor	dh, dh
+	inc	ch
+	jnz	.L_forward
+	add	cl, 0x40
+.L_forward:
+	and	cl, 0xc0
+
+	mov	byte ptr fs:[di], 0x2b
+	inc	di
+	inc	di
+
+	jmp	.L_next_sector
+
+
+	mov	byte ptr fs:[0], 0x2a
+
+.L_loaded:
+	# reset segment registers for RAM
+	mov ax, 0x1000
+	mov ds, ax                  # data segment
+	mov es, ax                  # extra segment
+	mov fs, ax                  # ""
+	mov gs, ax                  # ""
+	mov ss, ax                  # stack segment
+
+	jmp 0x1000:0x0              # never return from this!
+
+.L_disk_error:
+	mov	byte ptr fs:[0], 0x21
+	
+	jmp	.
+
+	.org	ORG + 0x1be
+	.byte	0x80			# bootable
+	.byte	0x01, 0x01, 0x00	# start CHS address
+	.byte	0x17			# partition type
+	.byte	0x00, 0x02, 0x00	# end CHS address
+	.byte	0x00, 0x00, 0x00, 0x00	# LBA
+	.byte	0x02, 0x00, 0x00, 0x00	# number of sectors
+
+	.org	ORG + 0x1fe
+	.byte	0x55, 0xaa
+
+	# 0x200 offset in 64-bit is required by 64-bit bootloaders, hence the order of code
+	.org	ORG + 0x200
+.code64
 _mode_64:    
 
 	mov	rax, 12
@@ -100,10 +203,6 @@ _cold:
 	lea	rwork, [rsp - 0x2000]
 	mov	qword ptr [_tib], rwork
 	xor	rwork, rwork
-
-	call	_dup
-	mov	rtop, [_mem_reserved]
-	call	_dot
 
 	push	rpc
 
@@ -287,6 +386,12 @@ _state_notimpl:
 	.byte .L_state_notimpl_errm3$ - .L_state_notimpl_errm3 - 1
 	.ascii	"\x1b[0m\r\n"
 .L_state_notimpl_errm3$:
+
+#
+# Boot in 32-bit protected mode, like Linux bzImage
+#
+_boot_32:
+	jmp	.
 
 #
 # SIGSEGV signal handler
@@ -1976,6 +2081,5 @@ _warm:
 	.equ	last, latest_word
 
 	.align	4096
-.bss
 
 here0:
