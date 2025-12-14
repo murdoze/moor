@@ -1,0 +1,1 @@
+qemu-system-x86_64  -kernel bzMoorq  -debugcon file:/dev/tty -nographic -S -gdb tcp::1235 
