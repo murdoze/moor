@@ -7,3 +7,8 @@ objcopy -O binary --only-section=.text ./moorq ./moorq.bin
 dd if=./moorq.bin of=./moorq0.bin bs=1 skip=1048576 count=65536
 
 cat header.bin moorq0.bin > bzMoorq
+
+dd if=/dev/zero of=moorq.hda bs=1K count=1440
+dd if=moorq0.bin of=moorq.hda conv=notrunc bs=1 count=65536
+#genisoimage -J -r -input-charset=utf-8 -o moorq.iso -no-emul-boot -boot-load-size 4 -b floppy.bin -o moorq.iso ./iso/
+
