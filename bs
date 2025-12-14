@@ -9,7 +9,7 @@ rm mur.o
 cat core.moor opti.moor type.moor > boot_source.moor && echo -e "\0" >> boot_source.moor
 ld -r -b binary -o boot_source.o boot_source.moor
 as mur.asm --defsym ORG=0 --defsym BOOT_SOURCE=1 -n -g -O0 --64 -am -amhls=mur.lst -o mur.o
-ld mur.o boot_source.o -N -n -o mur
+ld mur.o boot_source.o -N -o mur
 mv mur moors
 
 rm mur.o

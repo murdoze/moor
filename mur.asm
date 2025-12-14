@@ -93,15 +93,15 @@ _boot_16:
 	mov	bx, 0x1000		# load sector to memory address 0x1000 
 	mov	es, bx                 
 	mov	bx, 0x0			# ES:BX = 0x1000:0x0
-	mov	si, 128			# 128 sectors = 64 KB (to avoid crossing segment boundary for now)
+	mov	si, 256			# 256 sectors = 128 KB
 
 	mov	dh, 0x0			# head 0
 	mov	ch, 0x0			# cylinder 0
-	mov	cl, 0x1			# starting sector to read from disk - 1
-
-	sub	bh, 0x2
+	mov	cl, 0x2			# starting sector to read from disk
 
 	mov	di, 4			# debug print
+
+	jmp	.L_load1
 
 .L_next_sector:
 	mov	byte ptr fs:[di], 0x2a
@@ -113,6 +113,11 @@ _boot_16:
 	jz	.L_loaded
 
 	add	bh, 0x2
+	jnz	.L_load1
+
+	mov	ax, es
+	add	ax, 0x1000		# next 64K
+	mov	es, ax
 
 .L_load1:
 	mov	ax, 0x0201
@@ -147,6 +152,12 @@ _boot_16:
 	mov	byte ptr fs:[0], 0x30
 	mov	byte ptr fs:[1], 0x2f
 
+	jmp	.
+
+#
+# Boot in 32-bit protected mode, like Linux bzImage
+#
+_boot_32:
 	jmp	.
 
 	# reset segment registers for RAM
@@ -387,12 +398,6 @@ _state_notimpl:
 	.byte .L_state_notimpl_errm3$ - .L_state_notimpl_errm3 - 1
 	.ascii	"\x1b[0m\r\n"
 .L_state_notimpl_errm3$:
-
-#
-# Boot in 32-bit protected mode, like Linux bzImage
-#
-_boot_32:
-	jmp	.
 
 #
 # SIGSEGV signal handler
