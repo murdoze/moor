@@ -86,10 +86,8 @@ _boot_16:
 	mov	fs, ax
 
 	mov	byte ptr fs:[0], 0x2b
-	mov	byte ptr fs:[2], 0x2e
-	mov	byte ptr fs:[3], 0x2e
-	mov	byte ptr fs:[4], 0x41
-
+	mov	byte ptr fs:[2], 0x2a
+	mov	byte ptr fs:[3], 0x2f
 
 					# DL contains disk number (normally 0x80)
 	mov	bx, 0x1000		# load sector to memory address 0x1000 
@@ -103,7 +101,7 @@ _boot_16:
 
 	sub	bh, 0x2
 
-	mov	di, 6			# debug print
+	mov	di, 4			# debug print
 
 .L_next_sector:
 	mov	byte ptr fs:[di], 0x2a
@@ -117,7 +115,7 @@ _boot_16:
 	add	bh, 0x2
 
 .L_load1:
-	mov	ax, 0x0201              # # of sectors to read, 0x40 = 64 * 512 = 32KB
+	mov	ax, 0x0201
 	int	0x13                    # BIOS interrupts for disk functions
 	jc	.L_disk_error
 
@@ -139,10 +137,18 @@ _boot_16:
 
 	jmp	.L_next_sector
 
-
-	mov	byte ptr fs:[0], 0x2a
+.L_disk_error:
+	mov	byte ptr fs:[0], 0x21
+	mov	byte ptr fs:[1], 0xc0
+	
+	jmp	.
 
 .L_loaded:
+	mov	byte ptr fs:[0], 0x30
+	mov	byte ptr fs:[1], 0x2f
+
+	jmp	.
+
 	# reset segment registers for RAM
 	mov ax, 0x1000
 	mov ds, ax                  # data segment
@@ -153,18 +159,13 @@ _boot_16:
 
 	jmp 0x1000:0x0              # never return from this!
 
-.L_disk_error:
-	mov	byte ptr fs:[0], 0x21
-	
-	jmp	.
-
 	.org	ORG + 0x1be
 	.byte	0x80			# bootable
 	.byte	0x01, 0x01, 0x00	# start CHS address
-	.byte	0x17			# partition type
-	.byte	0x00, 0x02, 0x00	# end CHS address
+	.byte	0x0b			# partition type
+	.byte	0xfe, 0xff, 0xe5	# end CHS address
 	.byte	0x00, 0x00, 0x00, 0x00	# LBA
-	.byte	0x02, 0x00, 0x00, 0x00	# number of sectors
+	.byte	0xc1, 0xaf, 0xf4, 0x00	# number of sectors
 
 	.org	ORG + 0x1fe
 	.byte	0x55, 0xaa
