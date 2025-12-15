@@ -1,28 +1,5 @@
 .intel_syntax	noprefix
 
-# TODO: https://wiki.osdev.org/X86-64_Instruction_Encoding
-# https://github.com/chip-red-pill/uCodeDisasm
-# https://stackoverflow.com/questions/48046814/what-methods-can-be-used-to-efficiently-extend-instruction-length-on-modern-x86
-# https://stackoverflow.com/questions/36510095/inc-instruction-vs-add-1-does-it-matter
-# https://groups.google.com/g/llvm-dev/c/xwcJKiLcgnU?pli=1 Spilling to vector registers for LLVM
-# https://www.forwardcom.info/
-# https://jacobfilipp.com/DrDobbs/articles/DDJ/1988/8810/8810b/8810b.htm
-# https://www.complang.tuwien.ac.at/forth/fth79std/FORTH-79.TXT
-# https://www.complang.tuwien.ac.at/forth/fth83std/FORTH83.TXT
-# https://forth-standard.org/standard/words
-# https://www.mpeforth.com/resource-links/downloads/
-# https://iforth.nl/
-# https://github.com/orgMINT/MINT
-# TODO: Benchmarks
-# https://github.com/quepas/Compiler-benchmark-suites
-# https://github.com/embench/embench-iot/
-# https://gist.github.com/FredEckert/3425429  Writing to framebuffer directly
-# http://liujunming.top/2019/10/22/libdrm-samples/
-# https://dvdhrm.wordpress.com/2012/09/13/linux-drm-mode-setting-api/
-# https://gist.github.com/uobikiemukot/c2be4d7515e977fd9e85
-# https://stackoverflow.com/questions/34268518/creating-a-bootable-iso-image-with-custom-bootloader
-
-
 	.globl _start
 
 .text	
@@ -56,7 +33,8 @@
 
 _start:
 	# Check if we're in 16/32/64-bit mode
-
+	jmp	_mode_16
+/*
 	push	rax
 	mov	eax, esp
 	push	rax
@@ -69,25 +47,46 @@ _start:
 	cmp	eax, 4
 	je	_mode_32
 	jmp	_mode_64
-
+*/
 _mode_32:
 	# 32-bit mode, assume we're booting like Linux kernel at 0x100000
 
 	jmp	_boot_32
 
 _mode_16:
+.code16
+
 	# 16-bit mode, bootloader at 0x7c00
 	.byte	0xea			# jmp far 0:0x7c00+x
 	.word	_boot_16 - _start + 0x7c00, 0x0000
 
-_boot_16:
-.code16
-	mov	ax, 0xb800
-	mov	fs, ax
+	.align	16
+_idt_32:
+	.word	0	# size
+	.long	0	# offset
 
-	mov	byte ptr fs:[0], 0x2b
-	mov	byte ptr fs:[2], 0x2a
-	mov	byte ptr fs:[3], 0x2f
+	.align	16
+_gdt_32:
+	.word	_gdt_32$ - _gdt_32 - 1
+	.long	_gdt_32 - ORG + 0x7c00
+	.word	0			# Stolen from Linux
+	.quad	0x0000890005800067	# 08
+	.quad	0x00009b000000ffff	# 10
+	.quad	0x000093000000ffff	# 18: present, code, executable, granulatity=4K base=0, limit=0xfffff000
+	.quad	0x00cf9b000000ffff	# 20: present, data, writable,   granulatity=4K base=0, limit=0xfffff000
+	.quad	0x00cf93000000ffff	# 28: code, as in Linux, don't ask
+	#.quad	0x00cf9b000000ffff	# : present, data, writable,   granulatity=4K base=0, limit=0xfffff000
+_gdt_32$:
+
+_boot_16:
+
+.macro	boot_status value, color
+	mov	word ptr gs:[0], (\color << 8) | \value
+.endm
+	mov	ax, 0xb800
+	mov	gs, ax
+
+	boot_status	0x30, 0xeb
 
 					# DL contains disk number (normally 0x80)
 	mov	bx, 0x1000		# load sector to memory address 0x1000 
@@ -99,12 +98,12 @@ _boot_16:
 	mov	ch, 0x0			# cylinder 0
 	mov	cl, 0x2			# starting sector to read from disk
 
-	mov	di, 4			# debug print
+	mov	di, 2			# debug print
 
 	jmp	.L_load1
 
 .L_next_sector:
-	mov	byte ptr fs:[di], 0x2a
+	mov	byte ptr gs:[di], 0x2a
 	inc	di
 	inc	di
 
@@ -136,39 +135,174 @@ _boot_16:
 .L_forward:
 	and	cl, 0xc0
 
-	mov	byte ptr fs:[di], 0x2b
+	mov	byte ptr gs:[di], 0x2b
 	inc	di
 	inc	di
 
 	jmp	.L_next_sector
 
 .L_disk_error:
-	mov	byte ptr fs:[0], 0x21
-	mov	byte ptr fs:[1], 0xc0
+	boot_status	0x39, 0x4f
 	
 	jmp	.
 
 .L_loaded:
-	mov	byte ptr fs:[0], 0x30
-	mov	byte ptr fs:[1], 0x2f
+	boot_status	0x41, 0xaf
+
+#
+# Entering protected mode
+#
+
+	# Disable interrupts and NMI
+	cli
+
+	mov	al, 0x80
+	out	0x70, al
+
+	mov	al, 0xff
+	out	0xa1, al
+
+	mov	al, 0xfb
+	out	0x21, al
+
+	mov	al, 0x00
+	out	0xf0, al
+
+	mov	al, 0x00
+	out	0xf1, al
+
+
+	boot_status	0x42, 0x4f
+
+
+	call	a20ready
+	je	1f
+
+	boot_status	0x40, 0xaf
+	jmp	2f
+
+	1:
+
+	boot_status	0x31, 0xaf
+	jmp	a20done
+
+
+	2:
+	
+enable_A20:
+        call    a20wait
+        mov     al,0xAD
+        out     0x64,al
+
+        call    a20wait
+        mov     al,0xD0
+        out     0x64,al
+
+        call    a20wait2
+        in      al,0x60
+        push    eax
+
+        call    a20wait
+        mov     al,0xD1
+        out     0x64,al
+
+        call    a20wait
+        pop     eax
+        or      al,2
+        out     0x60,al
+
+        call    a20wait
+        mov     al,0xAE
+        out     0x64,al
+
+	jmp 	a20done
+	
+
+a20wait:
+        in      al,0x64
+        test    al,2
+        jnz     a20wait
+        ret
+
+
+a20wait2:
+        in      al,0x64
+        test    al,1
+        jz      a20wait2
+        ret
+
+a20ready:
+	mov	ax, 0xffff
+	mov	es, ax
+	mov	word ptr ds:[0x7dfe], 0xaa55
+	mov	word ptr es:[0x7e0e], 0x0000
+	cmp	word ptr ds:[0x7dfe], 0xaa55
+	ret
+
+a20done:	
+	call	a20ready
+	je	1f
+
+	boot_status	0x34, 0xaf
+	jmp	.
+
+	1:
+
+	boot_status	0x33, 0xaf
+
+	# Load null IDT
+	.byte	0x0f, 0x01, 0x1e
+	.word	_idt_32 - ORG + 0x7c00
+
+	boot_status	0x43, 0xaf
+	boot_status	0x43, 0x4f
+
+	# GDT for 32-bit mode
+	.byte	0x0f, 0x01, 0x16
+	.word	_gdt_32 - ORG + 0x7c00
+
+	boot_status	0x44, 0xaf
+
+	.equ	DS_32, 0x28
+	.equ	CS_32, 0x20
+
+	mov	cx, DS_32
+
+	# Switch to protected mode
+	.equ	CR0_PE, 1
+	mov	edx, cr0
+	or	dl, CR0_PE
+	mov	cr0, edx
+
+	boot_status	0x4c, 0x4f
+
+	.byte	0xea
+	.word	_pm_32 - ORG + 0x7c00
+	.word	CS_32
+
+.code32
+_pm_32:
+	mov	ds, cx
+	mov	es, cx
+	mov	fs, cx
+	mov	gs, cx
+	mov	ss, cx
+
+	mov	byte ptr [0xb8000], 0x50
+	mov	byte ptr [0xb8001], 0xaf
+
+	#sti
 
 	jmp	.
+
+
+	
 
 #
 # Boot in 32-bit protected mode, like Linux bzImage
 #
 _boot_32:
 	jmp	.
-
-	# reset segment registers for RAM
-	mov ax, 0x1000
-	mov ds, ax                  # data segment
-	mov es, ax                  # extra segment
-	mov fs, ax                  # ""
-	mov gs, ax                  # ""
-	mov ss, ax                  # stack segment
-
-	jmp 0x1000:0x0              # never return from this!
 
 	.org	ORG + 0x1be
 	.byte	0x80			# bootable
