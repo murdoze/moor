@@ -47,14 +47,25 @@ _start:
 	cmp	eax, 4
 	je	_mode_32
 	jmp	_mode_64
-*/
 _mode_32:
 	# 32-bit mode, assume we're booting like Linux kernel at 0x100000
 
 	jmp	_boot_32
+*/
+
+	// BIOS parameter block
+	.rept	0x60
+	.byte	0x2e
+	.endr
+	.byte	0x42
+	
 
 _mode_16:
 .code16
+
+	mov	ax, 0
+	mov	ds, ax
+
 
 	# 16-bit mode, bootloader at 0x7c00
 	.byte	0xea			# jmp far 0:0x7c00+x
@@ -88,7 +99,7 @@ _boot_16:
 	mov	gs, ax
 
 	boot_status	0x30, 0xeb
-
+/*
 					# DL contains disk number (normally 0x80)
 	mov	bx, 0x1000		# load sector to memory address 0x1000 
 	mov	es, bx                 
@@ -147,6 +158,8 @@ _boot_16:
 	
 	jmp	.
 
+*/
+
 .L_loaded:
 	boot_status	0x41, 0xaf
 
@@ -156,7 +169,7 @@ _boot_16:
 
 	# Disable interrupts and NMI
 	cli
-
+/*
 	boot_status	0x42, 0x4f
 
 
@@ -232,7 +245,7 @@ a20done:
 	jmp	.
 
 	1:
-
+*/
 	boot_status	0x33, 0xaf
 
 	# Load null IDT
@@ -247,6 +260,24 @@ a20done:
 	.word	_gdtr_32 - ORG + 0x7c00
 
 	boot_status	0x44, 0xaf
+
+_print:
+	push	gs
+	pop	es
+	mov	si, 0x7c00 + 3
+	mov	di, 80 * 8
+	mov	cx, 0x200
+
+	mov	al, 0x2a
+	stosb
+	mov	al, 0x4f
+	stosb
+
+	rep	movsb
+
+	mov	al, 0x2a
+	mov	cx, 10
+	rep	stosb
 
 	.equ	DS_32, 0x28
 	.equ	CS_32, 0x20
@@ -272,9 +303,6 @@ _pm_32:
 	mov	fs, cx
 	mov	gs, cx
 	mov	ss, cx
-
-	call	1f
-	1:
 
 	mov	byte ptr [0xb8000], 0x50
 	mov	byte ptr [0xb8001], 0xaf
