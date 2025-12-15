@@ -66,16 +66,17 @@ _idt_32:
 	.long	0	# offset
 
 	.align	16
-_gdt_32:
+_gdtr_32:
 	.word	_gdt_32$ - _gdt_32 - 1
 	.long	_gdt_32 - ORG + 0x7c00
 	.word	0			# Stolen from Linux
-	.quad	0x0000890005800067	# 08
+_gdt_32:
+	.quad	0
+	.quad	0x00cf9b000000ffff	# 08: present, data, writable,   granulatity=4K base=0, limit=0xfffff000
 	.quad	0x00009b000000ffff	# 10
 	.quad	0x000093000000ffff	# 18: present, code, executable, granulatity=4K base=0, limit=0xfffff000
 	.quad	0x00cf9b000000ffff	# 20: present, data, writable,   granulatity=4K base=0, limit=0xfffff000
 	.quad	0x00cf93000000ffff	# 28: code, as in Linux, don't ask
-	#.quad	0x00cf9b000000ffff	# : present, data, writable,   granulatity=4K base=0, limit=0xfffff000
 _gdt_32$:
 
 _boot_16:
@@ -155,22 +156,6 @@ _boot_16:
 
 	# Disable interrupts and NMI
 	cli
-
-	mov	al, 0x80
-	out	0x70, al
-
-	mov	al, 0xff
-	out	0xa1, al
-
-	mov	al, 0xfb
-	out	0x21, al
-
-	mov	al, 0x00
-	out	0xf0, al
-
-	mov	al, 0x00
-	out	0xf1, al
-
 
 	boot_status	0x42, 0x4f
 
@@ -259,7 +244,7 @@ a20done:
 
 	# GDT for 32-bit mode
 	.byte	0x0f, 0x01, 0x16
-	.word	_gdt_32 - ORG + 0x7c00
+	.word	_gdtr_32 - ORG + 0x7c00
 
 	boot_status	0x44, 0xaf
 
@@ -274,7 +259,7 @@ a20done:
 	or	dl, CR0_PE
 	mov	cr0, edx
 
-	boot_status	0x4c, 0x4f
+	boot_status	0x41, 0x4f
 
 	.byte	0xea
 	.word	_pm_32 - ORG + 0x7c00
@@ -287,6 +272,9 @@ _pm_32:
 	mov	fs, cx
 	mov	gs, cx
 	mov	ss, cx
+
+	call	1f
+	1:
 
 	mov	byte ptr [0xb8000], 0x50
 	mov	byte ptr [0xb8001], 0xaf
