@@ -25,6 +25,12 @@
 	.equ	rnext, r13
 	.equ	rstack0, r15
 
+##############################################################################################################################################################
+#																			     #
+#		THIS IS THE PROTECTED MODE PLAYGROUND.                        DO NOT MAKE CHANGES TO CORE FUNCTIONALITY HERE OR FACE MERGES                  #
+#																			     #
+##############################################################################################################################################################
+
 # Initialization
 
 .p2align	16, 0x90
@@ -54,16 +60,16 @@ _mode_32:
 */
 
 	// BIOS parameter block
-	.rept	0x60
-	.byte	0x2e
-	.endr
-	.byte	0x42
+	#.rept	0x60
+	#.byte	0x2e
+	#.endr
+	#.byte	0x42
 	
 
 _mode_16:
 .code16
 
-	mov	ax, 0
+	xor	ax, ax
 	mov	ds, ax
 
 
@@ -90,6 +96,44 @@ _gdt_32:
 	.quad	0x00cf93000000ffff	# 28: code, as in Linux, don't ask
 _gdt_32$:
 
+#	ax = value
+#	di = print location n screen
+_printd:
+	push	eax
+	shr	eax, 16
+	call	_printw
+	pop	eax
+_printw:
+	xchg	al, ah
+	call	_printb
+	xchg	al, ah
+_printb:
+	push	cx
+	mov	cl, al
+	shr	al, 4
+	call	_print1
+	mov	al, cl
+	pop	cx
+_print1:
+	and	al, 0x0f
+	cmp	al, 0xa
+	jb	1f
+	add	al, 0x61 - 0x39 - 1
+	1:
+	add	al, 0x30
+	mov	byte ptr gs:[di], al
+	inc	di
+	inc	di
+	ret
+
+a20ready:
+	mov	ax, 0xffff
+	mov	es, ax
+	mov	word ptr ds:[0x7dfe], 0xaa55
+	mov	word ptr es:[0x7e0e], 0x0000
+	cmp	word ptr ds:[0x7dfe], 0xaa55
+	ret
+
 _boot_16:
 
 .macro	boot_status value, color
@@ -99,12 +143,15 @@ _boot_16:
 	mov	gs, ax
 
 	boot_status	0x30, 0xeb
+
+	.equ	RELOC32_SEG, 0x1000
+	.equ	SECTORS, 256
 /*
 					# DL contains disk number (normally 0x80)
 	mov	bx, 0x1000		# load sector to memory address 0x1000 
 	mov	es, bx                 
 	mov	bx, 0x0			# ES:BX = 0x1000:0x0
-	mov	si, 256			# 256 sectors = 128 KB
+	mov	si, SECTORS		# 256 sectors = 128 KB
 
 	mov	dh, 0x0			# head 0
 	mov	ch, 0x0			# cylinder 0
@@ -161,7 +208,7 @@ _boot_16:
 */
 
 .L_loaded:
-	boot_status	0x41, 0xaf
+	boot_status	0x41, 0x4f
 
 #
 # Entering protected mode
@@ -229,15 +276,12 @@ a20wait2:
         jz      a20wait2
         ret
 
-a20ready:
-	mov	ax, 0xffff
-	mov	es, ax
-	mov	word ptr ds:[0x7dfe], 0xaa55
-	mov	word ptr es:[0x7e0e], 0x0000
-	cmp	word ptr ds:[0x7dfe], 0xaa55
-	ret
-
+*/
 a20done:	
+	mov	ax, 0x0a20
+	mov	di, 80 * 2
+	call	_printw
+
 	call	a20ready
 	je	1f
 
@@ -245,7 +289,6 @@ a20done:
 	jmp	.
 
 	1:
-*/
 	boot_status	0x33, 0xaf
 
 	# Load null IDT
@@ -261,7 +304,7 @@ a20done:
 
 	boot_status	0x44, 0xaf
 
-_print:
+_dump_boot:
 	push	gs
 	pop	es
 	mov	si, 0x7c00 + 3
@@ -292,6 +335,15 @@ _print:
 
 	boot_status	0x41, 0x4f
 
+	mov	di, 2 * (80 * 2)
+	push	ss
+	pop	ax
+	shl	eax, 32
+	call	1f
+	1:
+	pop	ax
+	call	_printd
+
 	.byte	0xea
 	.word	_pm_32 - ORG + 0x7c00
 	.word	CS_32
@@ -309,7 +361,18 @@ _pm_32:
 
 	#sti
 
+	mov	esi, 0x7e00
+	mov	edi, ORG
+	mov	ecx, SECTORS
+	shl	ecx, 6
+	rep	movsd
+
+
+	mov	byte ptr [0xb8000], 0x51
+	mov	byte ptr [0xb8001], 0x4f
+
 	jmp	.
+
 
 
 	
