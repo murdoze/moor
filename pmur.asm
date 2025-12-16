@@ -40,42 +40,23 @@
 _start:
 	# Check if we're in 16/32/64-bit mode
 	jmp	_mode_16
-/*
-	push	rax
-	mov	eax, esp
-	push	rax
-	mov	ebx, esp
-	sub	eax, ebx
-	pop	rbx
-	pop	rbx
-	cmp	eax, 2
-	je	_mode_16
-	cmp	eax, 4
-	je	_mode_32
-	jmp	_mode_64
-_mode_32:
-	# 32-bit mode, assume we're booting like Linux kernel at 0x100000
 
-	jmp	_boot_32
-*/
+.macro	boot_status value, color
+	mov	word ptr gs:[0], (\color << 8) | \value
+.endm
 
-	# BIOS parameter block
-	# 
-	# It look like Dell BIOS does not damage BPB
-	# 
-	#.rept	0x50
-	#.byte	0x2e
-	#.endr
-	#.byte	0x42
-	
+	.align	8
+	# 32-bit fault handler is located at 0x7c00
+_fault_handler32_:
+	boot_status	0x74, 0xcf
+
+	jmp	.
+
 
 _mode_16:
 .code16
-#define ROW(n)	(2 * 80 * n)
-
 	xor	ax, ax
 	mov	ds, ax
-
 
 	# 16-bit mode, bootloader at 0x7c00
 	.byte	0xea			# jmp far 0:0x7c00+x
@@ -85,12 +66,16 @@ _mode_16:
 	# IDT and GDT for 32-bit protected mode
 	#
 
-	.align	16
-_idt_32:
-	.word	0	# size
-	.long	0	# offset
+	.equ	DS_32, 0x28
+	.equ	CS_32, 0x20
 
+	# Empty IDT, will be changed later, because a real one does not fit the bootsector
 	.align	16
+_idtr_32:
+	.word	32 * 8 - 1
+	.word	0x7c00
+
+.align	16
 _gdtr_32:
 	.word	_gdt_32$ - _gdt_32 - 1
 	.long	_gdt_32 - ORG + 0x7c00
@@ -138,23 +123,11 @@ _print1:
 	inc	di
 	ret
 
-a20ready:
-	mov	ax, 0xffff
-	mov	es, ax
-	mov	word ptr ds:[0x7dfe], 0xaa55
-	mov	word ptr es:[0x7e0e], 0x0000
-	cmp	word ptr ds:[0x7dfe], 0xaa55
-	ret
-
 _boot_16:
-
-.macro	boot_status value, color
-	mov	word ptr gs:[0], (\color << 8) | \value
-.endm
 	mov	ax, 0xb800
 	mov	gs, ax
 
-	boot_status	0x42, 0x4f
+	#boot_status	0x42, 0x4f
 
 	.equ	RELOC32_SEG, 0x1000
 	.equ	SECTORS, 256
@@ -212,13 +185,13 @@ _boot_16:
 	jmp	.L_next_sector
 
 .L_disk_error:
-	boot_status	0x39, 0x4f
+	#boot_status	0x39, 0x4f
 	
 	jmp	.
 
 
 .L_loaded:
-	boot_status	0x42, 0xaf
+	#boot_status	0x42, 0xaf
 
 #
 # Entering protected mode
@@ -226,89 +199,37 @@ _boot_16:
 
 	# Disable interrupts and NMI
 	cli
-/*
-	boot_status	0x42, 0x4f
 
 
-	call	a20ready
-	je	1f
+	# A20 check was here
+	#boot_status	0x32, 0x4f
+	#jmp	.
 
-	boot_status	0x40, 0xaf
-	jmp	2f
+	#boot_status	0x33, 0xaf
 
+	mov	di, 0x7000	# IDT_32 will be places at 0x7000
+	mov	ax, 0x8e00	# present, 32-bit interrupt gate
+	mov	bx, 0x7c08	# fault handler
+	xor	dx, dx
+	mov	cx, 32
 	1:
+	mov	[di], dx
+	mov	[di + 2], ax
+	mov	[di + 4], dx
+	mov	[di + 6], bx
+	loop	1b
 
-	boot_status	0x31, 0xaf
-	jmp	a20done
+	# LIDT load null IDT
+	.byte	0x0f, 0x01, 0x1e		# to avoid reference truncated warning
+	.word	_idtr_32 - ORG + 0x7c00
 
+	#boot_status	0x43, 0xaf
 
-	2:
-	
-enable_A20:
-        call    a20wait
-        mov     al,0xAD
-        out     0x64,al
-
-        call    a20wait
-        mov     al,0xD0
-        out     0x64,al
-
-        call    a20wait2
-        in      al,0x60
-        push    eax
-
-        call    a20wait
-        mov     al,0xD1
-        out     0x64,al
-
-        call    a20wait
-        pop     eax
-        or      al,2
-        out     0x60,al
-
-        call    a20wait
-        mov     al,0xAE
-        out     0x64,al
-
-	jmp 	a20done
-	
-
-a20wait:
-        in      al,0x64
-        test    al,2
-        jnz     a20wait
-        ret
-
-
-a20wait2:
-        in      al,0x64
-        test    al,1
-        jz      a20wait2
-        ret
-
-*/
-a20done:	
-	call	a20ready
-	je	1f
-
-	boot_status	0x32, 0x4f
-	jmp	.
-
-	1:
-	boot_status	0x33, 0xaf
-
-	# Load null IDT
-	.byte	0x0f, 0x01, 0x1e
-	.word	_idt_32 - ORG + 0x7c00
-
-	boot_status	0x43, 0xaf
-	boot_status	0x43, 0x4f
-
-	# GDT for 32-bit mode
-	.byte	0x0f, 0x01, 0x16
+	# LGDT for 32-bit mode
+	.byte	0x0f, 0x01, 0x16		# to avoid reference truncated warning
 	.word	_gdtr_32 - ORG + 0x7c00
 
-	boot_status	0x44, 0xaf
+	#boot_status	0x44, 0xaf
 
 /*
 _dump_boot:
@@ -329,9 +250,6 @@ _dump_boot:
 	mov	cx, 10
 	rep	stosb
 */
-	.equ	DS_32, 0x28
-	.equ	CS_32, 0x20
-
 	mov	cx, DS_32
 
 	# Switch to protected mode
@@ -340,16 +258,7 @@ _dump_boot:
 	or	dl, CR0_PE
 	mov	cr0, edx
 
-	boot_status	0x41, 0x4f
-
-	mov	di, 2 * (80 * 2)
-	push	ss
-	pop	ax
-	shl	eax, 32
-	call	1f
-	1:
-	pop	ax
-	call	_printd
+	#boot_status	0x41, 0x4f
 
 	.byte	0xea
 	.word	_pm_32 - ORG + 0x7c00
@@ -361,14 +270,17 @@ _dump_boot:
 
 .code32
 _pm_32:
+
+.macro	boot32_status value, color
+	mov	word ptr [0xb8000], (\color << 8) | \value
+.endm
 	mov	ds, cx
 	mov	es, cx
 	mov	fs, cx
 	mov	gs, cx
 	mov	ss, cx
-
-	mov	byte ptr [0xb8000], 0x50
-	mov	byte ptr [0xb8001], 0xaf
+	
+	boot32_status	0x50, 0xaf
 
 	mov	esi, 0x10000
 	mov	edi, ORG + 0x200
@@ -376,8 +288,7 @@ _pm_32:
 	shl	ecx, 6
 	rep	movsd
 
-	mov	byte ptr [0xb8000], 0x51
-	mov	byte ptr [0xb8001], 0x4f
+	boot32_status	0x51, 0xaf
 
 	#jmp	ORG + 0x200
 	push	ORG + 0x200
@@ -395,6 +306,8 @@ _pm_32:
 	.byte	0x00, 0x00, 0x00, 0x00	# LBA
 	.byte	0xc1, 0xaf, 0xf4, 0x00	# number of sectors
 
+
+	# Boot signature
 	.org	ORG + 0x1fe
 	.byte	0x55, 0xaa
 
@@ -406,8 +319,7 @@ _pm_32:
 _boot_32_entry:
 	.equ	SCREEN, 0xb8000
 
-	mov	byte ptr [SCREEN], 0x52
-	mov	byte ptr [SCREEN + 1], 0x4f
+	boot32_status	0x52, 0x4f
 
 	jmp	_boot_32
 
@@ -511,6 +423,123 @@ _boot_32:
 
 	mov	eax, 0x020a
 	call	_cursor
+
+	jmp	_load_idt32_gdt64
+
+	#
+	# IDT and GDT 64-bit
+	#
+
+	.align	4
+#_idtr_32:
+	.word	_idt_32$ - _idt_32 - 1
+	.long	_idt_32 - ORG + 0x7c00
+
+	.align	8
+_idt_32:
+	.rept	33
+	.quad	0
+	.endr
+_idt_32$:
+
+	.equ	DS_64, 0x18
+	.equ	CS_64, 0x10
+
+	.align	16
+_gdtr_64:
+	.word	_gdt_64$ - _gdt_64 - 1
+	.long	_gdt_64
+	.word	0			# Stolen from Linux
+_gdt_64:
+	.quad	0x0000000000000000	# 00
+	.quad	0x00cf9a000000ffff	# 08 __KERNEL32_CS
+	.quad	0x00af9a000000ffff	# 10 __KERNEL_CS
+	.quad	0x00cf92000000ffff	# 18 __KERNEL_DS
+	.quad	0x0080890000000000	# 20 TS descriptor
+	.quad   0x0000000000000000	# 28 TS continued
+_gdt_64$:	
+
+ 	# Write an IDT entry to idt_32
+ 	# eax =	handler
+ 	# esi =	vector #
+	# edi =	IDT address
+_set_idt32_entry:
+	lea	ecx, [edi + esi * 8]
+
+	mov	edx, eax
+	and	edx, 0x0000ffff		# Target code segment offset [15:0]
+	or	edx, CS_32 << 16	# Target code segment selector
+
+	mov	[ecx], edx
+
+	mov	edx, eax
+	and	edx, 0xffff0000		# Target code segment offset [31:16]
+	or	edx, 0x00008e00		# Present, type 32-bit Interrupt Gate
+
+	mov	[ecx + 4], edx
+	ret
+
+_fault_handler32:
+	boot32_status	0x7e, 0x4f
+
+	jmp	.
+
+	iret
+
+_load_idt32_gdt64:
+	boot32_status	0x53, 0x4f
+
+	lea	edi, [_idt_32]
+	lea	eax, [_fault_handler32]
+	xor	esi, esi
+
+	1:
+	call	_set_idt32_entry
+	inc	esi
+	cmp	esi, 33
+	jne	1b
+
+_load_idt32:
+	boot32_status	0x54, 0x4f
+
+#	lidt	[_idtr_32]
+
+	boot32_status	0x55, 0x4f
+
+	push	CS_32
+	lea	eax, [_load_gdt64]
+	push	eax
+	retf
+
+_load_gdt64:
+	boot32_status	0x55, 0xaf
+
+	lgdt	[_gdtr_64]
+
+	boot32_status	0x56, 0xaf
+
+	mov	eax, DS_64
+	mov	ds, ax
+	mov	es, ax
+	mov	fs, ax
+	mov	gs, ax
+	mov	ss, ax
+
+	boot32_status	0x57, 0xcf
+
+	jmp	.
+
+	int3
+	
+	push	CS_64
+	lea	eax, [_boot_64]
+	push	eax
+	retf
+	
+
+_boot_64:
+
+	boot32_status	0x58, 0xaf
 
 	jmp	.
 
@@ -2448,6 +2477,13 @@ _warm:
 # LATEST
 	.endfunc
 	.equ	last, latest_word
+
+
+	.align	4096
+	.equ	BOOT_STACK_SIZE, 0x1000
+_boot_stack:
+	.fill	BOOT_STACK_SIZE, 1, 0
+_boot_stack$:
 
 	.align	4096
 
