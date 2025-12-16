@@ -480,7 +480,7 @@ _setup_paging:
 	wrmsr
 
 _setup_pae:
-	lea	eax, [_boot_64_enter]
+	lea	eax, [_boot_64_entry]
 
 	push	CS_32_10	
 	push	eax
@@ -573,7 +573,7 @@ _interrupt_handler64:
 	# 64-bit entrypoint with paging enabled
 	#
 
-_boot_64_enter:
+_boot_64_entry:
 
 	lea	edi, [_idt_64]
 	xor	esi, esi
@@ -582,6 +582,7 @@ _boot_64_enter:
 	mov	ebx, 0x0f00
 	1:
 	call	_set_idt64_entry
+	add	edi, 8
 	inc	esi
 	cmp	esi, IDT64_TRAP_COUNT
 	jne	1b
@@ -589,6 +590,7 @@ _boot_64_enter:
 	lea	eax, [_interrupt_handler64]
 	mov	ebx, 0x0e00
 	call	_set_idt64_entry
+	add	edi, 8
 	inc	esi
 	cmp	esi, IDT64_COUNT
 	jne	2b
@@ -615,8 +617,6 @@ _load_gdt64:
 
 	boot32_status	'W', 0xcf
 
-	int3
-
 	push	CS_64
 	lea	eax, [_boot_64]
 	push	rax
@@ -629,8 +629,6 @@ _boot_64:
 	int3
 
 	jmp	.
-
-
 
 	.align	4096
 _pgtable:
