@@ -53,8 +53,9 @@ _fault_handler32:
 	jmp	.
 
 
-_mode_16:
 .code16
+
+_mode_16:
 	xor	ax, ax
 	mov	ds, ax
 
@@ -272,6 +273,7 @@ _dump_boot:
 	#
 
 .code32
+
 _pm_32:
 
 .macro	boot32_status value, color
@@ -427,23 +429,32 @@ _boot_32:
 	mov	eax, 0x020a
 	call	_cursor
 
-	jmp	_load_idt32_gdt64
+	jmp	_load_idt64_gdt64
 
 	#
 	# IDT and GDT 64-bit
 	#
 
+	IDT64_TRAP_COUNT =  32
+	IDT64_INTERRUPT_COUNT = 8
+	IDT64_COUNT = IDT64_TRAP_COUNT + IDT64_INTERRUPT_COUNT
+
 	.align	4
-_idtr_32_:
-	.word	_idt_32$ - _idt_32 - 1
-	.long	_idt_32
+_idtr_64:
+	.word	_idt_64$ - _idt_64 - 1
+	.quad	_idt_64
 
 	.align	8
-_idt_32:
-	.rept	33
+_idt_64:
+	.rept	IDT64_COUNT
+	.quad	0
 	.quad	0
 	.endr
-_idt_32$:
+	.rept	IDT64_INTERRUPT_COUNT
+	.quad	0
+	.quad	0
+	.endr
+_idt_64$:
 
 	.equ	DS_64, 0x18
 	.equ	CS_64, 0x10
@@ -466,44 +477,64 @@ _gdt_64$:
  	# eax =	handler
  	# esi =	vector #
 	# edi =	IDT address
-_set_idt32_entry:
+	# ebx = gate type (0x0e00 for interrupt, 0x0f00 for trap)
+_set_idt64_entry:
 	lea	ecx, [edi + esi * 8]
 
 	mov	edx, eax
-	and	edx, 0x0000ffff		# Target code segment offset [15:0]
-	or	edx, CS_32 << 16	# Target code segment selector
+	and	edx, 0xffff		# Target code segment offset [15:0]. Handler is in lower 4GB anyways
+	or	edx, CS_64 << 16	# Target code segment selector
 
 	mov	[ecx], edx
 
 	mov	edx, eax
 	and	edx, 0xffff0000		# Target code segment offset [31:16]
-	or	edx, 0x00008e00		# Present, type 32-bit Interrupt Gate
+	or	edx, 0x00008000		# Present
+	or	edx, ebx		# Gate type
 
 	mov	[ecx + 4], edx
 	ret
+.code64
 
-_fault_handler64:
-	boot32_status	'@', 0x4f
+_trap_handler64:
+	boot32_status	'@', 0x5f
 
 	jmp	.
 
-	iret
+	iretq
 
-_load_idt32_gdt64:
-	lea	edi, [_idt_32]
-	lea	eax, [_fault_handler64]
+_interrupt_handler64:
+	boot32_status	'I', 0x5f
+
+	jmp	.
+
+	iretq
+
+.code32
+
+_load_idt64_gdt64:
+	lea	edi, [_idt_64]
 	xor	esi, esi
 
+	lea	eax, [_trap_handler64]
+	mov	ebx, 0x0f00
 	1:
-	call	_set_idt32_entry
+	call	_set_idt64_entry
 	inc	esi
-	cmp	esi, 33
+	cmp	esi, IDT64_TRAP_COUNT
 	jne	1b
+	2:
+	lea	eax, [_interrupt_handler64]
+	mov	ebx, 0x0e00
+	call	_set_idt64_entry
+	inc	esi
+	cmp	esi, IDT64_COUNT
+	jne	2b
 
-_load_idt32:
+_load_idt64:
 	boot32_status	'T', 0x4f
 
-#	lidt	[_idtr_32_]
+	lidt	[_idtr_64]
 
 	boot32_status	'U', 0x4f
 
