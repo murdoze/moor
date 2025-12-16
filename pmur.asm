@@ -507,16 +507,8 @@ _load_idt32:
 
 	boot32_status	'U', 0x4f
 
-	push	CS_32
-	lea	eax, [_load_gdt64]
-	push	eax
-	retf
-
 _load_gdt64:
-	boot32_status	'U', 0xa1
 
-	int3
-	
 	lgdt	[_gdtr_64]
 
 	boot32_status	'V', 0xaf
@@ -534,7 +526,6 @@ _load_gdt64:
 	lea	eax, [_boot_64]
 	push	eax
 	retf
-	
 
 _boot_64:
 
