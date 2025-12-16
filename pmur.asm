@@ -592,12 +592,40 @@ _trap_counter:
 _trap_handler64:
 	boot32_status	'@', 0xcf
 
+	# Print trap counter
 	mov	rdi, SCREEN + 2 * (80 - 16)
 	mov	byte ptr [_pcolor], 0x5f
 	inc	qword ptr [_trap_counter]
 	mov	rax, qword ptr [_trap_counter]
 	call	_p64printq
 
+	# Print stack and instruction pointers
+	mov	rdi, SCREEN + 3 * (2 * 80)
+	mov	byte ptr [_pcolor], 0x20
+	mov	al, 'S'
+	call	_p64emit
+	mov	al, 'P'
+	call	_p64emit
+	mov	al, ' '
+	call	_p64emit
+	mov	byte ptr [_pcolor], 0x2f
+	mov	rax, rsp
+	call	_p64printq
+
+	mov	rdi, SCREEN + 4 * (2 * 80)
+	mov	byte ptr [_pcolor], 0x20
+	mov	al, 'I'
+	call	_p64emit
+	mov	al, 'P'
+	call	_p64emit
+	mov	al, ' '
+	call	_p64emit
+	mov	byte ptr [_pcolor], 0x2f
+	pop	rax
+	push	rax
+	call	_p64printq
+
+	# Sent EOI to PIC
 	mov	al, 0x20
 	out	0x20, al
 
@@ -670,7 +698,6 @@ _boot_64:
 	inb	al, 0x21
 	add	al, 0x30
 
-	mov	rdi, SCREEN + 4
 	mov	rdi, SCREEN + 3 * (2 * 80) - 8
 	mov	byte ptr [_pcolor], 0x20
 	call	_p64printb
@@ -684,33 +711,9 @@ _boot_64:
 	
 	sti
 
-	boot32_status	'Y', 0xaf
-
-	jmp	. 
-	
-	mov	rdi, SCREEN + 10 * (2 * 80)
-	movabs	rax, 0x12345678abcdef0
-	call	_p64printq
-
-	xor	eax, eax
-	#in	al, 0x21
-	add	al, 0x30
-	mov	ah, 0x7
-	
-	
-	mov	word ptr [SCREEN], ax
-
-
-	/*
-	xor	rax, rax
-	in	al, 0x21
-	mov	di, SCREEN + 10 * (2 * 80)
-	call	_p32printb
-	*/
-
 	1:
-	#boot32_status	'Z', 0xaf
-
+	boot32_status	'Y', 0xaf
+	pause
 	jmp	1b
 
 	.align	4096
