@@ -71,6 +71,7 @@ _mode_32:
 
 _mode_16:
 .code16
+#define ROW(n)	(2 * 80 * n)
 
 	xor	ax, ax
 	mov	ds, ax
@@ -79,6 +80,10 @@ _mode_16:
 	# 16-bit mode, bootloader at 0x7c00
 	.byte	0xea			# jmp far 0:0x7c00+x
 	.word	_boot_16 - _start + 0x7c00, 0x0000
+
+	#
+	# IDT and GDT for 32-bit protected mode
+	#
 
 	.align	16
 _idt_32:
@@ -98,6 +103,10 @@ _gdt_32:
 	.quad	0x00cf9b000000ffff	# 20: present, data, writable,   granulatity=4K base=0, limit=0xfffff000
 	.quad	0x00cf93000000ffff	# 28: code, as in Linux, don't ask
 _gdt_32$:
+
+	#
+	# Screen output 16-bit
+	#
 
 #	ax = value
 #	di = print location n screen
@@ -150,7 +159,7 @@ _boot_16:
 	.equ	RELOC32_SEG, 0x1000
 	.equ	SECTORS, 256
 					# DL contains disk number (normally 0x80)
-	mov	bx, 0x1000		# load sector to memory address 0x1000 
+	mov	bx, 0x1000		# load sector to memory address 0x10000
 	mov	es, bx                 
 	mov	bx, 0x0			# ES:BX = 0x1000:0x0
 	mov	si, SECTORS		# 256 sectors = 128 KB
@@ -164,7 +173,7 @@ _boot_16:
 	jmp	.L_load1
 
 .L_next_sector:
-	mov	byte ptr gs:[di], 0x2a
+	mov	byte ptr gs:[di], 0x2e
 	inc	di
 	inc	di
 
@@ -346,6 +355,10 @@ _dump_boot:
 	.word	_pm_32 - ORG + 0x7c00
 	.word	CS_32
 
+	#
+	# 32-bit protected mode
+	#
+
 .code32
 _pm_32:
 	mov	ds, cx
@@ -357,30 +370,25 @@ _pm_32:
 	mov	byte ptr [0xb8000], 0x50
 	mov	byte ptr [0xb8001], 0xaf
 
-	#sti
-
-	mov	esi, 0x7e00
-	mov	edi, ORG
+	mov	esi, 0x10000
+	mov	edi, ORG + 0x200
 	mov	ecx, SECTORS
 	shl	ecx, 6
 	rep	movsd
 
-
 	mov	byte ptr [0xb8000], 0x51
 	mov	byte ptr [0xb8001], 0x4f
 
-	jmp	ORG + 0x200
+	#jmp	ORG + 0x200
+	push	ORG + 0x200
+	ret
 
-
-
-	
-
-#
-# Boot in 32-bit protected mode, like Linux bzImage
-#
+	#
+	# Partition table, without it the disk is not recognized as bootable
+	#
 
 	.org	ORG + 0x1be
-	.byte	0x80			# bootable
+	.byte	0x80			# bootable	TODO sizes are wrong
 	.byte	0x01, 0x01, 0x00	# start CHS address
 	.byte	0x0b			# partition type
 	.byte	0xfe, 0xff, 0xe5	# end CHS address
@@ -395,10 +403,111 @@ _pm_32:
 	#
 	.org	ORG + 0x200
 
+_boot_32_entry:
+	.equ	SCREEN, 0xb8000
+
+	mov	byte ptr [SCREEN], 0x52
+	mov	byte ptr [SCREEN + 1], 0x4f
+
+	jmp	_boot_32
+
+	#
+	# Screen output functions
+	#
+
+_pcolor:	
+	.byte	0x2f
+
+	# al = char
+_p32emit:
+	mov	[edi], al
+	inc	edi
+	mov	al, [_pcolor]
+	mov	[edi], al
+	inc	edi
+	ret
+	
+_p32printd:
+	push	eax
+	shr	eax, 16
+	call	_p32printw
+	pop	eax
+_p32printw:
+	xchg	al, ah
+	call	_p32printb
+	xchg	al, ah
+_p32printb:
+	push	cx
+	mov	cl, al
+	shr	al, 4
+	call	_p32print1
+	mov	al, cl
+	pop	cx
+_p32print1:
+	and	al, 0x0f
+	cmp	al, 0xa
+	jb	1f
+	add	al, 0x61 - 0x39 - 1
+	1:
+	add	al, 0x30
+	call	_p32emit
+	ret
+
 _boot_32:
-	mov	byte ptr [0xb8000], 0x52
-	mov	byte ptr [0xb8001], 0x4f
+
+	mov	edi, SCREEN
+	mov	al, 0x41
+	call	_p32emit
+
+	mov	edi, SCREEN + 6 * (80 * 2)
+	movzx	eax, byte ptr [_pcolor - 2]
+	lea	eax, [_pcolor - 2]
+	#mov	byte ptr [_pcolor], 0x4f
+	call	_p32printd
+	mov	al, 0x20
+	call	_p32emit
+	call	1f
+	1:
+	pop	eax
+	call	_p32printd
+	mov	al, 0x20
+	call	_p32emit
+	mov	byte ptr [_pcolor], 0x5f
+	mov	eax, [0x100210]
+	call	_p32printd
+
+
 	jmp	.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	#
+	# 64-bit code	
+	#
+
+
+
+
+
+
+
+
+
+
 
 
 
