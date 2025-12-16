@@ -67,6 +67,7 @@ _mode_16:
 	# IDT and GDT for 32-bit protected mode
 	#
 
+	.equ	CS_32_10, 0x10	# to turn on PAE paging we need one more code segment (???)
 	.equ	DS_32, 0x28
 	.equ	CS_32, 0x20
 
@@ -82,12 +83,14 @@ _gdtr_32:
 	.long	_gdt_32 - ORG + 0x7c00
 	.word	0			# Stolen from Linux
 _gdt_32:
-	.quad	0
-	.quad	0x00cf9b000000ffff	# 08: present, data, writable,   granulatity=4K base=0, limit=0xfffff000
-	.quad	0x00009b000000ffff	# 10
-	.quad	0x000093000000ffff	# 18: present, code, executable, granulatity=4K base=0, limit=0xfffff000
+	.quad	0			# 00
+	.quad	0x00cf9a000000ffff	# 08
+	.quad	0x00af9a000000ffff	# 10
+	.quad	0x00cf92000000ffff	# 18: present, code, executable, granulatity=4K base=0, limit=0xfffff000
+	# ?? The following have to be removed, they work but are not as Linux boots
+	# Linux 32-entry has CS = 0x08 and DS = 0x18
 	.quad	0x00cf9b000000ffff	# 20: present, data, writable,   granulatity=4K base=0, limit=0xfffff000
-	.quad	0x00cf93000000ffff	# 28: code, as in Linux, don't ask
+	.quad	0x00cf93000000ffff	# 28: as in Linux, don't ask
 _gdt_32$:
 
 	#
@@ -131,12 +134,12 @@ _boot_16:
 	#boot_status	0x42, 0x4f
 
 	.equ	RELOC32_SEG, 0x1000
-	.equ	SECTORS, 256
+	.equ	SECTORS, 512
 					# DL contains disk number (normally 0x80)
 	mov	bx, 0x1000		# load sector to memory address 0x10000
 	mov	es, bx                 
 	mov	bx, 0x0			# ES:BX = 0x1000:0x0
-	mov	si, SECTORS		# 256 sectors = 128 KB
+	mov	si, SECTORS	
 
 	mov	dh, 0x0			# head 0
 	mov	ch, 0x0			# cylinder 0
@@ -235,28 +238,12 @@ _load_idt32_gdt32:
 
 	#boot_status	0x44, 0xaf
 
-/*
-_dump_boot:
-	push	gs
-	pop	es
-	mov	si, 0x7c00 + 3
-	mov	di, 80 * 8
-	mov	cx, 0x200
+	#
+	# Switch to protected mode
+	#
 
-	mov	al, 0x2a
-	stosb
-	mov	al, 0x4f
-	stosb
-
-	rep	movsb
-
-	mov	al, 0x2a
-	mov	cx, 10
-	rep	stosb
-*/
 	mov	cx, DS_32
 
-	# Switch to protected mode
 	.equ	CR0_PE, 1
 	mov	edx, cr0
 	or	dl, CR0_PE
@@ -319,6 +306,9 @@ _pm_32:
 	#
 	# 0x200 is second sector
 	#
+
+	# 0x200 is a 64-bit bootloader kernel entry, but we'll take care of this later
+
 	.org	ORG + 0x200
 
 _boot_32_entry:
@@ -412,7 +402,6 @@ _boot_32:
 	mov	edi, SCREEN + 6 * (80 * 2)
 	movzx	eax, byte ptr [_pcolor - 2]
 	lea	eax, [_pcolor - 2]
-	#mov	byte ptr [_pcolor], 0x4f
 	call	_p32printd
 	mov	al, 0x20
 	call	_p32emit
@@ -429,7 +418,77 @@ _boot_32:
 	mov	eax, 0x020a
 	call	_cursor
 
-	jmp	_load_idt64_gdt64
+
+	jmp	_setup_paging
+
+	#
+	# Setup 4-level initial paging
+	#
+
+	X86_CR4_PAE = (1 << 5)
+	
+	BOOT_PGTABLE_SIZE = (32 * 4096)
+
+	MSR_EFER = 0xc0000080
+	EFER_LME = 8
+
+_setup_paging:
+	# Stolen from Linux 6.19 arch/x86/compressed/head_64.S
+
+	mov	eax, cr4
+	or	eax, X86_CR4_PAE
+	mov	cr4, eax
+
+	xor	edx, edx
+
+	# Build Level 4
+	lea	edi, [_pgtable + 0]
+	lea	eax, [edi + 0x1007]
+	mov	[edi + 0], eax
+	add	[edi + 4], edx		# ??? edx = 0
+
+	# Build Level 3
+	lea	edi, [_pgtable + 0x1000]
+	lea	eax, [edi + 0x1007]
+	mov	ecx, 4
+	1:
+	mov	[edi + 0], eax
+	add	[edi + 4], edx		# ??? edx = 0
+	add	eax, 0x00001000
+	add	edi, 8
+	dec	ecx
+	jnz	1b
+
+	# Build Level 2
+	lea	edi, [_pgtable + 0x2000]
+	mov	eax, 0x00000183
+	mov	ecx, 2048
+1:	mov	[edi + 0], eax
+	add	[edi + 4], edx		# ??? edx = 0
+	add	eax, 0x00200000
+	add	edi, 8
+	dec	ecx
+	jnz	1b
+
+
+	lea	eax, [_pgtable]
+	mov	cr3, eax
+
+	mov	ecx, MSR_EFER
+	rdmsr
+	bts	eax, EFER_LME
+	wrmsr
+
+_setup_pae:
+	lea	eax, [_boot_64_enter]
+
+	push	CS_32_10	
+	push	eax
+
+	mov	eax, 0x80050033		# PE MP ET NE WP AM PG
+	mov	cr0, eax
+
+	retf
 
 	#
 	# IDT and GDT 64-bit
@@ -473,6 +532,7 @@ _gdt_64:
 	.quad   0x0000000000000000	# 28 TS continued
 _gdt_64$:	
 
+.code64
  	# Write an IDT entry to idt_32
  	# eax =	handler
  	# esi =	vector #
@@ -494,7 +554,6 @@ _set_idt64_entry:
 
 	mov	[ecx + 4], edx
 	ret
-.code64
 
 _trap_handler64:
 	boot32_status	'@', 0x5f
@@ -510,9 +569,12 @@ _interrupt_handler64:
 
 	iretq
 
-.code32
+	#
+	# 64-bit entrypoint with paging enabled
+	#
 
-_load_idt64_gdt64:
+_boot_64_enter:
+
 	lea	edi, [_idt_64]
 	xor	esi, esi
 
@@ -553,18 +615,26 @@ _load_gdt64:
 
 	boot32_status	'W', 0xcf
 
+	int3
+
 	push	CS_64
 	lea	eax, [_boot_64]
-	push	eax
-	retf
+	push	rax
+	retfq
 
 _boot_64:
 
 	boot32_status	'X', 0xaf
 
+	int3
+
 	jmp	.
 
 
+
+	.align	4096
+_pgtable:
+	.fill	BOOT_PGTABLE_SIZE, 1, 0
 
 
 
