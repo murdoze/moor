@@ -59,8 +59,11 @@ _mode_32:
 	jmp	_boot_32
 */
 
-	// BIOS parameter block
-	#.rept	0x60
+	# BIOS parameter block
+	# 
+	# It look like Dell BIOS does not damage BPB
+	# 
+	#.rept	0x50
 	#.byte	0x2e
 	#.endr
 	#.byte	0x42
@@ -142,11 +145,10 @@ _boot_16:
 	mov	ax, 0xb800
 	mov	gs, ax
 
-	boot_status	0x30, 0xeb
+	boot_status	0x42, 0x4f
 
 	.equ	RELOC32_SEG, 0x1000
 	.equ	SECTORS, 256
-/*
 					# DL contains disk number (normally 0x80)
 	mov	bx, 0x1000		# load sector to memory address 0x1000 
 	mov	es, bx                 
@@ -205,10 +207,9 @@ _boot_16:
 	
 	jmp	.
 
-*/
 
 .L_loaded:
-	boot_status	0x41, 0x4f
+	boot_status	0x42, 0xaf
 
 #
 # Entering protected mode
@@ -278,14 +279,10 @@ a20wait2:
 
 */
 a20done:	
-	mov	ax, 0x0a20
-	mov	di, 80 * 2
-	call	_printw
-
 	call	a20ready
 	je	1f
 
-	boot_status	0x34, 0xaf
+	boot_status	0x32, 0x4f
 	jmp	.
 
 	1:
@@ -304,6 +301,7 @@ a20done:
 
 	boot_status	0x44, 0xaf
 
+/*
 _dump_boot:
 	push	gs
 	pop	es
@@ -321,7 +319,7 @@ _dump_boot:
 	mov	al, 0x2a
 	mov	cx, 10
 	rep	stosb
-
+*/
 	.equ	DS_32, 0x28
 	.equ	CS_32, 0x20
 
