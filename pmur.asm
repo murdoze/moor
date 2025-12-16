@@ -427,6 +427,7 @@ _p32emit:
 	inc	edi
 	ret
 	
+	# eax = hex number
 _p32printd:
 	push	eax
 	shr	eax, 16
@@ -453,6 +454,38 @@ _p32print1:
 	call	_p32emit
 	ret
 
+	# ah = row, ah = col
+_cursor:
+	push	edx
+	push	ecx
+
+	push	eax
+	and	eax, 0xff
+	mov	dl, 80 
+	mul	dl
+	pop	edx
+	shr	edx, 8
+	add	eax, edx
+
+	mov	ecx, eax
+	mov	al, 0x0f
+	mov	dx, 0x3d4
+	outb	dx, al
+	mov	dx, 0x3d5
+	mov	al, cl
+	outb	dx, al
+	
+	mov	al, 0x0e
+	mov	dx, 0x3d4
+	outb	dx, al
+	mov	dx, 0x3d5
+	mov	al, ch
+	outb	dx, al
+
+	pop	ecx
+	pop	edx
+	ret
+
 _boot_32:
 
 	mov	edi, SCREEN
@@ -476,6 +509,8 @@ _boot_32:
 	mov	eax, [0x100210]
 	call	_p32printd
 
+	mov	eax, 0x020a
+	call	_cursor
 
 	jmp	.
 
