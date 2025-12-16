@@ -369,7 +369,7 @@ _pm_32:
 	mov	byte ptr [0xb8000], 0x51
 	mov	byte ptr [0xb8001], 0x4f
 
-	jmp	.
+	jmp	ORG + 0x200
 
 
 
@@ -378,8 +378,6 @@ _pm_32:
 #
 # Boot in 32-bit protected mode, like Linux bzImage
 #
-_boot_32:
-	jmp	.
 
 	.org	ORG + 0x1be
 	.byte	0x80			# bootable
@@ -392,8 +390,18 @@ _boot_32:
 	.org	ORG + 0x1fe
 	.byte	0x55, 0xaa
 
-	# 0x200 offset in 64-bit is required by 64-bit bootloaders, hence the order of code
+	#
+	# 0x200 is second sector
+	#
 	.org	ORG + 0x200
+
+_boot_32:
+	mov	byte ptr [0xb8000], 0x52
+	mov	byte ptr [0xb8001], 0x4f
+	jmp	.
+
+
+
 .code64
 _mode_64:    
 
