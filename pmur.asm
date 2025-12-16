@@ -47,8 +47,8 @@ _start:
 
 	.align	8
 	# 32-bit fault handler is located at 0x7c00
-_fault_handler32_:
-	boot_status	0x74, 0xcf
+_fault_handler32:
+	mov	word ptr [0xb8002], 0xcf7e
 
 	jmp	.
 
@@ -73,7 +73,7 @@ _mode_16:
 	.align	16
 _idtr_32:
 	.word	32 * 8 - 1
-	.word	0x7c00
+	.long	0x7000
 
 .align	16
 _gdtr_32:
@@ -207,16 +207,19 @@ _boot_16:
 
 	#boot_status	0x33, 0xaf
 
+_load_idt32_gdt32:
 	mov	di, 0x7000	# IDT_32 will be places at 0x7000
 	mov	ax, 0x8e00	# present, 32-bit interrupt gate
 	mov	bx, 0x7c08	# fault handler
 	xor	dx, dx
+	mov	si, CS_32
 	mov	cx, 32
 	1:
-	mov	[di], dx
-	mov	[di + 2], ax
-	mov	[di + 4], dx
-	mov	[di + 6], bx
+	mov	[di], bx	# offset low
+	mov	[di + 2], si	# segment selector = CS_32
+	mov	[di + 4], ax	# flags
+	mov	[di + 6], dx	# offset hight = 0	
+	add	di, 8
 	loop	1b
 
 	# LIDT load null IDT
@@ -280,7 +283,7 @@ _pm_32:
 	mov	gs, cx
 	mov	ss, cx
 	
-	boot32_status	0x50, 0xaf
+	boot32_status	'P', 0xaf
 
 	mov	esi, 0x10000
 	mov	edi, ORG + 0x200
@@ -288,7 +291,7 @@ _pm_32:
 	shl	ecx, 6
 	rep	movsd
 
-	boot32_status	0x51, 0xaf
+	boot32_status	'R', 0xaf
 
 	#jmp	ORG + 0x200
 	push	ORG + 0x200
@@ -319,7 +322,7 @@ _pm_32:
 _boot_32_entry:
 	.equ	SCREEN, 0xb8000
 
-	boot32_status	0x52, 0x4f
+	boot32_status	'S', 0x4f
 
 	jmp	_boot_32
 
@@ -431,9 +434,9 @@ _boot_32:
 	#
 
 	.align	4
-#_idtr_32:
+_idtr_32_:
 	.word	_idt_32$ - _idt_32 - 1
-	.long	_idt_32 - ORG + 0x7c00
+	.long	_idt_32
 
 	.align	8
 _idt_32:
@@ -479,18 +482,16 @@ _set_idt32_entry:
 	mov	[ecx + 4], edx
 	ret
 
-_fault_handler32:
-	boot32_status	0x7e, 0x4f
+_fault_handler64:
+	boot32_status	'@', 0x4f
 
 	jmp	.
 
 	iret
 
 _load_idt32_gdt64:
-	boot32_status	0x53, 0x4f
-
 	lea	edi, [_idt_32]
-	lea	eax, [_fault_handler32]
+	lea	eax, [_fault_handler64]
 	xor	esi, esi
 
 	1:
@@ -500,11 +501,11 @@ _load_idt32_gdt64:
 	jne	1b
 
 _load_idt32:
-	boot32_status	0x54, 0x4f
+	boot32_status	'T', 0x4f
 
-#	lidt	[_idtr_32]
+#	lidt	[_idtr_32_]
 
-	boot32_status	0x55, 0x4f
+	boot32_status	'U', 0x4f
 
 	push	CS_32
 	lea	eax, [_load_gdt64]
@@ -512,11 +513,13 @@ _load_idt32:
 	retf
 
 _load_gdt64:
-	boot32_status	0x55, 0xaf
+	boot32_status	'U', 0xa1
 
+	int3
+	
 	lgdt	[_gdtr_64]
 
-	boot32_status	0x56, 0xaf
+	boot32_status	'V', 0xaf
 
 	mov	eax, DS_64
 	mov	ds, ax
@@ -525,12 +528,8 @@ _load_gdt64:
 	mov	gs, ax
 	mov	ss, ax
 
-	boot32_status	0x57, 0xcf
+	boot32_status	'W', 0xcf
 
-	jmp	.
-
-	int3
-	
 	push	CS_64
 	lea	eax, [_boot_64]
 	push	eax
@@ -539,7 +538,7 @@ _load_gdt64:
 
 _boot_64:
 
-	boot32_status	0x58, 0xaf
+	boot32_status	'X', 0xaf
 
 	jmp	.
 
