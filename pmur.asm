@@ -201,9 +201,8 @@ _boot_16:
 # Entering protected mode
 #
 
-	# Disable interrupts and NMI
+	# Disable interrupts (NMI some day, TODO)
 	cli
-
 
 	# A20 check was here
 	#boot_status	0x32, 0x4f
@@ -399,22 +398,6 @@ _boot_32:
 	mov	al, 0x41
 	call	_p32emit
 
-	mov	edi, SCREEN + 6 * (80 * 2)
-	movzx	eax, byte ptr [_pcolor - 2]
-	lea	eax, [_pcolor - 2]
-	call	_p32printd
-	mov	al, 0x20
-	call	_p32emit
-	call	1f
-	1:
-	pop	eax
-	call	_p32printd
-	mov	al, 0x20
-	call	_p32emit
-	mov	byte ptr [_pcolor], 0x5f
-	mov	eax, [0x100210]
-	call	_p32printd
-
 	mov	eax, 0x020a
 	call	_cursor
 
@@ -491,6 +474,54 @@ _setup_pae:
 	retf
 
 	#
+	# 64-bit screen output
+	#
+
+.code64
+
+_p64emit:
+	mov	[rdi], al
+	inc	rdi
+	mov	al, [_pcolor]
+	mov	[rdi], al
+	inc	rdi
+	ret
+	
+	# eax = hex number
+_p64printq:
+	push	rax
+	shr	rax, 32
+	call	_p64printd
+	pop	rax
+_p64printd:
+	push	rax
+	shr	rax, 16
+	call	_p64printw
+	pop	rax
+_p64printw:
+	xchg	al, ah
+	call	_p64printb
+	xchg	al, ah
+_p64printb:
+	push	cx
+	mov	cl, al
+	shr	al, 4
+	call	_p64print1
+	mov	al, cl
+	pop	cx
+_p64print1:
+	and	al, 0x0f
+	cmp	al, 0xa
+	jb	1f
+	add	al, 0x61 - 0x39 - 1
+	1:
+	add	al, 0x30
+	call	_p64emit
+	ret
+
+
+
+	#
 	# IDT and GDT 64-bit
 	#
 
@@ -532,7 +563,6 @@ _gdt_64:
 	.quad   0x0000000000000000	# 28 TS continued
 _gdt_64$:	
 
-.code64
  	# Write an IDT entry to idt_32
  	# eax =	handler
  	# esi =	vector #
@@ -555,10 +585,21 @@ _set_idt64_entry:
 	mov	[ecx + 4], edx
 	ret
 
-_trap_handler64:
-	boot32_status	'@', 0x5f
 
-	jmp	.
+_trap_counter:
+	.quad	0
+
+_trap_handler64:
+	boot32_status	'@', 0xcf
+
+	mov	rdi, SCREEN + 2 * (80 - 16)
+	mov	byte ptr [_pcolor], 0x5f
+	inc	qword ptr [_trap_counter]
+	mov	rax, qword ptr [_trap_counter]
+	call	_p64printq
+
+	mov	al, 0x20
+	out	0x20, al
 
 	iretq
 
@@ -626,9 +667,51 @@ _boot_64:
 
 	boot32_status	'X', 0xaf
 
-	int3
+	inb	al, 0x21
+	add	al, 0x30
 
-	jmp	.
+	mov	rdi, SCREEN + 4
+	mov	rdi, SCREEN + 3 * (2 * 80) - 8
+	mov	byte ptr [_pcolor], 0x20
+	call	_p64printb
+	
+	inb	al, 0xa1
+	add	al, 0x30
+
+	mov	rdi, SCREEN + 3 * (2 * 80) - 4
+	mov	byte ptr [_pcolor], 0x20
+	call	_p64printb
+	
+	sti
+
+	boot32_status	'Y', 0xaf
+
+	jmp	. 
+	
+	mov	rdi, SCREEN + 10 * (2 * 80)
+	movabs	rax, 0x12345678abcdef0
+	call	_p64printq
+
+	xor	eax, eax
+	#in	al, 0x21
+	add	al, 0x30
+	mov	ah, 0x7
+	
+	
+	mov	word ptr [SCREEN], ax
+
+
+	/*
+	xor	rax, rax
+	in	al, 0x21
+	mov	di, SCREEN + 10 * (2 * 80)
+	call	_p32printb
+	*/
+
+	1:
+	#boot32_status	'Z', 0xaf
+
+	jmp	1b
 
 	.align	4096
 _pgtable:
