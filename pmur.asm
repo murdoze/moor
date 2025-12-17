@@ -526,7 +526,7 @@ _p64print1:
 	#
 
 	IDT64_TRAP_COUNT =  32
-	IDT64_INTERRUPT_COUNT = 8
+	IDT64_INTERRUPT_COUNT = 16
 	IDT64_COUNT = IDT64_TRAP_COUNT + IDT64_INTERRUPT_COUNT
 
 	GATE_TRAP	= 0x0f00
@@ -550,6 +550,9 @@ _p64print1:
 	TRAP_XM		= 19
 	TRAP_VE		= 20
 	TRAP_CP		= 21
+
+	INTERRUPT_TIMER		= 0x20
+	INTERRUPT_KEYBOARD	= 0x21
 
 	.align	4
 _idtr_64:
@@ -704,6 +707,14 @@ _print_cr2:
 	call	_p64printq
 	ret
 
+_print_trap_counter:
+	mov	rdi, SCREEN + 2 * (80 - 16)
+	mov	byte ptr [_pcolor], 0x5f
+	inc	qword ptr [_trap_counter]
+	mov	rax, qword ptr [_trap_counter]
+	call	_p64printq
+	ret
+
 _trap_counter:		 .quad	0
 _trap_number:		.byte	0
 _trap_error_code:	.quad	0
@@ -719,13 +730,6 @@ _trap_handler64:
 	push	rdx
 	push	rsi
 	push	rdi
-
-	# Print trap counter
-	mov	rdi, SCREEN + 2 * (80 - 16)
-	mov	byte ptr [_pcolor], 0x5f
-	inc	qword ptr [_trap_counter]
-	mov	rax, qword ptr [_trap_counter]
-	call	_p64printq
 
 	call	_print_sp_ip
 
@@ -830,8 +834,18 @@ _interrupt_handler64:
 
 	iretq
 
+_interrupt_timer_handler:
+	inc	qword ptr [_trap_counter]
+	call	_print_trap_counter
+
+	call	_pic_send_eoi
+
+	iretq
+
 _interrupt_keyboard_handler:
-	mov	word ptr [SCREEN + 6], 0x5f4b
+	mov	word ptr [SCREEN + 18], 0x5f4b
+
+	call	_pic_send_eoi
 
 	iretq
 
@@ -860,7 +874,7 @@ _pic_remap:
 	mov	al, bl
 	out	0x21, al
 	mov	al, bh
-	out	0xa0, al
+	out	0xa1, al
 
 	ret
 
@@ -898,7 +912,7 @@ _setup_idt64:
 	cmp	esi, IDT64_COUNT
 	jne	2b
 
-	# Setup specific handlers
+	# Setup specific trap handlers
 _setup_idt64_traps:
 	mov	ebx, GATE_TRAP
 
@@ -937,6 +951,18 @@ _setup_idt64_traps:
 
 	pop	rsi
 	*/
+
+	# Setup specific interrupt handlers
+_setup_idt64_interrupts:
+	mov	ebx, GATE_INTERRUPT
+
+	lea	eax, _interrupt_timer_handler
+	mov	esi, INTERRUPT_TIMER
+	call	_set_idt64_entry
+
+	lea	eax, _interrupt_keyboard_handler
+	mov	esi, INTERRUPT_KEYBOARD
+	call	_set_idt64_entry
 
 _load_idt64:
 	boot32_status	'T', 0x4f
@@ -985,25 +1011,25 @@ _PF:
 	mov	rax, 0xffffffff00000000
 	mov	[rax], rax
 
-
 	1:
 	boot32_status	'Y', 0xaf
 	pause
 	jmp	1b
 
+__dummy0:
 
 	.align	4096
 _pgtable:
 	.fill	BOOT_PGTABLE_SIZE, 1, 0
 
 	.align	4096
-	.equ	BOOT_STACK_SIZE, 0x1000
+	.equ	BOOT_STACK_SIZE, 0x4000
 _boot_stack:
 	.fill	BOOT_STACK_SIZE, 1, 0
 _boot_stack$:
 
 
-
+__dummy1:
 
 
 
