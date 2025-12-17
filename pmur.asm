@@ -610,6 +610,19 @@ _set_idt64_entry:
 	mov	[ecx + 4], edx
 	ret
 
+	#
+	# Print helper functions
+	#
+
+_clear_screen:
+	mov	rdi, SCREEN
+	mov	rcx, 10 * 80
+	mov	ax, 0x082e
+	rep	stosw
+	mov	rcx, 15 * 80
+	mov	ax, 0x0800
+	ret
+
 _print_interrupt_masks:
 	inb	al, 0x21
 	add	al, 0x30
@@ -625,6 +638,70 @@ _print_interrupt_masks:
 	mov	byte ptr [_pcolor], 0x20
 	call	_p64printb
 
+	ret
+
+	# Print stack and instruction pointers
+_print_sp_ip:
+	mov	rdi, SCREEN + 3 * (2 * 80)
+	mov	byte ptr [_pcolor], 0x20
+	mov	al, 'S'
+	call	_p64emit
+	mov	al, 'P'
+	call	_p64emit
+	mov	al, ' '
+	call	_p64emit
+	mov	al, ' '
+	call	_p64emit
+	mov	byte ptr [_pcolor], 0x2f
+	mov	rax, rsp
+	call	_p64printq
+
+	mov	rdi, SCREEN + 4 * (2 * 80)
+	mov	byte ptr [_pcolor], 0x20
+	mov	al, 'I'
+	call	_p64emit
+	mov	al, 'P'
+	call	_p64emit
+	mov	al, ' '
+	call	_p64emit
+	mov	al, ' '
+	call	_p64emit
+	mov	byte ptr [_pcolor], 0x2f
+	pop	rax
+	push	rax
+	call	_p64printq
+	ret
+
+_print_error_code:
+	mov	rdi, SCREEN + 2 * (2 * 80)
+	mov	byte ptr [_pcolor], 0xc0
+	mov	al, 'E'
+	call	_p64emit
+	mov	al, 'C'
+	call	_p64emit
+	mov	al, ' '
+	call	_p64emit
+	mov	al, ' '
+	call	_p64emit
+	mov	byte ptr [_pcolor], 0x0e
+	mov	rax, fs:[_trap_error_code]
+	call	_p64printq
+	ret
+
+_print_cr2:
+	mov	rdi, SCREEN + 5 * (2 * 80)
+	mov	byte ptr [_pcolor], 0x20
+	mov	al, 'C'
+	call	_p64emit
+	mov	al, 'R'
+	call	_p64emit
+	mov	al, '2'
+	call	_p64emit
+	mov	al, ' '
+	call	_p64emit
+	mov	byte ptr [_pcolor], 0x04f
+	mov	rax, cr2
+	call	_p64printq
 	ret
 
 _trap_counter:
@@ -647,31 +724,7 @@ _trap_handler64:
 	mov	rax, qword ptr [_trap_counter]
 	call	_p64printq
 
-	# Print stack and instruction pointers
-	mov	rdi, SCREEN + 3 * (2 * 80)
-	mov	byte ptr [_pcolor], 0x20
-	mov	al, 'S'
-	call	_p64emit
-	mov	al, 'P'
-	call	_p64emit
-	mov	al, ' '
-	call	_p64emit
-	mov	byte ptr [_pcolor], 0x2f
-	mov	rax, rsp
-	call	_p64printq
-
-	mov	rdi, SCREEN + 4 * (2 * 80)
-	mov	byte ptr [_pcolor], 0x20
-	mov	al, 'I'
-	call	_p64emit
-	mov	al, 'P'
-	call	_p64emit
-	mov	al, ' '
-	call	_p64emit
-	mov	byte ptr [_pcolor], 0x2f
-	pop	rax
-	push	rax
-	call	_p64printq
+	call	_print_sp_ip
 
 	# Sent EOI to PIC
 	mov	al, 0x20
@@ -748,6 +801,15 @@ _trap_error_handler:
 	
 	mov	word ptr [SCREEN + 8], 0x4f45
 
+
+	call	_print_error_code
+	call	_print_sp_ip
+	call	_print_cr2
+
+	mov	rdi, SCREEN + 12
+	mov	al, byte ptr [_trap_number]
+	mov	byte ptr [_pcolor], 0x0e
+	call	_p64printb
 
 	jmp	.
 
@@ -874,16 +936,17 @@ _load_gdt64:
 	#
 
 _boot_64:
-
 	boot32_status	'X', 0xaf
 
 	#call	_print_interrupt_masks
 
 _warm_64:
-	# lea	esp, [_boot_stack$ - 8]
+	lea	esp, [_boot_stack$ - 8]
+
+	call	_clear_screen
+	boot32_status	'Y', 0x4f
 
 	sti
-
 _PF:
 	mov	rax, 0x123456789abcdef0
 	mov	[rax], rax
