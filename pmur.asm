@@ -674,7 +674,7 @@ _print_sp_ip:
 
 _print_error_code:
 	mov	rdi, SCREEN + 2 * (2 * 80)
-	mov	byte ptr [_pcolor], 0xc0
+	mov	byte ptr [_pcolor], 0x40
 	mov	al, 'E'
 	call	_p64emit
 	mov	al, 'C'
@@ -704,8 +704,11 @@ _print_cr2:
 	call	_p64printq
 	ret
 
-_trap_counter:
-	.quad	0
+_trap_counter:		 .quad	0
+_trap_number:		.byte	0
+_trap_error_code:	.quad	0
+_trap_rip:		.quad	0
+_trap_temp:		.quad	0
 
 _trap_handler64:
 	mov	word ptr [SCREEN + 2], 0xcf40
@@ -745,10 +748,6 @@ _trap_handler64:
 
 	# TODO: Should be a per-CPU structure
 
-_trap_number:		.byte	0
-_trap_error_code:	.quad	0
-_trap_rip:		.quad	0
-_trap_temp:		.quad	0
 
 _trap_df_handler:
 	mov	byte ptr fs:[_trap_number], TRAP_DF
@@ -808,7 +807,7 @@ _trap_error_handler:
 
 	mov	rdi, SCREEN + 12
 	mov	al, byte ptr [_trap_number]
-	mov	byte ptr [_pcolor], 0x0e
+	mov	byte ptr [_pcolor], 0x8e
 	call	_p64printb
 
 	jmp	.
@@ -835,6 +834,41 @@ _interrupt_keyboard_handler:
 	mov	word ptr [SCREEN + 6], 0x5f4b
 
 	iretq
+
+_pic_remap:
+	in	al, 0x21
+	mov	bl, al
+	in	al, 0xa1
+	mov	bh, al
+
+	mov	al, 0x11
+	out	0x20, al
+	out	0xa0, al
+
+	mov	al, 0x20
+	out	0x21, al
+	out	0xa1, al
+
+	mov	al, 0x04
+	out	0x21, al
+	out	0xa1, al
+
+	mov	al, 0x01
+	out	0x21, al
+	out	0xa1, al
+
+	mov	al, bl
+	out	0x21, al
+	mov	al, bh
+	out	0xa0, al
+
+	ret
+
+_pic_send_eoi:
+	mov	al, 0x20
+	out	0x20, al
+
+	ret
 
 	#
 	# 64-bit entrypoint with paging enabled
@@ -938,7 +972,7 @@ _load_gdt64:
 _boot_64:
 	boot32_status	'X', 0xaf
 
-	#call	_print_interrupt_masks
+	call	_pic_remap
 
 _warm_64:
 	lea	esp, [_boot_stack$ - 8]
@@ -948,7 +982,7 @@ _warm_64:
 
 	sti
 _PF:
-	mov	rax, 0x123456789abcdef0
+	mov	rax, 0xffffffff00000000
 	mov	[rax], rax
 
 
