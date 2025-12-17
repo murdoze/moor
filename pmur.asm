@@ -98,7 +98,7 @@ _gdt_32$:
 	#
 
 #	ax = value
-#	di = print location n screen
+#	di = print offset on screen
 _printd:
 	push	eax
 	shr	eax, 16
@@ -529,6 +529,28 @@ _p64print1:
 	IDT64_INTERRUPT_COUNT = 8
 	IDT64_COUNT = IDT64_TRAP_COUNT + IDT64_INTERRUPT_COUNT
 
+	GATE_TRAP	= 0x0f00
+	GATE_INTERRUPT	= 0x0e00
+
+	TRAP_DE		= 0
+	TRAP_DB 	= 1
+	TRAP_NMI	= 2
+	TRAP_BP		= 3
+	TRAP_OF		= 4
+	TRAP_BR		= 5
+	TRAP_UD		= 6
+	TRAP_DF		= 8
+	TRAP_TS		= 10
+	TRAP_NP		= 11
+	TRAP_SS		= 12
+	TRAP_GP		= 13
+	TRAP_PF		= 14
+	TRAP_AC		= 17
+	TRAP_MC		= 18
+	TRAP_XM		= 19
+	TRAP_VE		= 20
+	TRAP_CP		= 21
+
 	.align	4
 _idtr_64:
 	.word	_idt_64$ - _idt_64 - 1
@@ -569,7 +591,10 @@ _gdt_64$:
 	# edi =	IDT address
 	# ebx = gate type (0x0e00 for interrupt, 0x0f00 for trap)
 _set_idt64_entry:
-	lea	ecx, [edi + esi * 8]
+	lea	ecx, [esi * 8]
+	add	ecx, ecx
+
+	lea	ecx, [edi + ecx]
 
 	mov	edx, eax
 	and	edx, 0xffff		# Target code segment offset [15:0]. Handler is in lower 4GB anyways
@@ -585,12 +610,35 @@ _set_idt64_entry:
 	mov	[ecx + 4], edx
 	ret
 
+_print_interrupt_masks:
+	inb	al, 0x21
+	add	al, 0x30
+
+	mov	rdi, SCREEN + 3 * (2 * 80) - 8
+	mov	byte ptr [_pcolor], 0x20
+	call	_p64printb
+	
+	inb	al, 0xa1
+	add	al, 0x30
+
+	mov	rdi, SCREEN + 3 * (2 * 80) - 4
+	mov	byte ptr [_pcolor], 0x20
+	call	_p64printb
+
+	ret
 
 _trap_counter:
 	.quad	0
 
 _trap_handler64:
-	boot32_status	'@', 0xcf
+	mov	word ptr [SCREEN + 2], 0xcf40
+
+	push	rax
+	push	rbx
+	push	rcx
+	push	rdx
+	push	rsi
+	push	rdi
 
 	# Print trap counter
 	mov	rdi, SCREEN + 2 * (80 - 16)
@@ -629,6 +677,89 @@ _trap_handler64:
 	mov	al, 0x20
 	out	0x20, al
 
+	pop	rdi
+	pop	rsi
+	pop	rdx
+	pop	rcx
+	pop	rbx
+	pop	rax
+
+	iretq
+
+	#
+	# Handlers for traps with error code 
+	#
+
+	# TODO: Should be a per-CPU structure
+
+_trap_number:		.byte	0
+_trap_error_code:	.quad	0
+_trap_rip:		.quad	0
+_trap_temp:		.quad	0
+
+_trap_df_handler:
+	mov	byte ptr fs:[_trap_number], TRAP_DF
+	jmp	_trap_error_handler
+
+_trap_ts_handler:
+	mov	byte ptr fs:[_trap_number], TRAP_TS
+	jmp	_trap_error_handler
+
+_trap_np_handler:
+	mov	byte ptr fs:[_trap_number], TRAP_NP
+	jmp	_trap_error_handler
+
+_trap_ss_handler:
+	mov	byte ptr fs:[_trap_number], TRAP_SS
+	jmp	_trap_error_handler
+
+_trap_gp_handler:
+	mov	byte ptr fs:[_trap_number], TRAP_GP
+	jmp	_trap_error_handler
+
+_trap_pf_handler:
+	mov	byte ptr fs:[_trap_number], TRAP_PF
+	jmp	_trap_error_handler
+
+_trap_ac_handler:
+	mov	byte ptr fs:[_trap_number], TRAP_AC
+	jmp	_trap_error_handler
+
+_trap_cp_handler:
+	mov	byte ptr fs:[_trap_number], TRAP_CP
+	jmp	_trap_error_handler
+
+	# Handler for traps with error code
+_trap_error_handler:
+	mov	qword ptr fs:[_trap_temp], rax
+	mov	rax, [rsp + 0]
+	mov	qword ptr fs:[_trap_error_code], rax
+	mov	rax, [rsp + 8]
+	mov	qword ptr fs:[_trap_rip], rax
+	mov	rax, qword ptr fs:[_trap_temp]
+
+	push	rax
+	push	rbx
+	push	rcx
+	push	rdx
+	push	rsi
+	push	rdi
+
+	
+	mov	word ptr [SCREEN + 8], 0x4f45
+
+
+	jmp	.
+
+
+	pop	rdi
+	pop	rsi
+	pop	rdx
+	pop	rcx
+	pop	rbx
+	pop	rax
+
+	add	rsp, 8
 	iretq
 
 _interrupt_handler64:
@@ -638,31 +769,78 @@ _interrupt_handler64:
 
 	iretq
 
+_interrupt_keyboard_handler:
+	mov	word ptr [SCREEN + 6], 0x5f4b
+
+	iretq
+
 	#
 	# 64-bit entrypoint with paging enabled
 	#
 
 _boot_64_entry:
 
+
+_setup_idt64:
+	# Setup generic handlers
 	lea	edi, [_idt_64]
 	xor	esi, esi
 
 	lea	eax, [_trap_handler64]
-	mov	ebx, 0x0f00
+	mov	ebx, GATE_TRAP
 	1:
 	call	_set_idt64_entry
-	add	edi, 8
 	inc	esi
 	cmp	esi, IDT64_TRAP_COUNT
 	jne	1b
+
 	2:
 	lea	eax, [_interrupt_handler64]
-	mov	ebx, 0x0e00
+	mov	ebx, GATE_INTERRUPT
 	call	_set_idt64_entry
-	add	edi, 8
 	inc	esi
 	cmp	esi, IDT64_COUNT
 	jne	2b
+
+	# Setup specific handlers
+_setup_idt64_traps:
+	mov	ebx, GATE_TRAP
+
+	lea	eax, _trap_pf_handler
+	mov	esi, TRAP_PF
+	call	_set_idt64_entry
+
+	lea	eax, _trap_gp_handler
+	mov	esi, TRAP_GP
+	call	_set_idt64_entry
+
+	/*
+	push	rsi
+
+	#lea	eax, _trap_df_handler
+	#mov	esi, TRAP_DF
+	#call	_set_idt64_entry
+	lea	eax, _trap_np_handler
+	mov	esi, TRAP_NP
+	call	_set_idt64_entry
+	lea	eax, _trap_ss_handler
+	mov	esi, TRAP_SS
+	call	_set_idt64_entry
+	lea	eax, _trap_gp_handler
+	mov	esi, TRAP_GP
+	call	_set_idt64_entry
+	lea	eax, _trap_pf_handler
+	mov	esi, TRAP_PF
+	call	_set_idt64_entry
+	lea	eax, _trap_ac_handler
+	mov	esi, TRAP_AC
+	call	_set_idt64_entry
+	lea	eax, _trap_cp_handler
+	mov	esi, TRAP_CP
+	call	_set_idt64_entry
+
+	pop	rsi
+	*/
 
 _load_idt64:
 	boot32_status	'T', 0x4f
@@ -691,35 +869,41 @@ _load_gdt64:
 	push	rax
 	retfq
 
+	#
+	# 64-bit mode with PAE paging and interrupts, fully functional
+	#
+
 _boot_64:
 
 	boot32_status	'X', 0xaf
 
-	inb	al, 0x21
-	add	al, 0x30
+	#call	_print_interrupt_masks
 
-	mov	rdi, SCREEN + 3 * (2 * 80) - 8
-	mov	byte ptr [_pcolor], 0x20
-	call	_p64printb
-	
-	inb	al, 0xa1
-	add	al, 0x30
+_warm_64:
+	# lea	esp, [_boot_stack$ - 8]
 
-	mov	rdi, SCREEN + 3 * (2 * 80) - 4
-	mov	byte ptr [_pcolor], 0x20
-	call	_p64printb
-	
 	sti
+
+_PF:
+	mov	rax, 0x123456789abcdef0
+	mov	[rax], rax
+
 
 	1:
 	boot32_status	'Y', 0xaf
 	pause
 	jmp	1b
 
+
 	.align	4096
 _pgtable:
 	.fill	BOOT_PGTABLE_SIZE, 1, 0
 
+	.align	4096
+	.equ	BOOT_STACK_SIZE, 0x1000
+_boot_stack:
+	.fill	BOOT_STACK_SIZE, 1, 0
+_boot_stack$:
 
 
 
@@ -2653,12 +2837,6 @@ _warm:
 	.endfunc
 	.equ	last, latest_word
 
-
-	.align	4096
-	.equ	BOOT_STACK_SIZE, 0x1000
-_boot_stack:
-	.fill	BOOT_STACK_SIZE, 1, 0
-_boot_stack$:
 
 	.align	4096
 
