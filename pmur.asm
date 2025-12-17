@@ -715,6 +715,31 @@ _print_trap_counter:
 	call	_p64printq
 	ret
 
+_print_interrupt_number:
+	mov	rdi, SCREEN + 2
+	mov	byte ptr [_pcolor], 0x1f
+	mov	al, byte ptr [_interrupt_number]
+	call	_p64printb
+	ret
+
+.macro	pushr
+	push	rax
+	push	rbx
+	push	rcx
+	push	rdx
+	push	rsi
+	push	rdi
+.endm
+
+.macro	popr
+	pop	rdi
+	pop	rsi
+	pop	rdx
+	pop	rcx
+	pop	rbx
+	pop	rax
+.endm
+
 _trap_counter:		 .quad	0
 _trap_number:		.byte	0
 _trap_error_code:	.quad	0
@@ -723,13 +748,8 @@ _trap_temp:		.quad	0
 
 _trap_handler64:
 	mov	word ptr [SCREEN + 2], 0xcf40
-
-	push	rax
-	push	rbx
-	push	rcx
-	push	rdx
-	push	rsi
-	push	rdi
+	
+	pushr
 
 	call	_print_sp_ip
 
@@ -737,12 +757,7 @@ _trap_handler64:
 	mov	al, 0x20
 	out	0x20, al
 
-	pop	rdi
-	pop	rsi
-	pop	rdx
-	pop	rcx
-	pop	rbx
-	pop	rax
+	popr
 
 	iretq
 
@@ -787,19 +802,14 @@ _trap_cp_handler:
 
 	# Handler for traps with error code
 _trap_error_handler:
+	pushr
+
 	mov	qword ptr fs:[_trap_temp], rax
 	mov	rax, [rsp + 0]
 	mov	qword ptr fs:[_trap_error_code], rax
 	mov	rax, [rsp + 8]
 	mov	qword ptr fs:[_trap_rip], rax
 	mov	rax, qword ptr fs:[_trap_temp]
-
-	push	rax
-	push	rbx
-	push	rcx
-	push	rdx
-	push	rsi
-	push	rdi
 
 	
 	mov	word ptr [SCREEN + 8], 0x4f45
@@ -816,37 +826,97 @@ _trap_error_handler:
 
 	jmp	.
 
-
-	pop	rdi
-	pop	rsi
-	pop	rdx
-	pop	rcx
-	pop	rbx
-	pop	rax
-
+	popr
 	add	rsp, 8
 	iretq
 
+_interrupt_number:	.byte	0
+
 _interrupt_handler64:
+	pushr
+
 	boot32_status	'I', 0x5f
 
+	call	_print_interrupt_number
+
 	jmp	.
+
+	popr
+	iretq
+
+_interrupt_20_handler:
+	mov	byte ptr fs:[_interrupt_number], 0x20
+	jmp	_interrupt_handler64
+
+_interrupt_21_handler:
+	mov	byte ptr fs:[_interrupt_number], 0x21
+	jmp	_interrupt_handler64
+
+_interrupt_22_handler:
+	mov	byte ptr fs:[_interrupt_number], 0x22
+	jmp	_interrupt_handler64
+
+_interrupt_23_handler:
+	mov	byte ptr fs:[_interrupt_number], 0x23
+	jmp	_interrupt_handler64
+
+_interrupt_24_handler:
+	mov	byte ptr fs:[_interrupt_number], 0x24
+	jmp	_interrupt_handler64
+
+_interrupt_25_handler:
+	mov	byte ptr fs:[_interrupt_number], 0x25
+	jmp	_interrupt_handler64
+
+_interrupt_26_handler:
+	mov	byte ptr fs:[_interrupt_number], 0x26
+	jmp	_interrupt_handler64
+
+_interrupt_27_handler:
+	pushr
+
+	boot32_status	's', 0x5f
+
+	call	_pic_send_eoi
+
+	popr
+	iretq
 
 	iretq
 
 _interrupt_timer_handler:
+	pushr
+
 	inc	qword ptr [_trap_counter]
 	call	_print_trap_counter
 
 	call	_pic_send_eoi
 
+	popr
 	iretq
 
+_key_code:	.byte	0
+
 _interrupt_keyboard_handler:
+	pushr
 	mov	word ptr [SCREEN + 18], 0x5f4b
+
+	in	al, 0x60
+	mov	byte ptr [_key_code], al
+
+	mov	rdi, SCREEN + 22
+	mov	byte ptr [_pcolor], 0x0b
+	push	rax
+	call	_p64printb
+	mov	al, ' '
+	call	_p64emit
+	pop	rax
+	mov	ah, 0x1f
+	call	_p64emit
 
 	call	_pic_send_eoi
 
+	popr
 	iretq
 
 _pic_remap:
@@ -962,6 +1032,30 @@ _setup_idt64_interrupts:
 
 	lea	eax, _interrupt_keyboard_handler
 	mov	esi, INTERRUPT_KEYBOARD
+	call	_set_idt64_entry
+
+	lea	eax, _interrupt_22_handler
+	mov	esi, 0x22
+	call	_set_idt64_entry
+
+	lea	eax, _interrupt_23_handler
+	mov	esi, 0x23
+	call	_set_idt64_entry
+
+	lea	eax, _interrupt_24_handler
+	mov	esi, 0x24
+	call	_set_idt64_entry
+
+	lea	eax, _interrupt_25_handler
+	mov	esi, 0x25
+	call	_set_idt64_entry
+
+	lea	eax, _interrupt_26_handler
+	mov	esi, 0x26
+	call	_set_idt64_entry
+
+	lea	eax, _interrupt_27_handler
+	mov	esi, 0x27
 	call	_set_idt64_entry
 
 _load_idt64:
