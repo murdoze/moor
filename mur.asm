@@ -27,11 +27,17 @@
 
 # Initialization
 
-.p2align	16, 0x90
-
-	.org	ORG
-
+	.align	4096
 _start:
+	jmp	_start1
+
+runmode:	.byte	0	# To avoid IFDEFs, because they mess up with line numbers
+				# 0 = Linux usermode, 1 = Baremetal, 2 = Linux kernel
+
+_start1:	
+	cmp	byte ptr [runmode], 0
+	jne	_restart
+
 	mov	rax, 12
 	lea	rdi, [here0]
 	syscall
