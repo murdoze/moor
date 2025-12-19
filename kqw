@@ -1,0 +1,12 @@
+qwl=$(xdotool search --name "QEMU")
+
+for qw_ in $qwl; do qw=$qw_; done
+if [[ ".$qw" == "." ]]; 
+then 
+  echo "QEMU not found"
+  exit 1
+fi
+
+xdotool windowactivate --sync "$qw"
+
+xdotool key "ctrl+alt+q"
