@@ -338,7 +338,7 @@ _p32print1:
 	call	_p32emit
 	ret
 
-	# ah = row, ah = col
+	# al = row, ah = col
 _cursor:
 	push	edx
 	push	ecx
@@ -602,6 +602,7 @@ _clear_screen:
 	rep	stosw
 	mov	rcx, 15 * 80
 	mov	ax, 0x0800
+	rep	stosw
 	ret
 
 _print_interrupt_masks:
@@ -874,7 +875,6 @@ _interrupt_27_handler:
 	popr
 	iretq
 
-	iretq
 
 _interrupt_timer_handler:
 	pushr
@@ -972,7 +972,7 @@ _keycode_to_ascii_noshift:
 	.byte	'b',	'n',	'm',	',',	'.',	'/',	0,	0,	0,	' '
 _keycode_to_ascii_shift:
 	.byte	0,	27,	'!',	'@',	'#',	'$',	'%',	'^',	'&',	'*',	'(',	')',	'_',	'+',	127,	9
-	.byte	'Q',	'W',	'E',	'R',	'T',	'Y',	'U',	'I',	'O',	'P', 	'{',	'}',	13,	0,	'A', 	'S'
+	.byte	'Q',	'W',	'E',	'R',	'T',	'Y',	'U',	'I',	'O',	'P', 	'{',	'}',	28,	0,	'A', 	'S'
 	.byte	'D',	'F',	'G',	'H',	'J',	'K',	'L',	':',	'"',	'~',	0,	'|',	'Z',	'X',	'C',	'V'
 	.byte	'B',	'N',	'M',	'<',	'>',	'?',	0,	0,	0,	' '
 
@@ -1032,6 +1032,123 @@ _key:
 	pop	rax
 
 	ret
+
+	START_ROW	= 11
+	START_COL	= 0
+	END_ROW		= 25
+	END_COL		= 80
+
+_cursor_row:	.byte	START_ROW
+_cursor_col:	.byte	START_COL
+
+_cursor_show:
+	mov	al, byte ptr [_cursor_row]
+	mov	ah, byte ptr [_cursor_col]
+	call	_cursor
+	ret
+
+_screen_scrollup:
+	push	rcx
+	push	rsi
+	push	rdi
+
+	mov	rdi, SCREEN + 2 * 80 * START_ROW
+	lea	rsi, [rdi + 2 * 80]
+	mov	rcx, 2 * 80 / 8 * (END_ROW - START_ROW)
+
+	rep	movsq
+
+	pop	rdi
+	pop	rsi
+	pop	rcx
+	ret
+
+
+_cursor_backward:
+	mov	al, byte ptr [_cursor_col]
+	cmp	al, 0
+	jz	4f
+	dec	byte ptr [_cursor_col]
+	jmp	9f
+
+	4:
+	cmp	byte ptr [_cursor_row], START_ROW
+	je	9f
+	mov	byte ptr [_cursor_col], END_COL - 1
+	dec	byte ptr [_cursor_row]
+
+	9:
+	ret
+
+_cursor_forward:
+	inc	byte ptr [_cursor_col]
+	call	_cursor_limit
+	ret
+
+_cursor_newline:
+	add	byte ptr [_cursor_row], 1
+	mov	byte ptr [_cursor_col], 0
+	call	_cursor_limit
+	ret
+
+_cursor_limit:
+	mov	al, byte ptr [_cursor_col]
+	cmp	al, END_COL
+	jb	1f
+	mov	byte ptr [_cursor_col], START_COL
+	inc	byte ptr [_cursor_row]
+	1:
+	mov	al, byte ptr [_cursor_row]
+	cmp	al, END_ROW
+	jb	3f
+
+	call	_screen_scrollup
+	dec	byte ptr [_cursor_row]
+
+	3:
+	ret
+
+_clrscr:
+	call	_clear_screen
+
+	mov	byte ptr [_cursor_col], START_COL
+	mov	byte ptr [_cursor_row], START_ROW
+	
+	call	_cursor_show
+
+	ret
+
+
+_emitchar:
+	push	rdi
+
+	movzx	rax, al
+	push	rax
+
+	mov	al, byte ptr [_cursor_row]
+	mov	dl, 2 * 80
+	mul	dl
+	movzx	rax, ax
+	movzx	rdx, byte ptr [_cursor_col]
+	add	rax, rdx
+	add	rax, rdx
+	mov	rdi, SCREEN
+	add	rdi, rax
+
+	pop	rax
+
+	call	_p64emit
+
+	call	_cursor_forward
+
+	call	_cursor_show
+
+	pop	rdi
+
+	ret
+
+	READLINE_SIZE = 1024
+
 
 	#
 	# PIC programming
@@ -1215,20 +1332,64 @@ _boot_64:
 _warm_64:
 	lea	esp, [_boot_stack$ - 8]
 
-	call	_clear_screen
+	call	_clrscr
+
 	boot32_status	'Y', 0x4f
 
 	sti
+
 	/*
 _PF:
 	mov	rax, 0xffffffff00000000
 	mov	[rax], rax
 	*/
 
+	0:	
+	mov	byte ptr [_pcolor], 0x02
+
+	mov	al, 0x10
+	call	_emitchar
+
+	mov	byte ptr [_pcolor], 0x05
+
 	1:
 	boot32_status	'Y', 0xaf
 
 	call	_key
+
+	cmp	al, 27
+	jne	2f
+	call	_clrscr
+	jmp	0b
+	2:
+	cmp	al, 13
+	jne	3f
+	call	_cursor_newline	
+	jmp	0b
+	3:
+	cmp	al, 127
+	jne	7f
+	call	_cursor_backward
+	mov	al, ' '
+	call	_emitchar
+	call	_cursor_backward
+	call	_cursor_show
+	jmp	1b
+	7:
+	cmp	al, 28	# Shift+Enter
+	jne	9f
+
+	mov	cl, 0x20
+	8:
+	mov	al, cl
+	call	_emitchar
+	inc	cl
+	cmp	cl, 0x90
+	jb	8b
+
+
+	9:
+	call	_emitchar
 
 	jmp	1b
 
