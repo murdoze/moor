@@ -31,7 +31,6 @@ _fault_handler32:
 
 	jmp	.
 
-
 .code16
 
 _mode_16:
@@ -701,6 +700,20 @@ _print_interrupt_number:
 	call	_p64printb
 	ret
 
+_print_key_pressed:
+	mov	word ptr [SCREEN + 18], 0x5f4b
+
+	mov	rdi, SCREEN + 22
+	mov	byte ptr [_pcolor], 0x0b
+	push	rax
+	call	_p64printb
+	mov	al, ' '
+	call	_p64emit
+	pop	rax
+	mov	ah, 0x1f
+	call	_p64emit
+	ret
+
 .macro	pushr
 	push	rax
 	push	rbx
@@ -874,29 +887,147 @@ _interrupt_timer_handler:
 	popr
 	iretq
 
+	#
+	# Keyboard input
+	#
+
+_keyboard_task:	.quad	0
+_keyboard_temp:	.quad	0
+_keyboard_wait:	.byte	0
 _key_code:	.byte	0
 
 _interrupt_keyboard_handler:
 	pushr
-	mov	word ptr [SCREEN + 18], 0x5f4b
 
 	in	al, 0x60
 	mov	byte ptr [_key_code], al
 
-	mov	rdi, SCREEN + 22
-	mov	byte ptr [_pcolor], 0x0b
-	push	rax
-	call	_p64printb
-	mov	al, ' '
-	call	_p64emit
-	pop	rax
-	mov	ah, 0x1f
-	call	_p64emit
+	call	_print_key_pressed
 
 	call	_pic_send_eoi
 
+	# Run task
+	cmp	qword ptr [_keyboard_task], 0
+	jz	7f
+	cmp	byte ptr [_keyboard_wait], 0
+	jz	7f
+
 	popr
+
+	xor	al, al
+	xchg	al, byte ptr [_key_code]
+	movzx	rax, al
+
+	mov	byte ptr [_keyboard_wait], 0
+	pop	qword ptr [_keyboard_temp]	# discard return address
+	push	qword ptr [_keyboard_task]	# run the waiting keyboard task
+
+	jmp	9f
+
+	7:
+	popr
+
+	9:
 	iretq
+
+_inkey:
+	movzx	rax, byte ptr [_key_code]
+	ret
+
+_waitkey:
+	xor	al, al
+	xchg	al, byte ptr [_key_code]
+	movzx	rax, al
+	jnz	_key_exit
+
+	lea	rax, [_key_wait]
+	mov	qword ptr [_keyboard_task], rax
+	mov	byte ptr [_keyboard_wait], 1
+	1:
+	hlt
+	jmp	1b
+_key_wait:
+
+_key_exit:
+	ret
+
+	PRESSED_ALT	= 0x1
+	PRESSED_CTRL	= 0x2
+	PRESSED_SHIFT	= 0x4
+
+	KEYMASK_RELEASE	= 0x80
+	KEYCODE_ALT	= 0x38
+	KEYCODE_CTRL	= 0x1d
+	KEYCODE_LSHIFT	= 0x2a
+	KEYCODE_RSHIFT	= 0x36
+
+	KEYCODE_COUNT	= 0x36
+
+	#	00	01	02	03	04	05	06	07	08	09	0a	0b	0c	0d	0e	0f
+_keycode_to_ascii:
+_keycode_to_ascii_noshift:
+	.byte	0,	27,	'1',	'2',	'3',	'4',	'5',	'6',	'7',	'8',	'9',	'0',	'-',	'=',	127,	9
+	.byte	'q',	'w',	'e',	'r',	't',	'y',	'u',	'i',	'o',	'p', 	'[',	']',	13,	0,	'a', 	's'
+	.byte	'd',	'f',	'g',	'h',	'j',	'k',	'l',	';',	'\'',	'`',	0,	'\\',	'z',	'x',	'c',	'v'
+	.byte	'b',	'n',	'm',	',',	'.',	'/'
+_keycode_to_ascii_shift:
+	.byte	0,	27,	'!',	'@',	'#',	'$',	'%',	'^',	'&',	'*',	'(',	')',	'_',	'+',	127,	9
+	.byte	'Q',	'W',	'E',	'R',	'T',	'Y',	'U',	'I',	'O',	'P', 	'{',	'}',	13,	0,	'A', 	'S'
+	.byte	'D',	'F',	'G',	'H',	'J',	'K',	'L',	':',	'"',	'~',	0,	'|',	'Z',	'X',	'C',	'V'
+	.byte	'B',	'N',	'M',	'<',	'>',	'?'
+
+_key_modifiers:
+	.byte	0
+
+_key:
+	0:
+	call	_waitkey
+
+	push	rax
+	mov	rdi, SCREEN + 8
+	call	_p64printb
+
+	pop	rax
+
+	cmp	al, KEYCODE_ALT
+	je	0b
+	cmp	al, KETCODE_CTRL
+	je	0b
+	cmp	al, KEYCODE_LSHIFT
+	jne	3f
+	2:
+	or	byte ptr [_key_modifiers], PRESSED_SHIFT
+	jmp	0b
+	3:
+	cmp	al, KEYCODE_RSHIFT
+	je	2b
+	cmp	al, KEYCODE_LSHIFT | KEYMASK_RELEASE
+	jne	5f
+	4:
+	and	byte ptr [_key_modifiers], ~PRESSED_SHIFT
+	jmp	0b
+	5:
+	cmp	al, KEYCODE_RSHIFT | KEYMASK_RELEASE
+	je	4b
+
+	test	al, KEYMASK_RELEASE
+	jnz	0b
+
+	cmp	al, KEYCODE_COUNT
+	ja	0b
+
+	lea	rbx, [_keycode_to_ascii]
+	test	byte ptr [_key_modifiers], PRESSED_SHIFT
+	jz	7f
+	add	rbx, KEYCODE_COUNT
+	7:
+	mov	al, byte ptr [rbx + rax]
+
+	ret
+
+	#
+	# PIC programming
+	#
 
 _pic_remap:
 	in	al, 0x21
@@ -1080,14 +1211,25 @@ _warm_64:
 	boot32_status	'Y', 0x4f
 
 	sti
+	/*
 _PF:
 	mov	rax, 0xffffffff00000000
 	mov	[rax], rax
+	*/
 
 	1:
 	boot32_status	'Y', 0xaf
-	pause
+
+	call	_key
+
+	mov	ah, 0x5f
+	mov	word ptr [SCREEN + 2], ax
+	
 	jmp	1b
+
+	#
+	# Handling keyboard synchronously
+	#
 
 __dummy0:
 
@@ -1109,6 +1251,10 @@ __dummy1:
 	# 64-bit code	
 	#
 
+
+
+
 .include "mur.asm"
 
 .incbin "core.moor"
+
