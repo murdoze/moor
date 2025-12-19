@@ -961,7 +961,7 @@ _key_exit:
 	KEYCODE_LSHIFT	= 0x2a
 	KEYCODE_RSHIFT	= 0x36
 
-	KEYCODE_COUNT	= 0x36
+	KEYCODE_COUNT	= 0x3a
 
 	#	00	01	02	03	04	05	06	07	08	09	0a	0b	0c	0d	0e	0f
 _keycode_to_ascii:
@@ -969,12 +969,12 @@ _keycode_to_ascii_noshift:
 	.byte	0,	27,	'1',	'2',	'3',	'4',	'5',	'6',	'7',	'8',	'9',	'0',	'-',	'=',	127,	9
 	.byte	'q',	'w',	'e',	'r',	't',	'y',	'u',	'i',	'o',	'p', 	'[',	']',	13,	0,	'a', 	's'
 	.byte	'd',	'f',	'g',	'h',	'j',	'k',	'l',	';',	'\'',	'`',	0,	'\\',	'z',	'x',	'c',	'v'
-	.byte	'b',	'n',	'm',	',',	'.',	'/'
+	.byte	'b',	'n',	'm',	',',	'.',	'/',	0,	0,	0,	' '
 _keycode_to_ascii_shift:
 	.byte	0,	27,	'!',	'@',	'#',	'$',	'%',	'^',	'&',	'*',	'(',	')',	'_',	'+',	127,	9
 	.byte	'Q',	'W',	'E',	'R',	'T',	'Y',	'U',	'I',	'O',	'P', 	'{',	'}',	13,	0,	'A', 	'S'
 	.byte	'D',	'F',	'G',	'H',	'J',	'K',	'L',	':',	'"',	'~',	0,	'|',	'Z',	'X',	'C',	'V'
-	.byte	'B',	'N',	'M',	'<',	'>',	'?'
+	.byte	'B',	'N',	'M',	'<',	'>',	'?',	0,	0,	0,	' '
 
 _key_modifiers:
 	.byte	0
@@ -991,7 +991,7 @@ _key:
 
 	cmp	al, KEYCODE_ALT
 	je	0b
-	cmp	al, KETCODE_CTRL
+	cmp	al, KEYCODE_CTRL
 	je	0b
 	cmp	al, KEYCODE_LSHIFT
 	jne	3f
@@ -1022,6 +1022,14 @@ _key:
 	add	rbx, KEYCODE_COUNT
 	7:
 	mov	al, byte ptr [rbx + rax]
+
+	or	al, al
+	jz	0b
+
+	push	rax
+	mov	ah, 0x5f
+	mov	word ptr [SCREEN + 2], ax
+	pop	rax
 
 	ret
 
@@ -1222,9 +1230,6 @@ _PF:
 
 	call	_key
 
-	mov	ah, 0x5f
-	mov	word ptr [SCREEN + 2], ax
-	
 	jmp	1b
 
 	#
