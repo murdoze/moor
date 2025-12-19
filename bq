@@ -4,7 +4,7 @@ cat core.moor opti.moor type.moor > boot_source.moor && echo -e "\0" >> boot_sou
 ld -r -b binary -o boot_source.o boot_source.moor
 
 as pmur.asm --defsym ORG=0x100000 --defsym BOOT_SOURCE=1 --defsym QEMU=1 -n -g -O0 --64 -am -amhls=mur.lst -o mur.o || exit 1
-ld mur.o boot_source.o --section-start=.text=0x000000 -N -o mur || exit 1
+ld mur.o boot_source.o -e _start0 --section-start=.text=0x000000 -N -o mur || exit 1
 mv mur moorq
 
 objcopy -O binary --only-section=.text ./moorq ./moorq.bin
