@@ -749,6 +749,9 @@ _trap_temp:		.quad	0
 
 _trap_ud_handler:
 	mov	byte ptr fs:[_trap_number], TRAP_UD
+
+	mov	dword ptr [SCREEN + 4], 0xcf44cf55
+	
 	jmp	_trap_handler64
 
 
@@ -807,7 +810,7 @@ _trap_handler64:
 
 	call	_print_sp_ip
 
-	mov	rdi, SCREEN + 12
+	mov	rdi, SCREEN + 10
 	mov	al, byte ptr [_trap_number]
 	mov	byte ptr fs:[_pcolor], 0x8e
 	call	_p64printb
@@ -1015,12 +1018,6 @@ _key_modifiers:
 _key:
 	0:
 	call	_waitkey
-
-	push	rax
-	mov	rdi, SCREEN + 8
-	call	_p64printb
-
-	pop	rax
 
 	cmp	al, KEYCODE_ALT
 	je	0b
