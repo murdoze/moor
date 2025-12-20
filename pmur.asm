@@ -601,7 +601,7 @@ _clear_screen:
 	mov	ax, 0x082e
 	rep	stosw
 	mov	rcx, 15 * 80
-	mov	ax, 0x0800
+	mov	ax, 0x0f00
 	rep	stosw
 	ret
 
@@ -1042,6 +1042,37 @@ _key:
 
 	ret
 
+_keychar:
+	jmp	1f
+	0:	
+	mov	byte ptr [_pcolor], 0x02
+
+	mov	al, 0x10
+	call	_emitchar
+
+	mov	byte ptr [_pcolor], 0x05
+
+	1:
+	call	_key
+
+	cmp	al, 27
+	jne	2f
+	call	_clrscr
+	jmp	0b
+	2:
+	cmp	al, 127
+	jne	7f
+	call	_cursor_backward
+	mov	al, ' '
+	call	_emitchar
+	call	_cursor_backward
+	call	_cursor_show
+	jmp	1b
+	7:
+	ret
+
+	# Display output 
+
 	START_ROW	= 11
 	START_COL	= 0
 	END_ROW		= 25
@@ -1129,6 +1160,17 @@ _clrscr:
 
 
 _emitchar:
+	cmp	al, 10
+	jne	3f
+	call	_cursor_newline	
+	mov	byte ptr [_pcolor], 0x02
+
+	mov	al, 0x10
+	call	_emitchar
+	ret
+
+
+	3:
 	push	rdi
 
 	movzx	rax, al
@@ -1358,67 +1400,38 @@ _PF:
 	mov	[rax], rax
 	*/
 
-	0:	
-	mov	byte ptr [_pcolor], 0x02
+	boot32_status	'Y', 0xaf
+
+	mov	byte ptr [_pcolor], 0x06
 
 	mov	al, 0x10
 	call	_emitchar
 
+	1:
 	mov	byte ptr [_pcolor], 0x05
 
-	1:
-	boot32_status	'Y', 0xaf
+	call	_keychar
 
-	call	_key
+	cmp     al, 28  # Shift + Enter
+	je     9f
 
-	cmp	al, 27
-	jne	2f
-	call	_clrscr
-	jmp	0b
-	2:
-	cmp	al, 10
-	jne	3f
-	call	_cursor_newline	
-	jmp	0b
-	3:
-	cmp	al, 127
-	jne	7f
-	call	_cursor_backward
-	mov	al, ' '
 	call	_emitchar
-	call	_cursor_backward
-	call	_cursor_show
+
 	jmp	1b
-	7:
-	cmp	al, 28	# Ctrl+Shift
-	jne	9f
 
-	/*
-	mov	cl, 0x20
-	8:
-	mov	al, cl
-	call	_emitchar
-	inc	cl
-	cmp	cl, 0x90
-	jb	8b
-	*/
+
+	9:
 
 __start_entry:
 	and	byte ptr [_key_modifiers], ~PRESSED_SHIFT
 
-
-	lea	rax, [_key]
+	lea	rax, [_keychar]
 	mov	qword ptr [__key], rax
 
 	lea	rax, [_emitchar]
 	mov	qword ptr [__emitchar], rax
 
 	jmp	__start
-
-	9:
-	call	_emitchar
-
-	jmp	1b
 
 	#
 	# Handling keyboard synchronously
