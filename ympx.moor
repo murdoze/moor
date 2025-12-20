@@ -37,10 +37,16 @@ here ..
 : <scratch here 'scratch @ here! ;
 : scratch> ret, here! ;
 
+\ Register display
 : reg@	|, rtop >< mov, ;
-: .regname |{ { " AXCXBXDXSPBPSIDIR8R9101112131415" 1+ 2* + | c@ } .c 1+ c@ } .c ;
-cold
-: .regs 10 for vga I line 30 col 2f <scratch 10 I - reg@ scratch> scratch .q over ;
+: .regname				\ ( a color r -- a+2 )
+	" AXCXBXDXSPBPSIDIR8R9101112131415" 1+ >< 2* + 
+	| c@ >< { >| { .c } }  1+ c@ .c ;
+: .regs 10 
+	for	vga I 1- line 30 col      
+		30  I 1- .regname 
+		2f  <scratch I 1- | . reg@ scratch> scratch .q 
+	over ;
 
 
 
