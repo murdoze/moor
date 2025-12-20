@@ -1,4 +1,6 @@
-set -x
+#set -x
+
+./kqw
 
 cw=$(xdotool getactivewindow)
 
@@ -30,4 +32,4 @@ xdotool key "ctrl+alt+plus"
 xdotool key "ctrl+alt+plus"
 xdotool key "ctrl+alt+plus"
 
-xdotool windowactivate --sync "$cw"
+xdotool windowactivate --sync "$qw"

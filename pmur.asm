@@ -254,7 +254,7 @@ _pm_32:
 	mov	esi, 0x10000
 	mov	edi, ORG + 0x200
 	mov	ecx, SECTORS
-	shl	ecx, 6
+	shl	ecx, 8
 	rep	movsd
 
 	boot32_status	'R', 0xaf
@@ -649,8 +649,7 @@ _print_sp_ip:
 	mov	al, ' '
 	call	_p64emit
 	mov	byte ptr [_pcolor], 0x2f
-	pop	rax
-	push	rax
+	mov	rax, [_trap_rip]
 	call	_p64printq
 	ret
 
@@ -794,13 +793,14 @@ _trap_cp_handler:
 	jmp	_trap_error_handler
 
 	# Handler for traps with error code
+
 _trap_error_handler:
 	pushr
 
 	mov	qword ptr fs:[_trap_temp], rax
-	mov	rax, [rsp + 0]
+	mov	rax, [rsp + 0 + 8 * 6]			# must currespond to number of registers pushed by pushr
 	mov	qword ptr fs:[_trap_error_code], rax
-	mov	rax, [rsp + 8]
+	mov	rax, [rsp + 8 + 8 * 6]
 	mov	qword ptr fs:[_trap_rip], rax
 	mov	rax, qword ptr fs:[_trap_temp]
 
@@ -1336,6 +1336,10 @@ _warm_64:
 
 	boot32_status	'Y', 0x4f
 
+	RUNMODE_LINUXUSR	= 0
+	RUNMODE_BAREMETAL 	= 1
+	mov	byte ptr [runmode], RUNMODE_BAREMETAL
+
 	sti
 
 	/*
@@ -1379,6 +1383,7 @@ _PF:
 	cmp	al, 28	# Shift+Enter
 	jne	9f
 
+	/*
 	mov	cl, 0x20
 	8:
 	mov	al, cl
@@ -1386,7 +1391,8 @@ _PF:
 	inc	cl
 	cmp	cl, 0x90
 	jb	8b
-
+	*/
+	jmp	__start
 
 	9:
 	call	_emitchar
@@ -1410,7 +1416,7 @@ _boot_stack:
 _boot_stack$:
 
 
-__dummy1:
+__start:
 
 
 	#
@@ -1421,6 +1427,4 @@ __dummy1:
 
 
 .include "mur.asm"
-
-.incbin "core.moor"
 

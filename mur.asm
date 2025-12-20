@@ -1,5 +1,6 @@
 .intel_syntax	noprefix
 
+
 	.globl _start
 
 .text	
@@ -33,6 +34,8 @@ _start:
 
 runmode:	.byte	0	# To avoid IFDEFs, because they mess up with line numbers
 				# 0 = Linux usermode, 1 = Baremetal, 2 = Linux kernel
+	RUNMODE_LINUXUSR	= 0
+	RUNMODE_BAREMETAL 	= 1
 
 _start1:	
 	cmp	byte ptr [runmode], 0
@@ -782,6 +785,9 @@ word	quot, "\"", immediate
 # Prints a character to stdout
 word	emit
 _emit:
+	cmp	byte ptr [runmode], RUNMODE_BAREMETAL
+	je	_emit_baremetal
+
 	push	rtop
 	push	rwork
 	push	rdx
@@ -806,11 +812,35 @@ _emit:
 
 	ret
 
+_emit_baremetal:
+	push	rtop
+	push	rwork
+	push	rdx
+	push	rsi
+	push	rdi
+	
+	mov	rwork, rtop
+
+	call	_emitchar
+	
+	pop	rdi
+	pop	rsi
+	pop	rdx
+	pop	rwork
+	pop	rtop
+	
+	call	_drop
+
+	ret
+
 # READ ( -- c )
 # Reads a character from stdin
 word	read
 _read:
 	call	_dup
+
+	cmp	byte ptr [runmode], RUNMODE_BAREMETAL
+	je	_read_baremetal
 
 	push	rsi
 	push	rdi
@@ -832,10 +862,18 @@ _read:
 	pop	rsi
 	ret
 
+_read_baremetal:
+	call	_key	
+
+	ret
+
 # TYPE ( c-addr u -- )
 # Print string to stdout
 word	type
 _type:
+	cmp	byte ptr [runmode], RUNMODE_BAREMETAL
+	je	_type_baremetal
+
 	push	rsi
 	push	rdi
 
@@ -845,6 +883,30 @@ _type:
 	mov	rax, 0x1
 	mov	rdi, 0x1
 	syscall
+
+	pop	rdi
+	pop	rsi
+	
+	call	_drop
+
+	ret
+
+_type_baremetal:
+	push	rsi
+	push	rdi
+
+	mov	rtmp, rtop	# count
+	call	_drop
+	mov	rsi, rtop
+	
+	1:
+	lodsb
+	call	_dup
+	movzx	rtop, al
+	call	_emit_baremetal
+	dec	rtmp
+	jnz	1b
+	
 
 	pop	rdi
 	pop	rsi
@@ -1941,3 +2003,6 @@ _warm:
 	.align	4096
 
 here0:
+
+.incbin "core.moor"
+
