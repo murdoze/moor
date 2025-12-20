@@ -1,5 +1,14 @@
-\ VGA display
+								\\ VGA display
 
+\ VGA test buffer
+1000 aligned
+:: 'vga	adr 1000 allot 'vga 1000 0 fill				\ Arena contains logical objects
+: vga	baremetal? if 0b8000 else 'vga then ;
+\ VGA positioning
+: line	a0 * + ;
+: col	1 shl + ;
+
+\ Number display
 : nibble	0f and ;
 : >nibble	4 sar ;
 : nibble>char	| 0a >= if [char] A [char] 9 - 1- + then [char] 0 + ;
@@ -12,15 +21,28 @@
 : .d	||{{ 10 sar .w } } .w ;		\ ( a color qword -- )
 : .q	||{{ 20 sar .d } } .d ;		\ ( a color dword -- )
 : .c	{ 8 shl } or >< | { 2! } 2 + ;	\ ( a color char -- a+2 )	Display character
-: .s	20 .c ;				\ ( a color -- a+2 )	 	Display space
+: .bl	20 .c ;				\ ( a color -- a+2 )	 	Display blank character
 : .c'	c@ .c ;				\ ( a color 'c -- a+2 )		Fetch and display character
 : .t	for ||{{ .c' }} 1+ over _ _ ;	\ ( a color 'c u -- a+2*u )	Display string
-	 
 
-:: 'vga	adr 1000 allot 'vga 1000 0 fill				\ Arena contains logical objects
-: vga	baremetal? if 0b8000 a0 + else 'vga then ;
-: line	a0 * + ;
-: col	1 shl + ;
+\ Scratch playground for code generation
+:: 'scratch 0 var
+'scratch @ ..
+here ..
+:: scratch code 1000 allot
+here ..
+' scratch 'scratch !
+'scratch @ 1000 0 fill
+
+: <scratch here 'scratch @ here! ;
+: scratch> ret, here! ;
+
+: reg@	|, rtop >< mov, ;
+: .regname |{ { " AXCXBXDXSPBPSIDIR8R9101112131415" 1+ 2* + | c@ } .c 1+ c@ } .c ;
+cold
+: .regs 10 for vga I line 30 col 2f <scratch 10 I - reg@ scratch> scratch .q over ;
+
+
 
 \ Tests
 
@@ -29,14 +51,13 @@
 
 : qn	vga df 09 .n df 0f .n	 		??vga ;
 : qb	vga df 9f .b df a1 .b 			??vga ;
-: qw	vga df 1234 .w	df .s df 5678 .w 	??vga ;
+: qw	vga df 1234 .w	df .bl df 5678 .w 	??vga ;
 : qd	vga df 12345678 .d 			??vga ;
-: qd1	vga df 12345678 .d df .s df .s df 90abcdef .d  ??vga ;
+: qd1	vga df 12345678 .d df .bl df .bl df 90abcdef .d  ??vga ;
 : qq	vga df 1234567890abcdef .q 		??vga ;
 
 : qt	vga df " 1234" count .t			??vga ; 
 : qtt	vga cf " Stack overflow" count .t			??vga ; 
-
 
 
 
