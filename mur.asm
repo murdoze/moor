@@ -863,7 +863,17 @@ _read:
 	ret
 
 _read_baremetal:
+	push	rsi
+	push	rdi
+
 	call	_key	
+	mov	rtop, rax
+
+	pop	rdi
+	pop	rsi
+
+	call	_dup
+	call	_emit
 
 	ret
 
@@ -903,7 +913,7 @@ _type_baremetal:
 	lodsb
 	call	_dup
 	movzx	rtop, al
-	call	_emit_baremetal
+	call	_emit
 	dec	rtmp
 	jnz	1b
 	
@@ -1816,6 +1826,7 @@ _quit_:
 
 	2:
 	mov	rtop, qword ptr [_tib]
+__number:
 	call	_number
 	test	rtop, rtop
 	jz	6f

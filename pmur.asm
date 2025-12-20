@@ -967,7 +967,7 @@ _key_exit:
 _keycode_to_ascii:
 _keycode_to_ascii_noshift:
 	.byte	0,	27,	'1',	'2',	'3',	'4',	'5',	'6',	'7',	'8',	'9',	'0',	'-',	'=',	127,	9
-	.byte	'q',	'w',	'e',	'r',	't',	'y',	'u',	'i',	'o',	'p', 	'[',	']',	13,	0,	'a', 	's'
+	.byte	'q',	'w',	'e',	'r',	't',	'y',	'u',	'i',	'o',	'p', 	'[',	']',	10,	0,	'a', 	's'
 	.byte	'd',	'f',	'g',	'h',	'j',	'k',	'l',	';',	'\'',	'`',	0,	'\\',	'z',	'x',	'c',	'v'
 	.byte	'b',	'n',	'm',	',',	'.',	'/',	0,	0,	0,	' '
 _keycode_to_ascii_shift:
@@ -1366,7 +1366,7 @@ _PF:
 	call	_clrscr
 	jmp	0b
 	2:
-	cmp	al, 13
+	cmp	al, 10
 	jne	3f
 	call	_cursor_newline	
 	jmp	0b
@@ -1380,7 +1380,7 @@ _PF:
 	call	_cursor_show
 	jmp	1b
 	7:
-	cmp	al, 28	# Shift+Enter
+	cmp	al, 28	# Ctrl+Shift
 	jne	9f
 
 	/*
@@ -1392,7 +1392,11 @@ _PF:
 	cmp	cl, 0x90
 	jb	8b
 	*/
+	
+	and	byte ptr [_key_modifiers], ~PRESSED_SHIFT
+
 	jmp	__start
+
 
 	9:
 	call	_emitchar
