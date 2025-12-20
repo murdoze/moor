@@ -441,6 +441,10 @@
 :: r>      code |, r1 pop, r0 pop, r1 push, ret,		\ ( -- a ) ( R: a -- )	Pops top of parameter stack off return stack
 : {        compile >r ;	immediate
 : }        compile r> ;	immediate
+: |{       compile | compile { ; immediate			\ ( a -- a ) ( R: a -- ) Duplicated parameter and pushes it onto return stack
+: ||{{     compile | compile { compile ><			\ ( a b -- a b ) ( R: a b -- ) 	Dupliacted two parameters and pushes them onto return stack
+           compile | compile { compile >< ; immediate
+
 								\\ Control structures: loops							_loops
 								\ DOC: https://github.com/TG9541/stm8ef/wiki/eForth-FOR-..-NEXT
 :: (for)   code rtmp pop, rwork pop, rindex push,  		\ ( n -- )		push rindex; mov rindex, rtop ; drop
@@ -477,6 +481,9 @@ DECOMPILING ' branch behavior DECOMPILING ' (-leave) does
 								\\ Arithmetic and logic, continued
 :: not     code r0 not, ret,
 :: negate  code r0 neg, ret,
+								\\ Min nd max
+: min      >|>| - 0 > if >< then _ ;				\ ( a b -- min(a,b) ) Minimum
+: max      >|>| - 0 < if >< then _ ;				\ ( a b -- min(a,b) ) Minimum
 								\\ Memory									_memory
 : fill     <<< for >|>| c! 1+ over _ _ ;			\ ( a n c -- )		Fill N bytes from address A with character C
 : 1+!      | @ 1+ >< ! ;				 	\ ( a -- )		Increment variable at A
