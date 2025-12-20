@@ -21,27 +21,6 @@
 : definitions context @ current ! ;
 
 								\\ Comments and debug output
-: norm     1b emit 5b emit 30 emit 6d emit ;
-: red      1b emit 5b emit 33 emit 31 emit 6d emit ;
-: green    1b emit 5b emit 33 emit 32 emit 6d emit ;
-: yellow   1b emit 5b emit 33 emit 33 emit 6d emit ;
-: blue     1b emit 5b emit 33 emit 34 emit 6d emit ;
-: purple   1b emit 5b emit 33 emit 35 emit 6d emit ;
-: white    1b emit 5b emit 33 emit 37 emit 6d emit ;
-: .\       0 word count blue type norm 0a emit ;
-: .(       29 word count purple type norm ; immediate
-: cr       0a emit ;
-: tab      09 emit ;
-: bs       08 emit ;
-: .abort   red . . norm cr abort ;				\ ( code message -- )	Prints code and message as hexadecimal numbers and aborts
-: ..       blue . norm ;
-: ??       dup .. ;
-								\\ Debug output
-: ..S .S ;
-: .S blue ..S norm ;						\ Blue stack
-
-.( Moore Forth System ) cr
-
 								\\ Register assignment. Should be changed if register aliases are changed
 : r0       01 ;							\ rcx = rtop
 : rtop     01 ;
@@ -224,6 +203,28 @@
 : repeat   compile (repeat-pre) compile branch >< <resolve compile (repeat-post) >resolve ; immediate
 : continue compile (continue) compile -?branch | <resolve ; immediate
 : break    compile (break) compile -?branch >mark >< ; immediate
+								\\ Printing									_print
+: norm     baremetal? if 01 emit 07 emit else 1b emit 5b emit 30 emit 6d emit then ;
+: red      baremetal? if 01 emit 03 emit else 1b emit 5b emit 33 emit 31 emit 6d emit then ;
+: green    baremetal? if 01 emit 02 emit else 1b emit 5b emit 33 emit 32 emit 6d emit then ;
+: yellow   baremetal? if 01 emit 0e emit else 1b emit 5b emit 33 emit 33 emit 6d emit then ;
+: blue     baremetal? if 01 emit 01 emit else 1b emit 5b emit 33 emit 34 emit 6d emit then ;
+: purple   baremetal? if 01 emit 05 emit else 1b emit 5b emit 33 emit 35 emit 6d emit then ;
+: white    baremetal? if else 1b emit 5b emit 33 emit 37 emit 6d emit then ;
+: .\       0 word count blue type norm 0a emit ;
+: .(       29 word count purple type norm ; immediate
+: cr       0a emit ;
+: tab      09 emit ;
+: bs       08 emit ;
+: .abort   red . . norm cr abort ;				\ ( code message -- )	Prints code and message as hexadecimal numbers and aborts
+: ..       blue . norm ;
+: ??       dup .. ;
+								\\ Debug output
+: ..S .S ;
+: .S blue ..S norm ;						\ Blue stack
+
+.( Moore Forth System ) cr
+
 
 								\\ Search									_search
 : '        bl word _ find					\ ( "<name>" -- xt | E )
@@ -232,7 +233,6 @@
 : [compile] ' compile, ; immediate				\ ( "<name>" -- )	Compiles XT of the next word in the input stream
 : [']      ' [compile] literal ; immediate			\ ( "<name>" -- )	Compiles XT of the next word in the input stream as a literal
 								\			Syntactic sugar
-								\\ Printing									_print
 : ."       [compile] " compile count compile type ; immediate
 : abort"   compile cr compile red [compile] ." compile norm compile cr compile abort ; immediate
 
