@@ -1,0 +1,21 @@
+rm mur.o
+as pmur.asm --defsym ORG=0x100000 -n -g -O0 --64 -am -amhls=mur.lst -o mur.o || exit 1
+ld mur.o --section-start=.text=0x000000 -N -o mur || exit 1
+mv mur moorq
+
+cat core.moor opti.moor type.moor test.moor > boot_source.moor && echo -e "\0" >> boot_source.moor
+ld -r -b binary -o boot_source.o boot_source.moor
+
+as pmur.asm --defsym ORG=0x100000 --defsym ORG=0 --defsym BOOT_SOURCE=1 -n -g -O0 --64 -am -amhls=mur.lst -o mur.o || exit 1
+ld mur.o --section-start=.text=0x000000 -N -o mur || exit 1
+mv mur moorqs
+
+objcopy -O binary --only-section=.text ./moorqs ./moorqs.bin
+
+dd if=./moorqs.bin of=./moorqs0.bin bs=1 skip=1048576
+
+cat header.bin moorqs0.bin  > bzMoorq
+
+dd if=/dev/zero of=moorqs.hda bs=1K count=1440
+dd if=moorqs0.bin of=moorqs.hda conv=notrunc bs=1 count=1000000
+

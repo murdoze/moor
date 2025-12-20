@@ -1,19 +1,21 @@
 rm mur.o
-
-as pmur.asm --defsym ORG=0x100000 --defsym QEMU=1 -n -g -O0 --64 -am -amhls=mur.lst -o mur.o || exit 1
+as pmur.asm --defsym ORG=0x100000 -n -g -O0 --64 -am -amhls=mur.lst -o mur.o || exit 1
 ld mur.o --section-start=.text=0x000000 -N -o mur || exit 1
 mv mur moorq
 
-objcopy -O binary --only-section=.text ./moorq ./moorq.bin
 
-dd if=./moorq.bin of=./moorq0.bin bs=1 skip=1048576 count=262144
 
-cp moorq0.bin moorq0s.bin
 
-cat header.bin moorq0s.bin > bzMoorq
+
+
+
+
+objcopy -O binary --only-section=.text ./moorq  ./moorq.bin
+
+dd if=./moorq.bin  of=./moorq0.bin  bs=1 skip=1048576 count=262144
+
+cat header.bin moorq0.bin > bzMoorq
 
 dd if=/dev/zero of=moorq.hda bs=1K count=1440
-dd if=moorq0s.bin of=moorq.hda conv=notrunc bs=1 count=1000000
-
-#genisoimage -J -r -input-charset=utf-8 -o moorq.iso -no-emul-boot -boot-load-size 4 -b floppy.bin -o moorq.iso ./iso/
+dd if=moorq0.bin of=moorq.hda conv=notrunc bs=1 count=1000000
 
