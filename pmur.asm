@@ -1392,11 +1392,18 @@ _PF:
 	cmp	cl, 0x90
 	jb	8b
 	*/
-	
+
+__start_entry:
 	and	byte ptr [_key_modifiers], ~PRESSED_SHIFT
 
-	jmp	__start
 
+	lea	rax, [_key]
+	mov	qword ptr [__key], rax
+
+	lea	rax, [_emitchar]
+	mov	qword ptr [__emitchar], rax
+
+	jmp	__start
 
 	9:
 	call	_emitchar

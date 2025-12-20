@@ -33,7 +33,8 @@ _start:
 	jmp	_start1
 
 runmode:	.byte	0	# To avoid IFDEFs, because they mess up with line numbers
-				# 0 = Linux usermode, 1 = Baremetal, 2 = Linux kernel
+__key:		.quad	0
+__emitchar:	.quad	0
 	RUNMODE_LINUXUSR	= 0
 	RUNMODE_BAREMETAL 	= 1
 
@@ -821,7 +822,7 @@ _emit_baremetal:
 	
 	mov	rwork, rtop
 
-	call	_emitchar
+	call	[__emitchar]
 	
 	pop	rdi
 	pop	rsi
@@ -863,14 +864,16 @@ _read:
 	ret
 
 _read_baremetal:
+	push	rbx
 	push	rsi
 	push	rdi
 
-	call	_key	
+	call	[__key]	
 	mov	rtop, rax
 
 	pop	rdi
 	pop	rsi
+	pop	rbx
 
 	call	_dup
 	call	_emit
