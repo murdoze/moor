@@ -836,10 +836,35 @@ _emit_baremetal:
 
 # READ ( -- c )
 # Reads a character from stdin
+
+_source_completed:
+	.byte	0
+_source_in:
+	.quad	source
+
 word	read
 _read:
 	call	_dup
 
+	cmp	byte ptr [source], 0
+	jz	7f
+	cmp	byte ptr [_source_completed], 0
+	jnz	7f
+
+	mov	rax, [_source_in]
+	inc	qword ptr [_source_in]
+	movzx	rtop, byte ptr [rax]
+	
+	or	rtop, rtop
+	jnz	5f
+
+	mov	byte ptr [_source_completed], 1
+	jmp	7f
+
+	5:
+	ret
+
+	7:
 	cmp	byte ptr [runmode], RUNMODE_BAREMETAL
 	je	_read_baremetal
 
@@ -2025,7 +2050,16 @@ _warm:
 
 	.align	4096
 
+source:
+
+.ifdef BOOT_SOURCE
+	.incbin "core.moor"
+.else
+	.byte	0
+.endif
+
+	.byte	0
 here0:
 
-.incbin "core.moor"
+	.align	4096
 
