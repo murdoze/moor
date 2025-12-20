@@ -306,7 +306,7 @@ _pcolor:
 _p32emit:
 	mov	[edi], al
 	inc	edi
-	mov	al, [_pcolor]
+	mov	al, fs:[_pcolor]
 	mov	[edi], al
 	inc	edi
 	ret
@@ -460,7 +460,7 @@ _setup_pae:
 _p64emit:
 	mov	[rdi], al
 	inc	rdi
-	mov	al, [_pcolor]
+	mov	al, fs:[_pcolor]
 	mov	[rdi], al
 	inc	rdi
 	ret
@@ -610,14 +610,14 @@ _print_interrupt_masks:
 	add	al, 0x30
 
 	mov	rdi, SCREEN + 3 * (2 * 80) - 8
-	mov	byte ptr [_pcolor], 0x20
+	mov	byte ptr fs:[_pcolor], 0x20
 	call	_p64printb
 	
 	inb	al, 0xa1
 	add	al, 0x30
 
 	mov	rdi, SCREEN + 3 * (2 * 80) - 4
-	mov	byte ptr [_pcolor], 0x20
+	mov	byte ptr fs:[_pcolor], 0x20
 	call	_p64printb
 
 	ret
@@ -625,7 +625,7 @@ _print_interrupt_masks:
 	# Print stack and instruction pointers
 _print_sp_ip:
 	mov	rdi, SCREEN + 3 * (2 * 80)
-	mov	byte ptr [_pcolor], 0x20
+	mov	byte ptr fs:[_pcolor], 0x20
 	mov	al, 'S'
 	call	_p64emit
 	mov	al, 'P'
@@ -634,12 +634,12 @@ _print_sp_ip:
 	call	_p64emit
 	mov	al, ' '
 	call	_p64emit
-	mov	byte ptr [_pcolor], 0x2f
+	mov	byte ptr fs:[_pcolor], 0x2f
 	mov	rax, rsp
 	call	_p64printq
 
 	mov	rdi, SCREEN + 4 * (2 * 80)
-	mov	byte ptr [_pcolor], 0x20
+	mov	byte ptr fs:[_pcolor], 0x20
 	mov	al, 'I'
 	call	_p64emit
 	mov	al, 'P'
@@ -648,14 +648,14 @@ _print_sp_ip:
 	call	_p64emit
 	mov	al, ' '
 	call	_p64emit
-	mov	byte ptr [_pcolor], 0x2f
+	mov	byte ptr fs:[_pcolor], 0x2f
 	mov	rax, [_trap_rip]
 	call	_p64printq
 	ret
 
 _print_error_code:
 	mov	rdi, SCREEN + 2 * (2 * 80)
-	mov	byte ptr [_pcolor], 0x40
+	mov	byte ptr fs:[_pcolor], 0x40
 	mov	al, 'E'
 	call	_p64emit
 	mov	al, 'C'
@@ -664,14 +664,14 @@ _print_error_code:
 	call	_p64emit
 	mov	al, ' '
 	call	_p64emit
-	mov	byte ptr [_pcolor], 0x0e
+	mov	byte ptr fs:[_pcolor], 0x0e
 	mov	rax, fs:[_trap_error_code]
 	call	_p64printq
 	ret
 
 _print_cr2:
 	mov	rdi, SCREEN + 5 * (2 * 80)
-	mov	byte ptr [_pcolor], 0x20
+	mov	byte ptr fs:[_pcolor], 0x20
 	mov	al, 'C'
 	call	_p64emit
 	mov	al, 'R'
@@ -680,14 +680,14 @@ _print_cr2:
 	call	_p64emit
 	mov	al, ' '
 	call	_p64emit
-	mov	byte ptr [_pcolor], 0x04f
+	mov	byte ptr fs:[_pcolor], 0x04f
 	mov	rax, cr2
 	call	_p64printq
 	ret
 
 _print_trap_counter:
 	mov	rdi, SCREEN + 2 * (80 - 16)
-	mov	byte ptr [_pcolor], 0x5f
+	mov	byte ptr fs:[_pcolor], 0x5f
 	inc	qword ptr [_trap_counter]
 	mov	rax, qword ptr [_trap_counter]
 	call	_p64printq
@@ -695,7 +695,7 @@ _print_trap_counter:
 
 _print_interrupt_number:
 	mov	rdi, SCREEN + 2
-	mov	byte ptr [_pcolor], 0x1f
+	mov	byte ptr fs:[_pcolor], 0x1f
 	mov	al, byte ptr [_interrupt_number]
 	call	_p64printb
 	ret
@@ -704,7 +704,7 @@ _print_key_pressed:
 	mov	word ptr [SCREEN + 18], 0x5f4b
 
 	mov	rdi, SCREEN + 22
-	mov	byte ptr [_pcolor], 0x0b
+	mov	byte ptr fs:[_pcolor], 0x0b
 	push	rax
 	call	_p64printb
 	mov	al, ' '
@@ -798,7 +798,7 @@ _trap_handler64:
 
 	mov	rdi, SCREEN + 12
 	mov	al, byte ptr [_trap_number]
-	mov	byte ptr [_pcolor], 0x8e
+	mov	byte ptr fs:[_pcolor], 0x8e
 	call	_p64printb
 
 	popr
@@ -823,7 +823,7 @@ _trap_error_handler:
 
 	mov	rdi, SCREEN + 12
 	mov	al, byte ptr [_trap_number]
-	mov	byte ptr [_pcolor], 0x8e
+	mov	byte ptr fs:[_pcolor], 0x8e
 	call	_p64printb
 
 	jmp	.
@@ -1045,12 +1045,12 @@ _key:
 _keychar:
 	jmp	1f
 	0:	
-	mov	byte ptr [_pcolor], 0x02
+	mov	byte ptr fs:[_pcolor], 0x02
 
 	mov	al, 0x10
 	call	_emitchar
 
-	mov	byte ptr [_pcolor], 0x05
+	mov	byte ptr fs:[_pcolor], 0x05
 
 	1:
 	call	_key
@@ -1163,7 +1163,7 @@ _emitchar:
 	cmp	al, 10
 	jne	3f
 	call	_cursor_newline	
-	mov	byte ptr [_pcolor], 0x02
+	mov	byte ptr fs:[_pcolor], 0x02
 
 	mov	al, 0x10
 	call	_emitchar
@@ -1402,13 +1402,13 @@ _PF:
 
 	boot32_status	'Y', 0xaf
 
-	mov	byte ptr [_pcolor], 0x0e
+	mov	byte ptr fs:[_pcolor], 0x0e
 
 	mov	al, 0x10
 	call	_emitchar
 
 	1:
-	mov	byte ptr [_pcolor], 0x05
+	mov	byte ptr fs:[_pcolor], 0x05
 
 	call	_keychar
 
