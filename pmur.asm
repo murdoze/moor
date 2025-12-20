@@ -1402,7 +1402,7 @@ _PF:
 
 	boot32_status	'Y', 0xaf
 
-	mov	byte ptr [_pcolor], 0x06
+	mov	byte ptr [_pcolor], 0x0e
 
 	mov	al, 0x10
 	call	_emitchar
