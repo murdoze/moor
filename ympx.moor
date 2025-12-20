@@ -12,18 +12,18 @@
 : nibble	0f and ;
 : >nibble	4 sar ;
 : nibble>char	| 0a >= if [char] A [char] 9 - 1- + then [char] 0 + ;
-: .n					\ ( a color nibble -- a-2 ) 
+: .n						\ ( a color nibble -- a-2 ) 
 	0f and nibble>char
 	{ 8 shl } or
 	>< |{ 2! } 2 + ;
-: .b	||{{  4 sar .n } } .n ;		\ ( a color byte -- )
-: .w	||{{  8 sar .b } } .b ;		\ ( a color word -- )
-: .d	||{{ 10 sar .w } } .w ;		\ ( a color qword -- )
-: .q	||{{ 20 sar .d } } .d ;		\ ( a color dword -- )
-: .c	{ 8 shl } or >< | { 2! } 2 + ;	\ ( a color char -- a+2 )	Display character
-: .bl	20 .c ;				\ ( a color -- a+2 )	 	Display blank character
-: .c'	c@ .c ;				\ ( a color 'c -- a+2 )		Fetch and display character
-: .t	for ||{{ .c' }} 1+ over _ _ ;	\ ( a color 'c u -- a+2*u )	Display string
+: .b	||{{  4 sar .n } } .n ;			\ ( a color byte -- )
+: .w	||{{  8 sar .b } } .b ;			\ ( a color word -- )
+: .d	||{{ 10 sar .w } } .w ;			\ ( a color qword -- )
+: .q	||{{ 20 sar .d } } .d ;			\ ( a color dword -- )
+: .c	{ 8 shl } or >< | { 2! } 2 + ;		\ ( a color char -- a+2 )	Display character
+: .bl	20 .c ;					\ ( a color -- a+2 )	 	Display blank character
+: .c'	c@ .c ;					\ ( a color 'c -- a+2 )		Fetch and display character
+: .t count for ||{{ .c' }} 1+ over _ _ ;	\ ( a color 'c u -- a+2*u )	Display string
 
 \ Scratch playground for code generation
 :: 'scratch 0 var
@@ -37,17 +37,54 @@ here ..
 : <scratch here 'scratch @ here! ;
 : scratch> ret, here! ;
 
+: asm(	<scratch ;
+: )asm	scratch> scratch ;
+
 \ Register display
-: reg@	|, rtop >< mov, ;
-: .regname				\ ( a color r -- a+2 )
+: reg@	 |, rtop >< mov, ;
+
+: .regname					\ ( a color r -- a+2 )
 	" AXCXBXDXSPBPSIDIR8R9101112131415" 1+ >< 2* + 
 	| c@ >< { >| { .c } }  1+ c@ .c ;
 : .regs 10 
 	for	vga I 1- line 30 col      
 		30  I 1- .regname 
-		2f  <scratch I 1- | . reg@ scratch> scratch .q 
+		2f  asm( I 1- reg@ )asm .q 
 	over ;
 
+: cr0	asm( |, 0f ` 20 ` c1 ` )asm ;
+: cr4	asm( |, 0f ` 20 ` e1 ` )asm ;
+: cr3	asm( |, 0f ` 20 ` d9 ` )asm ;
+\ CR0 fields
+80000000 :: PG val	00040000 :: AM val	00010000 :: WP val	00000001 :: PE val
+\ CR4 fields
+00002000 :: VMXE val	00100000 :: SMEP val	00200000 :: SMAP val	00800000 :: CET val
+00400000 :: PKE val	01000000 :: PKS val     00000020 :: PAE	val	00020000 :: PCIDE val
+
+\ VMXE (Bit 13): Virtual Machine Extensions Enable (for hypervisors like VMware/Hyper-V).
+\ SMXE (Bit 14): Safer Mode Extensions Enable (for Trusted Execution).
+\ SMEP (Bit 20): Supervisor Mode Execution Protection Enable (prevents kernel from executing user-mode code).
+\ SMAP (Bit 21): Supervisor Mode Access Protection Enable (prevents kernel from accessing user-mode data).
+\ PKE (Bit 22) & PKS (Bit 24): Protection Key Enable (for user/supervisor modes), enhancing memory access control.
+\ CET (Bit 23): Control-flow Enforcement Technology (fights exploits like ROP).
+\ PAE (Bit 5): Physical Address Extension (enables > 4GB RAM access).
+\ PSE (Bit 4): Page Size Extension (allows larger page sizes like 4MB).
+\ VME (Bit 0): Virtual-8086 Mode Extensions.
+\ PCIDE (Bit 17): Process-Context Identifier Enable (improves performance in virtualized environments
+
+: .cregs
+	vga 0 line 1c col 30 " CR3" .t  1f asm( |, 0f ` 20 ` d9 ` )asm .q
+	vga 1 line 1c col 30 " CR0" .t  2f cr0 | { .q _ }
+	| { PG and if vga 2 line 1c col 30 " PG" .t 30 .bl then _ }
+	| { AM and if vga 2 line 1f col 30 " AM" .t 30 .bl then _ }
+	| { WP and if vga 2 line 22 col 30 " WP" .t 30 .bl then _ }
+	| { PE and if vga 2 line 25 col 30 " PE" .t 30 .bl then _ }
+	_
+	vga 3 line 1c col 30 " CR4" .t  2f cr4 | { .q _ }
+	| { PAE   and if vga 4 line 1c col 30 " PAE"   .t 30 .bl then _ }
+	| { VMXE  and if vga 5 line 1c col 30 " VMXE"  .t 30 .bl then _ }
+	_
+	;
 
 
 \ Tests
