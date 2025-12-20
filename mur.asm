@@ -44,8 +44,12 @@ __setcolor:	.quad	0
 
 _start1:	
 	cmp	byte ptr [runmode], 0
-	jne	_restart
+	je	1f
 
+	lea	rhere, [here0]
+	jmp	_restart
+
+	1:
 	mov	rax, 12
 	lea	rdi, [here0]
 	syscall
@@ -53,6 +57,7 @@ _start1:
 	mov	[_mem_reserved], rax
 
 	call	_setup_sigsegv_handler
+	mov	rhere, [_mem_reserved]
 
 _restart:
 
@@ -61,7 +66,6 @@ _restart:
 	lea	rwork, [forth_]
 	mov	[_current], rwork
 	mov	[_context], rwork
-	mov	rhere, [_mem_reserved]
 _abort:
 _cold:
 	xor	rtop, rtop
