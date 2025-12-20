@@ -602,10 +602,10 @@ _set_idt64_entry:
 
 _clear_screen:
 	mov	rdi, SCREEN
-	mov	rcx, 10 * 80
+	mov	rcx, 16 * 80
 	mov	ax, 0x082e
 	rep	stosw
-	mov	rcx, 15 * 80
+	mov	rcx, 9 * 80
 	mov	ax, 0x0f00
 	rep	stosw
 	ret
@@ -903,7 +903,7 @@ _interrupt_timer_handler:
 	pushr
 
 	inc	qword ptr [_trap_counter]
-	call	_print_trap_counter
+	#call	_print_trap_counter
 
 	call	_pic_send_eoi
 
@@ -1094,7 +1094,7 @@ _keychar:
 
 	# Display output 
 
-	START_ROW	= 11
+	START_ROW	= 16
 	START_COL	= 0
 	END_ROW		= 25
 	END_COL		= 80
