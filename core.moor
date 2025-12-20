@@ -494,6 +494,7 @@ DECOMPILING ' branch behavior DECOMPILING ' (-leave) does
 	   | 8 sar or | 10 sar or | 20 sar or
 	   1+ ;
 : #aligned >2^ | negate >< 1- >>> + and ;			\ ( a # -- a' )		Align A to #'s nearest power of 2 bytes
+: aligned  #aligned ;						\			This looks better, why we need #? TODO
 
 : char     bl word count _ c@ ;
 : [char]   char [compile] literal ; immediate
