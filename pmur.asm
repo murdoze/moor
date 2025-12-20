@@ -734,30 +734,20 @@ _print_key_pressed:
 
 _trap_counter:		 .quad	0
 _trap_number:		.byte	0
+_trap_wo_error_code:	.byte	0
 _trap_error_code:	.quad	0
 _trap_rip:		.quad	0
 _trap_temp:		.quad	0
 
-_trap_handler64:
-	mov	word ptr [SCREEN + 2], 0xcf40
-	
-	pushr
 
-	call	_print_sp_ip
+	# Handlers for traps w/o error code
 
-	# Sent EOI to PIC
-	mov	al, 0x20
-	out	0x20, al
+_trap_ud_handler:
+	mov	byte ptr fs:[_trap_number], TRAP_UD
+	jmp	_trap_handler64
 
-	popr
 
-	iretq
-
-	#
 	# Handlers for traps with error code 
-	#
-
-	# TODO: Should be a per-CPU structure
 
 
 _trap_df_handler:
@@ -794,19 +784,38 @@ _trap_cp_handler:
 
 	# Handler for traps with error code
 
+_trap_handler64:
+	mov	word ptr [SCREEN + 2], 0xcf40
+	
+	pushr
+
+	mov	qword ptr fs:[_trap_temp], rax
+	mov	rax, [rsp + 0 + 8 * 6]
+	mov	qword ptr fs:[_trap_rip], rax
+	mov	rax, qword ptr fs:[_trap_temp]
+
+	call	_print_sp_ip
+
+	mov	rdi, SCREEN + 12
+	mov	al, byte ptr [_trap_number]
+	mov	byte ptr [_pcolor], 0x8e
+	call	_p64printb
+
+	popr
+
+	iretq
+
 _trap_error_handler:
 	pushr
 
 	mov	qword ptr fs:[_trap_temp], rax
-	mov	rax, [rsp + 0 + 8 * 6]			# must currespond to number of registers pushed by pushr
+	mov	rax, [rsp + 8 + 8 * 6]			# must currespond to number of registers pushed by pushr
 	mov	qword ptr fs:[_trap_error_code], rax
-	mov	rax, [rsp + 8 + 8 * 6]
+	mov	rax, [rsp + 16 + 8 * 6]
 	mov	qword ptr fs:[_trap_rip], rax
 	mov	rax, qword ptr fs:[_trap_temp]
 
-	
 	mov	word ptr [SCREEN + 8], 0x4f45
-
 
 	call	_print_error_code
 	call	_print_sp_ip
@@ -1229,12 +1238,14 @@ _setup_idt64_traps:
 	mov	esi, TRAP_GP
 	call	_set_idt64_entry
 
-	/*
 	push	rsi
 
-	#lea	eax, _trap_df_handler
-	#mov	esi, TRAP_DF
-	#call	_set_idt64_entry
+	lea	eax, _trap_ud_handler
+	mov	esi, TRAP_UD
+	call	_set_idt64_entry
+	lea	eax, _trap_df_handler
+	mov	esi, TRAP_DF
+	call	_set_idt64_entry
 	lea	eax, _trap_np_handler
 	mov	esi, TRAP_NP
 	call	_set_idt64_entry
@@ -1255,7 +1266,6 @@ _setup_idt64_traps:
 	call	_set_idt64_entry
 
 	pop	rsi
-	*/
 
 	# Setup specific interrupt handlers
 _setup_idt64_interrupts:
