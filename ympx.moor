@@ -1,23 +1,29 @@
-\ VGA number display
+\ VGA display
+
 : nibble	0f and ;
 : >nibble	4 sar ;
 : nibble>char	| 0a >= if [char] A [char] 9 - 1- + then [char] 0 + ;
-: .n					\ ( a c nibble -- a-2 ) 
+: .n					\ ( a color nibble -- a-2 ) 
 	0f and nibble>char
 	{ 8 shl } or
 	>< |{ 2! } 2 + ;
-: .b	||{{  4 sar .n } } .n ;		\ ( a c byte -- )
-: .w	||{{  8 sar .b } } .b ;		\ ( a c word -- )
-: .d	||{{ 10 sar .w } } .w ;		\ ( a c qword -- )
-: .q	||{{ 20 sar .d } } .d ;		\ ( a c dword -- )
-: .s	8 shl 20 or >< | { 2! } 2 + ;	\ ( a c -- a+2 ) Space
-	
-:: vga	adr 1000 allot vga 1000 0 fill				\ Arena contains logical objects
-: vga	baremetal? if 0b8000 a0 + else vga then ;
+: .b	||{{  4 sar .n } } .n ;		\ ( a color byte -- )
+: .w	||{{  8 sar .b } } .b ;		\ ( a color word -- )
+: .d	||{{ 10 sar .w } } .w ;		\ ( a color qword -- )
+: .q	||{{ 20 sar .d } } .d ;		\ ( a color dword -- )
+: .c	{ 8 shl } or >< | { 2! } 2 + ;	\ ( a color char -- a+2 )	Display character
+: .s	20 .c ;				\ ( a color -- a+2 )	 	Display space
+: .c'	c@ .c ;				\ ( a color 'c -- a+2 )		Fetch and display character
+: .t	for ||{{ .c' }} 1+ over _ _ ;	\ ( a color 'c u -- a+2*u )	Display string
+	 
+
+:: 'vga	adr 1000 allot 'vga 1000 0 fill				\ Arena contains logical objects
+: vga	baremetal? if 0b8000 a0 + else 'vga then ;
 : line	a0 * + ;
 : col	1 shl + ;
 
 \ Tests
+
 .( vga = ) vga . cr
 : ??vga vga @ . .S cr ;
 
@@ -28,7 +34,8 @@
 : qd1	vga df 12345678 .d df .s df .s df 90abcdef .d  ??vga ;
 : qq	vga df 1234567890abcdef .q 		??vga ;
 
-
+: qt	vga df " 1234" count .t			??vga ; 
+: qtt	vga cf " Stack overflow" count .t			??vga ; 
 
 
 
