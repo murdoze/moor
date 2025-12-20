@@ -857,13 +857,13 @@ _emit_baremetal:
 _source_completed:
 	.byte	0
 _source_in:
-	.quad	source
+	.quad	_source
 
 word	read
 _read:
 	call	_dup
 
-	cmp	byte ptr [source], 0
+	cmp	byte ptr [_source], 0
 	jz	7f
 	cmp	byte ptr [_source_completed], 0
 	jnz	7f
@@ -2062,6 +2062,16 @@ MESSAGE	hello, "\r\n\x1b[31mHello \x1b[0m\x1b[42;37m\x1b[1m MOOR \x1b[0m\n\n"
 MESSAGE hello, "\nHello \x01\x5fMOOR\x01\x20\n\n"
 .endif
 
+# ( -- ?) BAREMETAL
+word	baremetalq, "baremetal?" 
+	call	_dup
+
+	xor	rtop, rtop
+	cmp	byte ptr [runmode], RUNMODE_BAREMETAL 	
+	jne	1f
+	inc	rtop
+	1:
+	ret
 
 #
 # Baremetal words
@@ -2069,6 +2079,8 @@ MESSAGE hello, "\nHello \x01\x5fMOOR\x01\x20\n\n"
 
 .ifdef	BAREMETAL
 
+# ( c -- ) COLOR
+# Sets current VGA color
 word	color
 	
 	call	[__setcolor]
@@ -2077,7 +2089,21 @@ word	color
 
 	ret
 
+# ( -- ) SOURCE
+# Marks embedded source as not loaded
+# Needed after warm restart
+word	source
+
+	lea	rax, [_source]
+	mov	[_source_in], rax
+
+	mov	byte ptr [_source_completed], 0
+
+	ret	
+
 .endif
+
+
 
 # LATEST
 	.endfunc
@@ -2085,7 +2111,7 @@ word	color
 
 	.align	4096
 
-source:
+_source:
 
 .ifdef BOOT_SOURCE
 	.incbin "core.moor"
@@ -2096,6 +2122,7 @@ source:
 	.byte	0
 .endif
 
+	.byte	0
 	.byte	0
 here0:
 
