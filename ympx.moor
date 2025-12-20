@@ -4,34 +4,57 @@
 : >nibble	4 sar ;
 : nibble>char	| 0a >= if [char] A [char] 9 - 1- + then [char] 0 + ;
 
-: .n					\ ( nibble c a -- a-2 ) 
+: .n					\ ( nibble c a -- a+2 ) 
 	>>> 0f and <<<
 	<<< 8 shl ><
 	nibble>char >< or
 	>< | { 2! } 2 + ;	
 : .b					\ ( byte c a -- )
 	>>> 0ff and <<<
-	>>> | 4 sar >< .S { 0f and
+	>>> | 4 sar >< { 0f and
 	<<< >< | {
 	>< .n } >< } <<< .n ;
 : .w					\ ( word c a -- )
-	>>> 0ffff and <<< .S
+	>>> 0ffff and <<< 
 	>>> | 8 sar >< { 0ff and
 	<<< >< | {
-	>< .S .b } >< } <<< .S .b ;
+	>< .b } >< } <<< .b ;
+
+: ||{{	compile | compile { compile ><
+	compile | compile { compile >< ; immediate
+: .n_					\ ( a c nibble -- a-2 ) 
+	0f and nibble>char
+	{ 8 shl } or
+	>< | { 2! } 2 + ;
+: .b_					\ ( a c byte -- )
+	||{{  4 sar .n_ } } .n_ ;
+: .w_					\ ( a c word -- )
+	||{{  8 sar .b_ } } .b_ ;
+: .d_					\ ( a c qword -- )
+	||{{ 16 sar .w_ } } .w_ ;
+: .q_					\ ( a c dword -- )
+	||{{ 32 sar .d_ } } .d_ ;
+
+: .s	8 shl 20 or >< | { 2! } 2 + ;	\ ( a c -- a+2 ) Space
 	
 	
 
 ;
 :: _vga adr 1000 allot _vga 1000 0 fill				\ Arena contains logical objects
-: vga baremetal? if 0b8000 else _vga then ;
+: vga baremetal? if 0b8000 a0 + else _vga then ;
 
 .( vga = ) vga . cr
 : ??vga vga @ . .S cr ;
 
-: qn	09 05 vga .n 0f 05 >>> .n _		??vga ;
-: qb	9f 05 vga .b _				??vga ;
-: qw	a19f 05 vga .w	_			??vga ;
+: qn	09 85 vga .n 0f 85 >>> .n _		??vga ;
+: qn_	vga 85 09 .n_ 85 0f .n_ _		??vga ;
+: qb	9f 85 vga .b _				??vga ;
+: qb_	vga 85 9f .b_ 95 a1 .b_ _		??vga ;
+: qw	a19f 85 vga .w	_			??vga ;
+: qw_	vga 85 1234 .w_	85 .s 85 5678 .w_ _	??vga ;
+: qd_	vga 85 12345678 .d_ _			??vga ;
+: qd1_	vga 85 12345678 .d_ 85 .s 85 90abcdef .d_ _ ??vga ;
+: qq_	vga 85 1234567890abcdef .q_ _		??vga ;
 
 
 
