@@ -32,11 +32,15 @@
 _start:
 	jmp	_start1
 
-runmode:	.byte	0	# To avoid IFDEFs, because they mess up with line numbers
-__key:		.quad	0
-__emitchar:	.quad	0
+	# Baremetal API
+
 	RUNMODE_LINUXUSR	= 0
 	RUNMODE_BAREMETAL 	= 1
+
+runmode:	.byte	0
+__key:		.quad	0
+__emitchar:	.quad	0
+__setcolor:	.quad	0
 
 _start1:	
 	cmp	byte ptr [runmode], 0
@@ -183,6 +187,19 @@ _context:
 	.quad	0
 _trace:
 	.quad	0
+
+	#
+	# Message display
+	#
+
+.macro	MESSAGE	name, msg, msg1, msg2
+.L_\name\()_msg:
+	.byte .L_\name\()_msg$ - .L_\name\()_msg - 1
+	.ascii "\msg"
+	.ascii "\msg1" 
+	.ascii "\msg2"
+.L_\name\()_msg$:
+.endm
 
 _canary_fail:
 	# TODO: Nice error message
@@ -1882,7 +1899,7 @@ __number:
 	jmp	9f
 
 	6:
-	lea	rtop, qword ptr [.L_quit_errm1]
+	lea	rtop, qword ptr [.L_quiterr1_msg]
 	call	_count
 	call	_type
 	call	_dup
@@ -1890,7 +1907,7 @@ __number:
 	call	_count
 	call	_type
 	call	_dup
-	lea	rtop, qword ptr [.L_quit_errm2]
+	lea	rtop, qword ptr [.L_quiterr2_msg]
 	call	_count
 	call	_type
 .ifdef	DEBUG
@@ -1904,14 +1921,13 @@ __number:
 
 	9:
 	ret
-.L_quit_errm1:
-	.byte .L_quit_errm1$ - .L_quit_errm1 - 1
-	.ascii	"\r\n\x1b[31mERROR! \x1b[0m\x1b[33mWord \x1b[1m\x1b[7m "
-.L_quit_errm1$:
-.L_quit_errm2:
-	.byte .L_quit_errm2$ - .L_quit_errm2 - 1
-	.ascii	" \x1b[27m\x1b[22m not found, or invalid hex number\x1b[0m\r\n"
-.L_quit_errm2$:
+.ifndef BAREMETAL
+	MESSAGE	quiterr1, "\r\n\x1b[31mERROR! \x1b[0m\x1b[33mWord \x1b[1m\x1b[7m "
+	MESSAGE	quiterr2, " \x1b[27m\x1b[22m not found, or invalid hex number\x1b[0m\r\n"
+.else
+	MESSAGE	quiterr1, "\nERROR! Word ["
+	MESSAGE	quiterr2, "] not found, or invalid hex number\n"
+.endif
 
 # QUIT
 # Interpret loop
@@ -2039,11 +2055,30 @@ _warm:
 	.quad	bye
 	.quad	exit # Not needed here, for decompiler only for now
 
-.L_hello_msg:
-	.byte .L_hello_msg$ - .L_hello_msg - 1
-	.ascii	"\r\n\x1b[31mHello \x1b[0m\x1b[42;37m\x1b[1m MOOR \x1b[0m\n\n"
-.L_hello_msg$:
+#define		RED	"\x1b[33m"
+.ifndef	BAREMETAL
+MESSAGE	hello, "\r\n\x1b[31mHello \x1b[0m\x1b[42;37m\x1b[1m MOOR \x1b[0m\n\n" 
+.else
+MESSAGE hello, "\nHello \x01\x5fMOOR\x01\x20\n\n"
+.endif
+
+
+#
+# Baremetal words
+#
+
+.ifdef	BAREMETAL
+
+word	color
 	
+	call	[__setcolor]
+
+	call	_drop
+
+	ret
+
+.endif
+
 # LATEST
 	.endfunc
 	.equ	last, latest_word
@@ -2054,6 +2089,9 @@ source:
 
 .ifdef BOOT_SOURCE
 	.incbin "core.moor"
+	.ifdef	BAREMETAL
+		.incbin	"ympx.moor"
+	.endif
 .else
 	.byte	0
 .endif

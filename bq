@@ -1,5 +1,5 @@
 rm mur.o
-as pmur.asm --defsym ORG=0x100000 -n -g -O0 --64 -am -amhls=mur.lst -o mur.o || exit 1
+as pmur.asm --defsym ORG=0x100000 --defsym BAREMETAL=1 -n -g -O0 --64 -am -amhls=mur.lst -o mur.o || exit 1
 ld mur.o --section-start=.text=0x000000 -N -o mur || exit 1
 mv mur moorq
 

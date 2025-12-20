@@ -302,6 +302,11 @@ _boot_32_entry:
 _pcolor:	
 	.byte	0x2f
 
+_setcolor:
+	mov	byte ptr fs:[_pcolor], al
+	ret
+
+
 	# al = char
 _p32emit:
 	mov	[edi], al
@@ -809,9 +814,9 @@ _trap_error_handler:
 	pushr
 
 	mov	qword ptr fs:[_trap_temp], rax
-	mov	rax, [rsp + 8 + 8 * 6]			# must currespond to number of registers pushed by pushr
+	mov	rax, [rsp + 0 + 8 * 6]			# must currespond to number of registers pushed by pushr
 	mov	qword ptr fs:[_trap_error_code], rax
-	mov	rax, [rsp + 16 + 8 * 6]
+	mov	rax, [rsp + 8 + 8 * 6]
 	mov	qword ptr fs:[_trap_rip], rax
 	mov	rax, qword ptr fs:[_trap_temp]
 
@@ -1158,19 +1163,34 @@ _clrscr:
 
 	ret
 
+	EMIT_COLOR	= 0x01
+_emitting_color:
+	.byte	0
 
 _emitchar:
-	cmp	al, 10
+	cmp	byte ptr [_emitting_color], 0
+	jz	1f
+	mov	byte ptr fs:[_pcolor], al
+	mov	byte ptr [_emitting_color], 0
+	ret
+
+	1:
+	cmp	al, EMIT_COLOR
 	jne	3f
+	mov	byte ptr [_emitting_color], 1
+	ret
+
+	3:
+	cmp	al, 10
+	jne	5f
 	call	_cursor_newline	
 	mov	byte ptr fs:[_pcolor], 0x02
 
 	mov	al, 0x10
 	call	_emitchar
 	ret
-
-
-	3:
+	
+	5:
 	push	rdi
 
 	movzx	rax, al
@@ -1430,6 +1450,9 @@ __start_entry:
 
 	lea	rax, [_emitchar]
 	mov	qword ptr [__emitchar], rax
+
+	lea	rax, [_setcolor]
+	mov	qword ptr [__setcolor], rax
 
 	jmp	__start
 
