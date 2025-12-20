@@ -444,6 +444,8 @@
 : |{       compile | compile { ; immediate			\ ( a -- a ) ( R: a -- ) Duplicated parameter and pushes it onto return stack
 : ||{{     compile | compile { compile ><			\ ( a b -- a b ) ( R: a b -- ) 	Dupliacted two parameters and pushes them onto return stack
            compile | compile { compile >< ; immediate
+: {{       compile >< compile { compile { ; immediate		\ ( a b -- R: a b )
+: }}       compile } compile } ; immediate			\ ( R: a b -- a b )
 
 								\\ Control structures: loops							_loops
 								\ DOC: https://github.com/TG9541/stm8ef/wiki/eForth-FOR-..-NEXT
