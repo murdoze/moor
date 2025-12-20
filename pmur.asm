@@ -773,10 +773,16 @@ _trap_ss_handler:
 
 _trap_gp_handler:
 	mov	byte ptr fs:[_trap_number], TRAP_GP
+
+	mov	dword ptr [SCREEN + 4], 0x4f474f50
+	
 	jmp	_trap_error_handler
 
 _trap_pf_handler:
 	mov	byte ptr fs:[_trap_number], TRAP_PF
+
+	mov	dword ptr [SCREEN + 4], 0x4f504f46
+	
 	jmp	_trap_error_handler
 
 _trap_ac_handler:
@@ -920,7 +926,18 @@ _interrupt_keyboard_handler:
 
 	call	_pic_send_eoi
 
+	# ESC to restart
+	cmp	byte ptr [_key_code], 0x01	#KEYCODE_ESC
+	jne	1f
+
+	popr	
+
+	lea	rax, [_warm_64]
+	mov	[rsp], rax
+	iretq
+
 	# Run task
+	1:
 	cmp	qword ptr [_keyboard_task], 0
 	jz	7f
 	cmp	byte ptr [_keyboard_wait], 0
@@ -974,6 +991,8 @@ _key_exit:
 	KEYCODE_CTRL	= 0x1d
 	KEYCODE_LSHIFT	= 0x2a
 	KEYCODE_RSHIFT	= 0x36
+
+	.set	KEYCODE_ESC,	0x01
 
 	KEYCODE_COUNT	= 0x3a
 
