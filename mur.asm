@@ -1717,6 +1717,8 @@ _dot:
 
 	cmp	rtop, 0
 	jge	1f
+	cmp	rtop, -127
+	jl	1f
 
 	neg	rtop
 	call	_dup
