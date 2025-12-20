@@ -796,7 +796,7 @@ _trap_cp_handler:
 	# Handler for traps with error code
 
 _trap_handler64:
-	mov	word ptr [SCREEN + 2], 0xcf40
+	mov	word ptr [SCREEN + 2], 0xcf23
 	
 	pushr
 
