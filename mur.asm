@@ -982,11 +982,18 @@ _words_:
 	push	rtmp					# current word
 
 	mov	rwork, [rtmp - STATES * 16 - 24]	# NFA
-	movzx	rtmp, byte ptr [rwork]			# count
-	lea	rsi, [rwork + 1]			# buffer
+
+	call	_dup
+	mov	rtop, rwork
+
+	call	_count
+	call	_type
+
+	/*
 	mov	rdi, 1					# stdout
 	mov	rax, 1					# sys_write
 	syscall
+	*/
 
 	call	_dup
 	mov	rtop, 0x20
