@@ -26,15 +26,13 @@
 : .t count for ||{{ .c' }} 1+ over _ _ ;	\ ( a color 'c u -- a+2*u )	Display string
 
 \ Scratch playground for code generation
-cr .( Scratch ) cold
 :: scratch code
 here 1000 aligned here! 
 here 1000 allot :: 'scratch val
 INTERPRETING ' scratch behavior 		\ Scratch code points to 4K aligned scratch area
->r _ 'scratch r>
+>< _ 'scratch ><
 INTERPRETING ' scratch does
 'scratch 1000 0 fill
-
 
 : <scratch here 'scratch here! ;
 : scratch> ret, here! ;
@@ -42,28 +40,35 @@ INTERPRETING ' scratch does
 : asm( <scratch ;
 : )asm scratch> scratch ;
 
+
+: .scratch	'scratch 40 dump ;
+
 \ Register display
 : reg@	 |, rtop >< mov, ;
 
 : .regname					\ ( a color r -- a+2 )
-	" AXCXBXDXSPBPSIDIR8R9101112131415" 1+ >< 2* + 
+	" AXCXBXDXSPBPSIDIR8 9101112131415" 1+ >< 2* + 
 	| c@ >< { >| { .c } }  1+ c@ .c ;
 : .regs 10 
-	for	vga I 1- line 30 col      
+	for	vga I 1- line 3e col      
 		30  I 1- .regname 
-		2f  asm( I 1- reg@ )asm .q 
+		2f  asm( I 1- reg@ )asm .q _
 	over ;
 
 : cr0	asm( |, 0f ` 20 ` c1 ` )asm ;
 : cr4	asm( |, 0f ` 20 ` e1 ` )asm ;
 : cr3	asm( |, 0f ` 20 ` d9 ` )asm ;
 
-: rdmsr	asm( 0f ` 32 ` )asm ;
-: wrmsr asm( 0f ` 30 ` )asm ;
+: cr4!	asm( |, 0f ` 22 ` e1 ` )asm ;
+
+: msr	20 >< asm( 0f ` 32 ` _, rdx shl, rax rdx or, r0 rax mov, )asm   ;
+: msr!  asm( rcx push, _,  rdx rdx xor, rax rcx mov, rcx pop,  0f ` 30 ` _, )asm ;
+
+: vmxon asm( _, f3 ` 0f ` c7 ` 31 )asm ;
 
 \ MSRs
-c0000080 :: EFER val	0000003a :: FCTRL val	0000048b :: PCTLS2 val	
-00000486 :: VMXF0 val	00000487 :: VMXF1 val	00000488 :: VMXF3 val	00000489 :: VMXF3 val	
+c0000080 :: EFER val	0000003a :: FCTL val	0000048b :: CTL2 val	
+00000486 :: VM00 val	00000487 :: VM01 val	00000488 :: VM40 val	00000489 :: VM41 val	
 
 \ CR0 fields
 80000000 :: PG val	00040000 :: AM val	00010000 :: WP val	00000001 :: PE val
@@ -71,23 +76,46 @@ c0000080 :: EFER val	0000003a :: FCTRL val	0000048b :: PCTLS2 val
 00002000 :: VMXE val	00100000 :: SMEP val	00200000 :: SMAP val	00800000 :: CET val
 00400000 :: PKE val	01000000 :: PKS val     00000020 :: PAE	val	00020000 :: PCIDE val
 \ EFER fields
-00000001 :: SCE val	00000000 :: LME val	00000000 :: LMA val	00000000 :: NXE val
+00000001 :: SCE val	00000100 :: LME val	00000400 :: LMA val	00000000 :: NXE val
+\ FCTL fields
+00100000 :: LMCE val	00000001 :: VME val	00000002 :: VMSXE val	00000004 :: VMNSXE val
 
 : .cregs
-	vga 0 line 1c col 30 " CR3" .t  1f asm( |, 0f ` 20 ` d9 ` )asm .d
-	vga 1 line 1c col 30 " CR0" .t  2f cr0 | { .d _ }
-	| { PG and if vga 2 line 1c col 30 " PG" .t 30 .bl then _ }
-	| { AM and if vga 2 line 1f col 30 " AM" .t 30 .bl then _ }
-	| { WP and if vga 2 line 22 col 30 " WP" .t 30 .bl then _ }
-	| { PE and if vga 2 line 25 col 30 " PE" .t 30 .bl then _ }
+	vga 0 line 1c col 3f " VM00 " .t  2f VM00 msr .q
+	vga 1 line 1c col 3f " VM01 " .t  2f VM01 msr .q
+	vga 2 line 1c col 3f " CR0  " .t  2f cr0 | { .d _ }
+	| { PG and if vga 3 line 1c col 30 " PG" .t 30 .bl then _ }
+	| { AM and if vga 3 line 1f col 30 " AM" .t 30 .bl then _ }
+	| { WP and if vga 3 line 22 col 30 " WP" .t 30 .bl then _ }
+	| { PE and if vga 3 line 25 col 30 " PE" .t 30 .bl then _ }
 	_
-	vga 3 line 1c col 30 " CR4" .t  2f cr4 | { .d _ }
-	| { PAE   and if vga 4 line 1c col 30 " PAE"   .t 30 .bl then _ }
-	| { VMXE  and if vga 5 line 1c col 30 " VMXE"  .t 30 .bl then _ }
+	vga 4 line 1c col 3f " VM40 " .t  2f VM40 msr .q
+	vga 5 line 1c col 3f " VM41 " .t  2f VM41 msr .q
+	vga 6 line 1c col 3f " CR4  " .t  2f cr4 | { .d _ }
+	| { PAE   and if vga 7 line 1c col 30 " PAE"   .t 30 .bl then _ }
+	| { VMXE  and if vga 7 line 20 col 30 " VMXE"  .t 30 .bl then _ }
 	_
+	vga 8 line 1c col 3f " EFER " .t  2f EFER msr  | { .q _ }
+	| { LME  and if vga 9 line 1c col 30 " LME"  .t 30 .bl then _ }
+	| { LMA  and if vga 9 line 20 col 30 " LMA"  .t 30 .bl then _ }
+	| { NXE  and if vga 9 line 24 col 30 " NXE"  .t 30 .bl then _ }
+	_
+	vga a line 1c col 3f " CTL2 " .t  2f CTL2 msr | { .q _ }
+	vga b line 1c col 3f " FCTL " .t  2f FCTL msr | { .q _ }
+	\ | { LMCE    and if vga 9 line 1c col 30 " LMCE"  .t 30 .bl then _ }
+	| { VME     and if vga c line 1c col 30 " VME"  .t 30 .bl then _ }
+	| { VMNSXE  and if vga c line 20 col 30 " VMNSXE"  .t 30 .bl then _ }
+	| { VMSXE   and if vga c line 26 col 30 " VMSXE"  .t 30 .bl then _ }
+	
 	;
+here 1000 aligned here! here 1000 allot 
+:: vmcs val
 
-: .msreg ;
+.regs
+.cregs
+cr4 VMXE or cr4! 
+.cregs
+\ vmcs vmxon
 
 \ Tests
 
@@ -102,7 +130,7 @@ c0000080 :: EFER val	0000003a :: FCTRL val	0000048b :: PCTLS2 val
 : qq	vga df 1234567890abcdef .q 		??vga ;
 
 : qt	vga df " 1234" count .t			??vga ; 
-: qtt	vga cf " Stack overflow" count .t			??vga ; 
+: qtt	vga cf " Stack overflow" count .t	??vga ; 
 
 
 
