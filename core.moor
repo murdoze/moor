@@ -447,6 +447,8 @@
 : {{       compile >< compile { compile { ; immediate		\ ( a b -- R: a b )
 : }}       compile } compile } ; immediate			\ ( R: a b -- a b )
 
+\ INTERPRETING ' >r behavior INTERPRETING ' { does		\ TODO: Why this does not work?
+\ INTERPRETING ' r> behavior INTERPRETING ' } does
 								\\ Control structures: loops							_loops
 								\ DOC: https://github.com/TG9541/stm8ef/wiki/eForth-FOR-..-NEXT
 :: (for)   code rtmp pop, rwork pop, rindex push,  		\ ( n -- )		push rindex; mov rindex, rtop ; drop

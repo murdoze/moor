@@ -27,22 +27,20 @@
 
 \ Scratch playground for code generation
 cr .( Scratch ) cold
-:: scratch code INTERPRETING ' scratch behavior cr .S _ _ 
+:: scratch code
 here 1000 aligned here! 
-here 1000 allot :: 'scratch val cr 'scratch .
-INTERPRETING ' scratch behavior cr .( A) .S 
->r cr .( B)  .S  _ 'scratch cr .( C) .S  r> cr .( D)  .S
-INTERPRETING ' scratch cr .S   does
-INTERPRETING ' scratch behavior cr .S
-cr .( --------------------------------------- )
+here 1000 allot :: 'scratch val
+INTERPRETING ' scratch behavior 		\ Scratch code points to 4K aligned scratch area
+>r _ 'scratch r>
+INTERPRETING ' scratch does
 'scratch 1000 0 fill
 
 
 : <scratch here 'scratch here! ;
 : scratch> ret, here! ;
 
-: asm( 11 ..	<scratch ;
-: )asm 22 ..	scratch> 33 .. scratch 44 .. ;
+: asm( <scratch ;
+: )asm scratch> scratch ;
 
 \ Register display
 : reg@	 |, rtop >< mov, ;
