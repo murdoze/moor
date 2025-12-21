@@ -24,6 +24,7 @@
 								\\ Register assignment. Should be changed if register aliases are changed
 : r0       01 ;							\ rcx = rtop
 : rtop     01 ;
+: rcx	   01 ;
 : r1       02 ;							\ rdx = rtmp
 : rtmp     02 ;
 : rdx      02 ;
