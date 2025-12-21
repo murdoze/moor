@@ -994,10 +994,11 @@ _key_exit:
 	KEYCODE_CTRL	= 0x1d
 	KEYCODE_LSHIFT	= 0x2a
 	KEYCODE_RSHIFT	= 0x36
+	KEYCODE_CAPS	= 0x3a
 
 	.set	KEYCODE_ESC,	0x01
 
-	KEYCODE_COUNT	= 0x3a
+	KEYCODE_COUNT	= 0x3b
 
 	#	00	01	02	03	04	05	06	07	08	09	0a	0b	0c	0d	0e	0f
 _keycode_to_ascii:
@@ -1005,12 +1006,12 @@ _keycode_to_ascii_noshift:
 	.byte	0,	27,	'1',	'2',	'3',	'4',	'5',	'6',	'7',	'8',	'9',	'0',	'-',	'=',	127,	9
 	.byte	'q',	'w',	'e',	'r',	't',	'y',	'u',	'i',	'o',	'p', 	'[',	']',	10,	0,	'a', 	's'
 	.byte	'd',	'f',	'g',	'h',	'j',	'k',	'l',	';',	'\'',	'`',	0,	'\\',	'z',	'x',	'c',	'v'
-	.byte	'b',	'n',	'm',	',',	'.',	'/',	0,	0,	0,	' '
+	.byte	'b',	'n',	'm',	',',	'.',	'/',	0,	0,	0,	' ',	1
 _keycode_to_ascii_shift:
 	.byte	0,	27,	'!',	'@',	'#',	'$',	'%',	'^',	'&',	'*',	'(',	')',	'_',	'+',	127,	9
 	.byte	'Q',	'W',	'E',	'R',	'T',	'Y',	'U',	'I',	'O',	'P', 	'{',	'}',	28,	0,	'A', 	'S'
 	.byte	'D',	'F',	'G',	'H',	'J',	'K',	'L',	':',	'"',	'~',	0,	'|',	'Z',	'X',	'C',	'V'
-	.byte	'B',	'N',	'M',	'<',	'>',	'?',	0,	0,	0,	' '
+	.byte	'B',	'N',	'M',	'<',	'>',	'?',	0,	0,	0,	' ',	1
 
 _key_modifiers:
 	.byte	0
@@ -1076,7 +1077,7 @@ _keychar:
 	1:
 	call	_key
 
-	cmp	al, 27
+	cmp	al, 1
 	jne	2f
 	call	_clrscr
 	jmp	0b
@@ -1417,12 +1418,12 @@ _boot_64:
 
 	call	_pic_remap
 
-_warm_64:
-	lea	esp, [_boot_stack$ - 8]
-
 	call	_clrscr
 
 	boot32_status	'Y', 0x4f
+
+_warm_64:
+	lea	esp, [_boot_stack$ - 8]
 
 	RUNMODE_LINUXUSR	= 0
 	RUNMODE_BAREMETAL 	= 1
@@ -1437,6 +1438,8 @@ _PF:
 	*/
 
 	boot32_status	'Y', 0xaf
+
+	#jmp	_vmx_on
 
 	mov	byte ptr fs:[_pcolor], 0x0e
 
@@ -1458,6 +1461,7 @@ _PF:
 
 	9:
 
+
 __start_entry:
 	and	byte ptr [_key_modifiers], ~PRESSED_SHIFT
 
@@ -1472,9 +1476,80 @@ __start_entry:
 
 	jmp	__start
 
-	#
-	# Handling keyboard synchronously
-	#
+
+_vmx_on:
+	xor	rax, rax
+	xor	rdx, rdx
+	mov	ecx, 0x3a
+	rdmsr
+	mov	rax, cr4
+	or	rax, 0x2000
+	boot32_status	'1', 0x4f
+	mov	cr4, rax
+	boot32_status	'2', 0x4f
+
+.equ	IA32_VMX_BASIC, 0x480
+.equ	IA32_VMX_CR0_FIXED0, 0x486
+.equ	IA32_VMX_CR0_FIXED1, 0x487
+.equ	IA32_VMX_CR4_FIXED0, 0x488
+.equ	IA32_VMX_CR4_FIXED1, 0x489
+.equ	IA32_VMX_PROCBASED_CTLS2, 0x48b
+
+	mov	r8, cr0
+	mov	ecx, IA32_VMX_CR0_FIXED0
+	rdmsr
+	shl	rdx, 32
+	or	rax, rdx
+	or	r8, rax
+	mov	ecx, IA32_VMX_CR0_FIXED1
+	rdmsr
+	shl	rdx, 32
+	or	rax, rdx
+	and	r8, rax
+	mov	cr0, r8
+	
+	mov	r8, cr4
+	mov	ecx, IA32_VMX_CR4_FIXED0
+	rdmsr
+	shl	rdx, 32
+	or	rax, rdx
+	or	r8, rax
+	mov	ecx, IA32_VMX_CR4_FIXED1
+	rdmsr
+	shl	rdx, 32
+	or	rax, rdx
+	and	r8, rax
+	mov	cr4, r8
+	
+	mov	ecx, IA32_VMX_BASIC
+	rdmsr
+
+	boot32_status	'5', 0x4f
+___v:
+	boot32_status	'6', 0x4f
+
+
+
+	boot32_status	'7', 0x4f
+	mov ecx, IA32_VMX_PROCBASED_CTLS2
+	rdmsr
+
+	boot32_status	'8', 0x4f
+
+vvvv:
+	boot32_status	'9', 0x4f
+
+	vmxon	[pvmxon]
+
+	boot32_status	'+', 0x4f
+	jmp	.
+
+pvmxon:	.quad	_vmcs
+
+	.align	4096
+_vmcs:
+	.fill	4096, 1, 0
+	
 
 __dummy0:
 
