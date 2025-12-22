@@ -211,7 +211,7 @@
 : yellow   baremetal? if 01 emit 0e emit else 1b emit 5b emit 33 emit 33 emit 6d emit then ;
 : blue     baremetal? if 01 emit 09 emit else 1b emit 5b emit 33 emit 34 emit 6d emit then ;
 : purple   baremetal? if 01 emit 05 emit else 1b emit 5b emit 33 emit 35 emit 6d emit then ;
-: white    baremetal? if else 1b emit 5b emit 33 emit 37 emit 6d emit then ;
+: white    baremetal? if 01 emit 0f emit else 1b emit 5b emit 33 emit 37 emit 6d emit then ;
 : .\       0 word count blue type norm 0a emit ;
 : .(       29 word count purple type norm ; immediate
 : cr       0a emit ;
@@ -268,6 +268,7 @@
 :: .o      00 val
 :: .no     01 val
 :: .b      02 val
+:: .c      02 val
 :: .nae    02 val
 :: .nb     03 val
 :: .ae     03 val
@@ -389,19 +390,20 @@
 
 
 : movzxc,  48 ` 0f ` b6 ` c9 ` ;						\			movzx	rcx, cl
-: setnz0,  r0 .nz setf, movzxc, ;						\ 			setnz	cl ; movzx rcx, cl
-: setz0,   r0 .z setf,  movzxc, ;						\ 			setz	cl ; movzx rcx, cl
-: setl0,   r0 .l setf,  movzxc, ;						\ 			setl	cl ; movzx rcx, cl
-: setle0,  r0 .le setf, movzxc, ;						\ 			setle	cl ; movzx rcx, cl
-: setg0,   r0 .g setf,  movzxc, ;						\ 			setl	cl ; movzx rcx, cl
-: setge0,  r0 .ge setf, movzxc, ;						\ 			setle	cl ; movzx rcx, cl
+: setnz,  r0 .nz setf, movzxc, ;						\ 			setnz	cl ; movzx rcx, cl
+: setz,   r0 .z setf,  movzxc, ;						\ 			setz	cl ; movzx rcx, cl
+: setc,   r0 .c setf,  movzxc, ;						\ 			setc	cl ; movzx rcx, cl
+: setl,   r0 .l setf,  movzxc, ;						\ 			setl	cl ; movzx rcx, cl
+: setle,  r0 .le setf, movzxc, ;						\ 			setle	cl ; movzx rcx, cl
+: setg,   r0 .g setf,  movzxc, ;						\ 			setl	cl ; movzx rcx, cl
+: setge,  r0 .ge setf, movzxc, ;						\ 			setle	cl ; movzx rcx, cl
 
-:: =       code #1 r1 load, r1 r0 cmp, setz0, off, ret,		\ ( a b -- a=b )	Compare two top elements, return 1 if equal and 0 otherwise
-:: <>      code #1 r1 load, r1 r0 cmp, setnz0, off, ret,	\ ( a b -- a<>b )	Compare two top elements, return 1 if not equal and 0 otherwise
-:: <       code #1 r1 load, r1 r0 cmp, setl0, off, ret,		\ ( a b -- a<b )	
-:: <=      code #1 r1 load, r1 r0 cmp, setle0, off, ret,	\ ( a b -- a<=b )	
-:: >       code #1 r1 load, r1 r0 cmp, setg0, off, ret,		\ ( a b -- a>b )	
-:: >=      code #1 r1 load, r1 r0 cmp, setge0, off, ret,	\ ( a b -- a>=b )	
+:: =       code #1 r1 load, r1 r0 cmp, setz, off, ret,		\ ( a b -- a=b )	Compare two top elements, return 1 if equal and 0 otherwise
+:: <>      code #1 r1 load, r1 r0 cmp, setnz, off, ret,	\ ( a b -- a<>b )	Compare two top elements, return 1 if not equal and 0 otherwise
+:: <       code #1 r1 load, r1 r0 cmp, setl, off, ret,		\ ( a b -- a<b )	
+:: <=      code #1 r1 load, r1 r0 cmp, setle, off, ret,	\ ( a b -- a<=b )	
+:: >       code #1 r1 load, r1 r0 cmp, setg, off, ret,		\ ( a b -- a>b )	
+:: >=      code #1 r1 load, r1 r0 cmp, setge, off, ret,	\ ( a b -- a>=b )	
 								\\ Control structures: helpers
 : lodsq,   48 ` ad ` ;						\			lodsq	rax, qword ptr [rsi]
 : skip,    48 ` 8d ` 34 ` c6 ` ;				\			lea	rsi, [rsi + rax*8]
