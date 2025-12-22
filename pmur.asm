@@ -1439,7 +1439,7 @@ _PF:
 
 	boot32_status	'Y', 0xaf
 
-	jmp	_vmx_on
+	#jmp	_vmx_on
 
 	mov	byte ptr fs:[_pcolor], 0x0e
 
@@ -1476,17 +1476,9 @@ __start_entry:
 
 	jmp	__start
 
-
-_vmx_on:
-	
-	xor	rax, rax
-	xor	rdx, rdx
-	mov	ecx, 0x3a
-	rdmsr
-
-	mov	rax, cr4
-	or	rax, 0x2000
-	mov	cr4, rax
+	#
+	# VMX root operation
+	#
 
 .equ	IA32_VMX_BASIC, 0x480
 .equ	IA32_VMX_CR0_FIXED0, 0x486
@@ -1494,6 +1486,11 @@ _vmx_on:
 .equ	IA32_VMX_CR4_FIXED0, 0x488
 .equ	IA32_VMX_CR4_FIXED1, 0x489
 .equ	IA32_VMX_PROCBASED_CTLS2, 0x48b
+
+_vmx_on:
+	mov	rax, cr4
+	or	rax, 0x2000
+	mov	cr4, rax
 
 	mov	r8, cr0
 	mov	ecx, IA32_VMX_CR0_FIXED0
@@ -1526,15 +1523,6 @@ _vmx_on:
 	rdmsr
 	mov	dword ptr [_vmcs], eax
 	
-___v:
-
-
-	
-	mov ecx, IA32_VMX_PROCBASED_CTLS2
-	rdmsr
-	
-
-vvvv:
 	boot32_status	'9', 0x4f
 
 	lea	ecx, [pvmxon]
