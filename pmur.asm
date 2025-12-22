@@ -658,6 +658,39 @@ _print_sp_ip:
 	call	_p64printq
 	ret
 
+_print_instructions_dump:
+	push	rcx
+	push	rdx
+	push	rsi
+	push	rdi
+
+	mov	rdi, SCREEN + 7 * (2 * 80)
+	mov	byte ptr fs:[_pcolor], 0x0f
+	mov	rcx, 0x30
+
+	mov	rsi, [_trap_rip]
+	0:
+	mov	rdx, 8
+	1:
+	lodsb
+	call	_p64printb
+	mov	al, ' '
+	call	_p64emit
+	dec	rdx
+	jnz	2f
+	mov	rdx, 8
+	add	rdi, 2 *80 - 2 * (8 * 3)
+	2:
+	dec	rcx
+	jnz	1b
+
+	pop	rdi
+	pop	rsi
+	pop	rdx
+	pop	rcx
+
+	ret
+
 _print_error_code:
 	mov	rdi, SCREEN + 2 * (2 * 80)
 	mov	byte ptr fs:[_pcolor], 0x40
@@ -809,6 +842,7 @@ _trap_handler64:
 	mov	rax, qword ptr fs:[_trap_temp]
 
 	call	_print_sp_ip
+	call	_print_instructions_dump
 
 	mov	rdi, SCREEN + 10
 	mov	al, byte ptr [_trap_number]
@@ -834,6 +868,7 @@ _trap_error_handler:
 	call	_print_error_code
 	call	_print_sp_ip
 	call	_print_cr2
+	call	_print_instructions_dump
 
 	mov	rdi, SCREEN + 12
 	mov	al, byte ptr [_trap_number]
