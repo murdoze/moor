@@ -1,0 +1,35 @@
+#set -x
+
+./kqw
+
+cw=$(xdotool getactivewindow)
+
+qemu-system-x86_64 -hda moorqs.hda -enable-kvm -cpu host -s -S &
+
+sleep 0.3
+
+
+qwl=$(xdotool search --name "QEMU")
+
+for qw_ in $qwl; do qw=$qw_; done
+if [[ ".$qw" == "." ]]; 
+then 
+  echo "QEMU not found"
+  exit 1
+fi
+
+
+xdotool windowactivate --sync "$qw"
+
+wmctrl -i -b add,above -r $qw
+
+xdotool windowmove $qw 9999 0
+
+xdotool key "ctrl+alt+plus"
+xdotool key "ctrl+alt+plus"
+xdotool key "ctrl+alt+plus"
+xdotool key "ctrl+alt+plus"
+xdotool key "ctrl+alt+plus"
+xdotool key "ctrl+alt+plus"
+
+xdotool windowactivate --sync "$cw"
