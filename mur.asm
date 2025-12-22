@@ -921,8 +921,8 @@ _read_baremetal:
 	pop	rsi
 	pop	rbx
 
-	call	_dup
-	call	_emit
+	#call	_dup
+	#call	_emit
 
 	ret
 
@@ -2008,16 +2008,28 @@ _dump:
 # Returns to OS
 word	bye
 _bye:
+
+	cmp	byte ptr [runmode], RUNMODE_BAREMETAL
+	je	_bye_baremetal
+	
 	mov	rdi, rtop
 	mov	rax, 60
 	syscall
+
+_bye_baremetal:
+	mov	byte ptr [_source_completed], 1
+
+	lea	rax, [_source]
+	mov	[_source_in], rax
+
+	jmp	_abort
 
 # ABORT
 # Reinitializes the system, or quits to OS in debug build
 word	abort
 _abort1:
 .ifdef	DEBUG
-	jmp	_bye
+	jmp	bye
 .else
 	jmp	_abort
 .endif
@@ -2063,7 +2075,7 @@ _warm:
 .ifndef	BAREMETAL
 MESSAGE	hello, "\r\n\x1b[31mHello \x1b[0m\x1b[42;37m\x1b[1m MOOR \x1b[0m\n\n" 
 .else
-MESSAGE hello, "\nHello \x01\x5fMOOR\x01\x20\n\n"
+MESSAGE hello, "\nBaremetal \x01\x5fMOOR\x01\x20 Forth System v 0.0\n\n"
 .endif
 
 # ( -- ?) BAREMETAL
