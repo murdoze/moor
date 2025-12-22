@@ -910,19 +910,36 @@ _read:
 	ret
 
 _read_baremetal:
+	call	_key_baremetal
+	#call	_dup
+	#call	_emit
+	ret
+
+# KEY ( -- c )
+# Reads one character from input
+word	key
+	cmp	byte ptr [runmode], RUNMODE_BAREMETAL
+	je	_key_baremetal
+
+	lea	rtop, qword ptr [.L_keyerr1_msg]
+	call	_count
+	call	_type
+
+	jmp	_abort
+
+	MESSAGE keyerr1, "\r\n\x1b[31mERROR! \x1b[0m\x1b[33m KEY word not defined for Linux yet... \x1b[1m\n"
+
+_key_baremetal:
 	push	rbx
 	push	rsi
 	push	rdi
 
-	call	[__key]	
+	call	[__key]
 	mov	rtop, rax
 
 	pop	rdi
 	pop	rsi
 	pop	rbx
-
-	#call	_dup
-	#call	_emit
 
 	ret
 
@@ -2071,11 +2088,10 @@ _warm:
 	.quad	bye
 	.quad	exit # Not needed here, for decompiler only for now
 
-#define		RED	"\x1b[33m"
 .ifndef	BAREMETAL
-MESSAGE	hello, "\r\n\x1b[31mHello \x1b[0m\x1b[42;37m\x1b[1m MOOR \x1b[0m\n\n" 
+MESSAGE	hello, "\r\n\x1b[1;32mLinux \x1b[42m\x1b[1;30m \x1b[1;30m MOOR Forth System v 0.0 \x1b[0m\n\n" 
 .else
-MESSAGE hello, "\nBaremetal \x01\x5fMOOR\x01\x20 Forth System v 0.0\n\n"
+MESSAGE hello, "\nBaremetal \x01\x20 MOOR Forth System \x01\x02                                             \x01\x82v 0.0\n\n"
 .endif
 
 # ( -- ?) BAREMETAL
