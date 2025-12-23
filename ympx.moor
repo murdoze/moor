@@ -89,7 +89,7 @@ c0000080 :: EFER val	0000003a :: FCTL val	0000048b :: CTL2 val	00000480 :: VBAS 
 00100000 :: LMCE val	00000001 :: VME val	00000002 :: VMSXE val	00000004 :: VMNSXE val
 
 \\ VM 
-: vmres,	setc, xchg01, setz, |, r0 r1 mov, ;	\ ( -- 0 0 success |  0 1 -- fail invalid | 1 0 -- fail valid )
+: vmres,	setc, xchg01, setz, |, r0 rdx mov, ;	\ ( -- 0 0 success |  0 1 -- fail invalid | 1 0 -- fail valid )
 
 : vmxon 	asm( 67 ` f3 ` 0f ` c7 ` 31 ` vmres, )asm ;
 : vmclear 	asm( 66 ` 0f ` c7 ` 31 ` vmres, )asm ;
@@ -98,10 +98,10 @@ c0000080 :: EFER val	0000003a :: FCTL val	0000048b :: CTL2 val	00000480 :: VBAS 
 : vmlaunch	asm( 0f ` 01 ` c2 ` vmres, )asm ;
 : vmresume	asm( 0f ` 01 ` c3 ` )asm ;
 
-: vmread	asm(  0f ` 78 ` c9 ` )asm ;			\ ( vm-field -- value )		Reads field from current VMCS
-: vmread	asm(  0f ` 78 ` c8 ` vmres,			\ ( vm-field -- value )		Reads field from current VMCS
-		|, r0 r2 mov, )asm <<< ;
-: vmwrite	asm( rax r0 mov, _, 0f ` 79 ` c1 ` )asm ;	\ ( value vm-field -- )		Writes field to current VMCS
+: vmread	asm(  0f ` 78 ` c8 ` vmres,			\ ( vm-field -- value ZF CF )	Reads field from current VMCS
+		|, r0 rax mov, )asm <<< ;
+: vmwrite	asm( rax r0 mov, _, 0f ` 79 ` c1 ` vmres,	\ ( value vm-field -- ZF CF )	Writes field to current VMCS
+		)asm ;
 
 : high		1 ;
 : full		;
@@ -168,6 +168,22 @@ c0000080 :: EFER val	0000003a :: FCTL val	0000048b :: CTL2 val	00000480 :: VBAS 
 	then
 ;
 
+: ?VmWrite
+	| vmwrite
+	-if
+		-if
+			>< _
+		else
+			white ." vmwrite" yellow ." faulted, field " blue _ . norm cr
+			8470cafe 600df00d4 .abort
+		then
+	else
+		_
+		white ." vmwrite" red ." failed, field " blue _ . norm cr
+		8470cafe badf00d4 .abort
+	then
+;
+
 : ?VmxRes							\ ( "operation" ZF CF -- 0=sucesss | 1=fail )
 	<<<
 	-if							\ CF=0
@@ -175,7 +191,7 @@ c0000080 :: EFER val	0000003a :: FCTL val	0000048b :: CTL2 val	00000480 :: VBAS 
 			_
 		else
 			white count type bl emit yellow ." faulted, result "
-			vminst_error 1+ ?VmRead blue . norm cr
+			vminst_error ?VmRead blue . norm cr
 			8470cafe 600df00d .abort
 		then
 	else
