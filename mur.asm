@@ -87,6 +87,7 @@ _cold:
 # Address Interpreter and Compiler
 
 _exit:
+	call	_qcsp
 	pop	rpc
 _next:
 	lodsq
@@ -231,7 +232,11 @@ _trace_brkpt:
 	8:
 	cmp	rtmp, 'q'
 	je	_abort
-	
+	cmp	rtmp, 'n'
+	jne	9f
+
+	9:
+
 	98:
 	pop	rtmp
 	99:
