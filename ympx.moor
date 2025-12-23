@@ -159,8 +159,9 @@ c0000080 :: EFER val	0000003a :: FCTL val	0000048b :: CTL2 val	00000480 :: VBAS 
 	-if							\ CF=0
 		-if 
 		else
-			white count type bl emit yellow ." faulted, result " vminstruction_error debug vmread blue . norm cr
-			8470cafe 600df00d .abort					\ Exit 2 levels
+			white count type bl emit yellow ." faulted, result "
+			vminstruction_error vmread blue . norm cr
+			8470cafe 600df00d .abort
 		then
 	else
 		_
@@ -169,6 +170,8 @@ c0000080 :: EFER val	0000003a :: FCTL val	0000048b :: CTL2 val	00000480 :: VBAS 
 	then
 ;
 
+: try
+	' | compile, >name [compile] literal compile ?VmxRes ; immediate
 
 \\ Launch
 
@@ -185,15 +188,15 @@ vm1 :: 'vm1 var
 	cr0 VM0S msr or VM0R msr and cr0!
 	cr4 VM4S msr or VM4R msr and cr4!
 	VBAS msr vmcs 4!
-	'vmcs vmxon " vmxon" ?VmxRes
 
+	'vmcs try vmxon
 ;
 : VmInit
 	VBAS msr vm1 4!
 
-	'vm1 vmclear	" vmclear"	?VmxRes
-	'vm1 vmptrld	" vmldptr"	?VmxRes
-	'vm1 vmlaunch	" vmlaunch"	?VmxRes
+	'vm1 try vmclear
+	'vm1 try vmptrld
+	'vm1 try vmlaunch
 ;
 : VmRun
 	VmxOn 
