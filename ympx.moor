@@ -61,14 +61,17 @@ INTERPRETING ' scratch does
 : cr3	asm( |, 0f ` 20 ` d9 ` )asm ;
 : cr4	asm( |, 0f ` 20 ` e1 ` )asm ;
 
-: cr0!	asm( |, 0f ` 22 ` c1 ` )asm ;
-: cr3!	asm( |, 0f ` 22 ` d9 ` )asm ;
-: cr4!	asm( |, 0f ` 22 ` e1 ` )asm ;
+: cr0!	asm( 0f ` 22 ` c1 ` _, )asm ;
+: cr3!	asm( 0f ` 22 ` d9 ` _, )asm ;
+: cr4!	asm( 0f ` 22 ` e1 ` _, )asm ;
 
 : msr	20 >< asm( 0f ` 32 ` _, rdx shl, rax rdx or, r0 rax mov, )asm   ;
 : msr!  asm( rcx push, _,  rdx rdx xor, rax rcx mov, rcx pop,  0f ` 30 ` _, )asm ;
 
-: vmxon asm( 67 ` f3 ` 0f ` c7 ` 31 ` setc, )asm ;		\ ( 'vmcs -- =0 success | <>0 failure )
+: vmxon 	asm( 67 ` f3 ` 0f ` c7 ` 31 ` setc, )asm ;	\ ( 'vmcs -- =0 success | <>0 failure )
+: vmxoff	asm( 0f ` 01 ` c4 ` )asm ;
+: vmlaunch	asm( 0f ` 01 ` c2 ` )asm ;
+: vmresume	asm( 0f ` 01 ` c3 ` )asm ;
 
 \ MSRs
 c0000080 :: EFER val	0000003a :: FCTL val	0000048b :: CTL2 val	00000480 :: VBAS val
@@ -85,33 +88,35 @@ c0000080 :: EFER val	0000003a :: FCTL val	0000048b :: CTL2 val	00000480 :: VBAS 
 00100000 :: LMCE val	00000001 :: VME val	00000002 :: VMSXE val	00000004 :: VMNSXE val
 
 : .cregs
-	vga 0 line 1c col 3f " VM0S " .t  2f VM0S msr .d
-	vga 1 line 1c col 3f " VM0R " .t  2f VM0R msr .d
+	vga 0 line 1c col 3f " VM0S " .t  2f VM0S msr .d _
+	vga 1 line 1c col 3f " VM0R " .t  2f VM0R msr .d _
 	vga 2 line 1c col 3f " CR0  " .t  2f cr0 | { .d _ }
-	| { PG and if vga 3 line 1c col 30 " PG" .t 30 .bl then _ }
-	| { AM and if vga 3 line 1f col 30 " AM" .t 30 .bl then _ }
-	| { WP and if vga 3 line 22 col 30 " WP" .t 30 .bl then _ }
-	| { PE and if vga 3 line 25 col 30 " PE" .t 30 .bl then _ }
+	| { PG and if vga 3 line 1c col 30 " PG" .t 30 .bl _ then }
+	| { AM and if vga 3 line 1f col 30 " AM" .t 30 .bl _ then }
+	| { WP and if vga 3 line 22 col 30 " WP" .t 30 .bl _ then }
+	| { PE and if vga 3 line 25 col 30 " PE" .t 30 .bl _ then }
 	_
-	vga 4 line 1c col 3f " VM4S " .t  2f VM4S msr .d
-	vga 5 line 1c col 3f " VM4R " .t  2f VM4R msr .d
+	vga 4 line 1c col 3f " VM4S " .t  2f VM4S msr .d _
+	vga 5 line 1c col 3f " VM4R " .t  2f VM4R msr .d _
 	vga 6 line 1c col 3f " CR4  " .t  2f cr4 | { .d _ }
-	| { PAE   and if vga 7 line 1c col 30 " PAE"   .t 30 .bl then _ }
-	| { VMXE  and if vga 7 line 20 col 30 " VMXE"  .t 30 .bl then _ }
+	| { PAE   and if vga 7 line 1c col 30 " PAE"   .t 30 .bl _ then }
+	| { VMXE  and if vga 7 line 20 col 30 " VMXE"  .t 30 .bl _ then }
 	_
 	vga 8 line 1c col 3f " EFER " .t  2f EFER msr  | { .d _ }
-	| { LME  and if vga 9 line 1c col 30 " LME"  .t 30 .bl then _ }
-	| { LMA  and if vga 9 line 20 col 30 " LMA"  .t 30 .bl then _ }
-	| { NXE  and if vga 9 line 24 col 30 " NXE"  .t 30 .bl then _ }
+	| { LME  and if vga 9 line 1c col 30 " LME"  .t 30 .bl _ then }
+	| { LMA  and if vga 9 line 20 col 30 " LMA"  .t 30 .bl _ then }
+	| { NXE  and if vga 9 line 24 col 30 " NXE"  .t 30 .bl _ then }
 	_
 	vga a line 1c col 3f " CTL2 " .t  2f CTL2 msr | { .d _ }
+	_
 	vga b line 1c col 3f " FCTL " .t  2f FCTL msr | { .d _ }
 	\ | { LMCE    and if vga 9 line 1c col 30 " LMCE"  .t 30 .bl then _ }
-	| { VME     and if vga c line 1c col 30 " VME"  .t 30 .bl then _ }
-	| { VMNSXE  and if vga c line 20 col 30 " VMNSXE"  .t 30 .bl then _ }
-	| { VMSXE   and if vga c line 26 col 30 " VMSXE"  .t 30 .bl then _ }
-	vga d line 1c col 3f " VBAS " .t  2f VBAS msr | { .d _ }
-	
+	| { VME     and if vga c line 1c col 30 " VME"  .t 30 .bl _ then }
+	| { VMNSXE  and if vga c line 20 col 30 " VMNSXE"  .t 30 .bl _ then }
+	| { VMSXE   and if vga c line 26 col 30 " VMSXE"  .t 30 .bl _ then }
+	_
+	vga d line 1c col 3f " VBAS " .t  2f VBAS msr | { .q _ }
+	_
 	;
 \ VMCS
 here 1000 aligned here! here 1000 allot 
@@ -129,6 +134,5 @@ vmcs :: 'vmcs var
 	.cregs
 	'vmcs vmxon | . -if white ." VMXON SUCCESS!" norm else red ." VMXON FAILURE..." norm then
 ;
-.cregs .regs
-VmxOn
 
+: q 10 dummy ." AAA" ;
