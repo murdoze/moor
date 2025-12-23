@@ -93,10 +93,8 @@ _next:
 	#cmp	qword ptr [rwork - STATES * 16 - 8], r11
 	#jne	_canary_fail
 _doxt:
-.ifdef DEBUG
 .ifdef TRACE
 	jmp	_do_trace
-.endif
 .endif
 _notrace:
 	jmp	[rwork + rstate * 8 - 16]
@@ -135,8 +133,8 @@ _interp:
 	jmp	rnext
 
 _do_trace:
-	cmp	qword ptr [_trace], 0
-	jz	1f
+	cmp	byte ptr [_trace], 0
+	jz	9f
 	call	_dup
 	mov	rtop, rstack
 	push	rtmp
@@ -175,8 +173,21 @@ _do_trace:
 	call	_dup
 	mov	rtop, 0xa
 	call	_emit
+
+	cmp	byte ptr [_debug], 1
+	jne	8f
+
+	push	rwork
+	call	key
+	pop	rwork
+	cmp	cl, 'q'
+	call	_drop
+	jne	8f
+	call	nodebug
+
+	8:
 	pop	rtmp
-	1:
+	9:
 	jmp	_notrace
 	.p2align	3, 0x90
 _state:
@@ -190,7 +201,9 @@ _current:
 _context:
 	.quad	0
 _trace:
-	.quad	0
+	.byte	0
+_debug:
+	.byte	0
 
 	#
 	# Message display
@@ -571,12 +584,23 @@ word	latest
 # TRACE
 # Turn tracing on
 word	trace
-	mov	qword ptr [_trace], 1
+	mov	byte ptr [_trace], 1
 	ret
 
 # NOTRACE
 word	notrace
-	mov	qword ptr [_trace], 0
+	mov	byte ptr [_trace], 0
+	ret
+
+# DEBUG
+# Turn debugging on. Works when TRACE ON
+word	debug
+	mov	byte ptr [_debug], 1
+	ret
+
+# NOTDEBUG
+word	nodebug
+	mov	byte ptr [_debug], 0
 	ret
 
 # EXECUTE ( xt -- )
@@ -654,9 +678,9 @@ _lit:
 	mov	rtop, rax
 	ret
 _lit_decomp:
-	call	_dup
 	mov	rtop, rwork
 	call	_decomp_print
+
 	call	_dup
 	mov	rtop, 0x9
 	call	_emit
@@ -665,6 +689,8 @@ _lit_decomp:
 	call	_dup
 	mov	rtop, rwork
 	call	_dot
+
+	call	_dup
 	mov	rtop, 0xa
 	call	_emit
 	jmp	rnext
@@ -767,7 +793,7 @@ word	cmove
 
 # (") ( -- a )
 # Returns address of a compiled string
-word	_quot_, "(\")"
+word	_quot_, "(\")",,,, _quot__decomp, 0
 	lodsb
 	movzx	rax, al
 	call	_dup
@@ -777,6 +803,36 @@ word	_quot_, "(\")"
 	add	rpc, 0xf
 	and	rpc, -16
 	ret	
+_quot__decomp:
+
+	mov	rtop, rwork
+	call	_decomp_print
+
+	
+	call	_dup
+	mov	rtop, 0x9
+	call	_emit
+	call	_dup
+	mov	rtop, 0x9
+	call	_emit
+		
+	call	_dup
+	mov	rtop, rpc
+	call	_count
+	call	_type
+	
+	lodsb
+	movzx	rax, al
+	add	rpc, rax
+	add	rpc, 0xf
+	and	rpc, -16
+
+	call	_dup
+	mov	rtop, 0xa
+	call	_emit
+
+	jmp	rnext
+	
 
 # " ( "ccc" -- )
 # Compiles a string
@@ -889,6 +945,7 @@ _read:
 	cmp	byte ptr [runmode], RUNMODE_BAREMETAL
 	je	_read_baremetal
 
+_read_key:
 	push	rsi
 	push	rdi
 
@@ -921,13 +978,8 @@ word	key
 	cmp	byte ptr [runmode], RUNMODE_BAREMETAL
 	je	_key_baremetal
 
-	lea	rtop, qword ptr [.L_keyerr1_msg]
-	call	_count
-	call	_type
-
-	jmp	_abort
-
-	MESSAGE keyerr1, "\r\n\x1b[31mERROR! \x1b[0m\x1b[33m KEY word not defined for Linux yet... \x1b[1m\n"
+	call	_read_key
+	ret
 
 _key_baremetal:
 	push	rbx
@@ -2147,9 +2199,9 @@ _source:
 
 .ifdef BOOT_SOURCE
 	.incbin "core.moor"
-	.ifdef	BAREMETAL
+	#.ifdef	BAREMETAL
 		.incbin	"ympx.moor"
-	.endif
+	#.endif
 .else
 	.byte	0
 .endif
