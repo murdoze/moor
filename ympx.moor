@@ -61,6 +61,8 @@ INTERPRETING ' scratch does
 		2f  asm( I 1- reg@ )asm .q _
 	over ;
 
+\\ CR and MSR
+
 : cr0	asm( |, 0f ` 20 ` c1 ` )asm ;
 : cr3	asm( |, 0f ` 20 ` d9 ` )asm ;
 : cr4	asm( |, 0f ` 20 ` e1 ` )asm ;
@@ -71,16 +73,6 @@ INTERPRETING ' scratch does
 
 : msr	20 >< asm( 0f ` 32 ` _, rdx shl, rax rdx or, r0 rax mov, )asm   ;
 : msr!  asm( rcx push, _,  rdx rdx xor, rax rcx mov, rcx pop,  0f ` 30 ` _, )asm ;
-
-: vmres,	setc, xchg01, setz, |, r0 r1 mov, ;	\ ( -- 0 0 success |  0 1 -- fail invalid | 1 0 -- fail valid )
-
-: vmxon 	asm( 67 ` f3 ` 0f ` c7 ` 31 ` vmres, )asm ;
-: vmclear 	asm( 66 ` 0f ` c7 ` 31 ` vmres, )asm ;
-: vmptrld 	asm( 0f ` c7 ` 31 ` vmres, )asm ;
-: vmxoff	asm( 0f ` 01 ` c4 ` )asm ;
-: vmlaunch	asm( 0f ` 01 ` c2 ` )asm ;
-: vmresume	asm( 0f ` 01 ` c3 ` )asm ;
-
 
 \ MSRs
 c0000080 :: EFER val	0000003a :: FCTL val	0000048b :: CTL2 val	00000480 :: VBAS val
@@ -95,6 +87,36 @@ c0000080 :: EFER val	0000003a :: FCTL val	0000048b :: CTL2 val	00000480 :: VBAS 
 00000001 :: SCE val	00000100 :: LME val	00000400 :: LMA val	00000000 :: NXE val
 \ FCTL fields
 00100000 :: LMCE val	00000001 :: VME val	00000002 :: VMSXE val	00000004 :: VMNSXE val
+
+\\ VM 
+: vmres,	setc, xchg01, setz, |, r0 r1 mov, ;	\ ( -- 0 0 success |  0 1 -- fail invalid | 1 0 -- fail valid )
+
+: vmxon 	asm( 67 ` f3 ` 0f ` c7 ` 31 ` vmres, )asm ;
+: vmclear 	asm( 66 ` 0f ` c7 ` 31 ` vmres, )asm ;
+: vmptrld 	asm( 0f ` c7 ` 31 ` vmres, )asm ;
+: vmxoff	asm( 0f ` 01 ` c4 ` )asm ;
+: vmlaunch	asm( 0f ` 01 ` c2 ` vmres, )asm ;
+: vmresume	asm( 0f ` 01 ` c3 ` )asm ;
+
+: vmread	asm(  0f ` 78 ` c9 ` )asm ;			\ ( vm-field -- value )		Reads field from current VMCS
+: vmwrite	asm( rax r0 mov, _, 0f ` 79 ` c1 ` )asm ;	\ ( value vm-field -- )		Writes field to current VMCS
+
+: high		1 ;
+: full		;
+
+: control 	;
+: vmexit	[ 1 a shl ] literal or ;
+: guest		[ 2 a shl ] literal or ;
+: host		[ 3 a shl ] literal or ;
+
+: 16bit		;
+: 32bit		[ 2 d shl ] literal or ;
+: 64bit		[ 1 d shl ] literal or ;
+: natural	[ 3 d shl ] literal or ;
+
+0	full 32bit vmexit 	:: vminstruction_error val
+
+\\ Printing
 
 : .cregs
 	vga 0 line 1c col 3f " VM0S " .t  2f VM0S msr .d _
@@ -128,9 +150,27 @@ c0000080 :: EFER val	0000003a :: FCTL val	0000048b :: CTL2 val	00000480 :: VBAS 
 	_
 	;
 
-: .VmxRes cr 							\ Print result of VMX operations that return result in C and Z flags
+: .VmxRes cr	 						\ Print result of VMX operations that return result in C and Z flags
 	-if white ." VMX SUCCESS"  norm else red ." VMX FAIL" norm then 
 	-if ." VALID" else ." INVALID" then norm cr ;
+
+: ?VmxRes							\ ( "operation" ZF CF -- 0=sucesss | 1=fail )
+	<<<
+	-if							\ CF=0
+		-if 
+		else
+			white count type bl emit yellow ." faulted, result " vminstruction_error debug vmread blue . norm cr
+			8470cafe 600df00d .abort					\ Exit 2 levels
+		then
+	else
+		_
+		red count type bl emit " failed" cr
+		8470cafe badf00d .abort
+	then
+;
+
+
+\\ Launch
 
 \ VMCS and the first and one and only VM
 page vmcs
@@ -145,17 +185,18 @@ vm1 :: 'vm1 var
 	cr0 VM0S msr or VM0R msr and cr0!
 	cr4 VM4S msr or VM4R msr and cr4!
 	VBAS msr vmcs 4!
-	'vmcs vmxon | { .VmxRes }
+	'vmcs vmxon " vmxon" ?VmxRes
 
 ;
 : VmInit
 	VBAS msr vm1 4!
 
-	'vm1 vmclear | { .VmxRes } -try
-	'vm1 vmptrld | { .VmxRes } 
+	'vm1 vmclear	" vmclear"	?VmxRes
+	'vm1 vmptrld	" vmldptr"	?VmxRes
+	'vm1 vmlaunch	" vmlaunch"	?VmxRes
 ;
 : VmRun
-	VmxOn 	-try
-	VmInit 	-try
+	VmxOn 
+	VmInit 
 ;
 
