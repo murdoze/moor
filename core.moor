@@ -206,7 +206,7 @@
 : break    compile (break) compile -?branch >mark >< ; immediate
 								\\ Printing									_print
 : norm     baremetal? if 01 emit 07 emit else 1b emit 5b emit 30 emit 6d emit then ;
-: red      baremetal? if 01 emit 03 emit else 1b emit 5b emit 33 emit 31 emit 6d emit then ;
+: red      baremetal? if 01 emit 04 emit else 1b emit 5b emit 33 emit 31 emit 6d emit then ;
 : green    baremetal? if 01 emit 02 emit else 1b emit 5b emit 33 emit 32 emit 6d emit then ;
 : yellow   baremetal? if 01 emit 0e emit else 1b emit 5b emit 33 emit 33 emit 6d emit then ;
 : blue     baremetal? if 01 emit 09 emit else 1b emit 5b emit 33 emit 34 emit 6d emit then ;
@@ -393,6 +393,7 @@
 
 
 : movzxc,  48 ` 0f ` b6 ` c9 ` ;						\			movzx	rcx, cl
+: xchg01, 48 ` 87 ` d1 ` ;								\			xchg	rax, rcx
 : setnz,  r0 .nz setf, movzxc, ;						\ 			setnz	cl ; movzx rcx, cl
 : setz,   r0 .z setf,  movzxc, ;						\ 			setz	cl ; movzx rcx, cl
 : setc,   r0 .c setf,  movzxc, ;						\ 			setc	cl ; movzx rcx, cl
@@ -455,6 +456,9 @@
 
 \ INTERPRETING ' >r behavior INTERPRETING ' { does		\ TODO: Why this does not work?
 \ INTERPRETING ' r> behavior INTERPRETING ' } does
+								\\ Exit on error
+: -try	if r> then ;
+: try	-if r> then ;
 								\\ Control structures: loops							_loops
 								\ DOC: https://github.com/TG9541/stm8ef/wiki/eForth-FOR-..-NEXT
 :: (for)   code rtmp pop, rwork pop, rindex push,  		\ ( n -- )		push rindex; mov rindex, rtop ; drop
