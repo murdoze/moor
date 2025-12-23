@@ -88,38 +88,6 @@ c0000080 :: EFER val	0000003a :: FCTL val	0000048b :: CTL2 val	00000480 :: VBAS 
 \ FCTL fields
 00100000 :: LMCE val	00000001 :: VME val	00000002 :: VMSXE val	00000004 :: VMNSXE val
 
-\\ VM 
-: vmres,	setc, xchg01, setz, |, r0 rdx mov, ;	\ ( -- 0 0 success |  0 1 -- fail invalid | 1 0 -- fail valid )
-
-: vmxon 	asm( 67 ` f3 ` 0f ` c7 ` 31 ` vmres, )asm ;
-: vmclear 	asm( 66 ` 0f ` c7 ` 31 ` vmres, )asm ;
-: vmptrld 	asm( 0f ` c7 ` 31 ` vmres, )asm ;
-: vmxoff	asm( 0f ` 01 ` c4 ` )asm ;
-: vmlaunch	asm( 0f ` 01 ` c2 ` vmres, )asm ;
-: vmresume	asm( 0f ` 01 ` c3 ` )asm ;
-
-: vmread	asm(  0f ` 78 ` c8 ` vmres,			\ ( vm-field -- value ZF CF )	Reads field from current VMCS
-		|, r0 rax mov, )asm <<< ;
-: vmwrite	asm( rax r0 mov, _, 0f ` 79 ` c1 ` vmres,	\ ( value vm-field -- ZF CF )	Writes field to current VMCS
-		)asm ;
-
-: high		1 ;
-: full		;
-
-: control 	;
-: vmexit	[ 1 a shl ] literal or ;
-: guest		[ 2 a shl ] literal or ;
-: host		[ 3 a shl ] literal or ;
-
-: 16bit		;
-: 32bit		[ 2 d shl ] literal or ;
-: 64bit		[ 1 d shl ] literal or ;
-: natural	[ 3 d shl ] literal or ;
-
-0	full 32bit vmexit 	:: vminst_error val
-
-\\ Printing
-
 : .cregs
 	vga 0 line 1c col 3f " VM0S " .t  2f VM0S msr .d _
 	vga 1 line 1c col 3f " VM0R " .t  2f VM0R msr .d _
@@ -151,55 +119,60 @@ c0000080 :: EFER val	0000003a :: FCTL val	0000048b :: CTL2 val	00000480 :: VBAS 
 	vga d line 1c col 3f " VBAS " .t  2f VBAS msr | { .q _ }
 	_
 	;
+\\ VM 
+: vmres,	setc, xchg01, setz, |, r0 rdx mov, ;	\ ( -- 0 0 success |  0 1 -- fail invalid | 1 0 -- fail valid )
 
-: ?VmRead
-	| vmread
-	-if
-		-if
-			>< _
-		else
-			white ." vmread " yellow ." faulted, field " blue _ . norm cr
-			8470cafe 600df00d4 .abort
-		then
-	else
-		_
-		white ." vmread " red ." failed, field " blue _ . norm cr
+: vmxon 	asm( 67 ` f3 ` 0f ` c7 ` 31 ` vmres, )asm ;
+: vmclear 	asm( 66 ` 0f ` c7 ` 31 ` vmres, )asm ;
+: vmptrld 	asm( 0f ` c7 ` 31 ` vmres, )asm ;
+: vmxoff	asm( 0f ` 01 ` c4 ` )asm ;
+: vmlaunch	asm( 0f ` 01 ` c2 ` vmres, )asm ;
+: vmresume	asm( 0f ` 01 ` c3 ` )asm ;
+
+: vmread	asm(  0f ` 78 ` c8 ` vmres,			\ ( vm-field -- value ZF CF )		Reads field from current VMCS
+		|, r0 rax mov, )asm <<< ;
+: vmwrite	<<< asm( rax r0 mov, _,		\ ( value vm-field -- value ZF CF )	Writes field to current VMCS
+		0f ` 79 ` c1 ` vmres,	
+		)asm -1 <<< ;
+
+: high		1 ;
+: full		;
+
+: control 	;
+: vmexit	[ 1 a shl ] literal or ;
+: guest		[ 2 a shl ] literal or ;
+: host		[ 3 a shl ] literal or ;
+
+: 16bit		;
+: 32bit		[ 2 d shl ] literal or ;
+: 64bit		[ 1 d shl ] literal or ;
+: natural	[ 3 d shl ] literal or ;
+
+0	full 32bit vmexit 	:: vminst_error val
+
+
+: ?VmReadWrite							\ ( field value ZF CF name -- ) 
+	<<< -if -if _ >< _ else
+		white count type bl emit yellow ." faulted, field " blue _ . norm cr
+		8470cafe 600df00d4 .abort then
+	else _ white count type bl emit red ." failed, field " blue _ . norm cr
 		8470cafe badf00d4 .abort
-	then
-;
+	then ;
 
-: ?VmWrite
-	| vmwrite
-	-if
-		-if
-			>< _
-		else
-			white ." vmwrite" yellow ." faulted, field " blue _ . norm cr
-			8470cafe 600df00d4 .abort
-		then
-	else
-		_
-		white ." vmwrite" red ." failed, field " blue _ . norm cr
-		8470cafe badf00d4 .abort
-	then
-;
+: try ' | compile | compile, >name [compile] literal compile ?VmReadWrite ; immediate
 
-: ?VmxRes							\ ( "operation" ZF CF -- 0=sucesss | 1=fail )
-	<<<
-	-if							\ CF=0
-		-if 
-			_
-		else
-			white count type bl emit yellow ." faulted, result "
-			vminst_error ?VmRead blue . norm cr
-			8470cafe 600df00d .abort
-		then
-	else
-		_
-		red count type bl emit " failed" cr
+: VmRead	try vmread ;
+: VmWrite	try vmwrite _ ;
+
+
+: ?VmxRes							\ ( ZF CF name -- 0=sucesss | 1=fail )
+	<<< -if -if _ else
+		white count type bl emit yellow ." faulted, result "
+		vminst_error VmRead blue . norm cr
+		8470cafe 600df00d .abort then
+	else _ red count type bl emit " failed" cr
 		8470cafe badf00d .abort
-	then
-;
+	then ;
 
 : try
 	' | compile, >name [compile] literal compile ?VmxRes ; immediate
