@@ -161,6 +161,16 @@ _do_trace:
 	push	rwork
 	call	_decomp_print
 	pop	rwork
+
+	cmp	byte ptr [runmode], RUNMODE_BAREMETAL
+	jne	4f
+	call	_dup
+	mov	rtop, ' '
+	call	_emit
+	jmp	5f
+
+
+	4:
 	call	_dup
 	mov	rtop, 0x1b
 	call	_emit
@@ -176,6 +186,8 @@ _do_trace:
 	call	_dup
 	mov	rtop, 0x47
 	call	_emit
+	
+	5:
 	call	_drop
 	push	rwork
 	call	dot_s
@@ -187,13 +199,21 @@ _do_trace:
 	cmp	byte ptr [_debug], 1
 	jne	8f
 
+	6:
+	call    _dup
+	mov     rtop, '>'
+  	call    _emit	
 	push	rwork
 	call	key
 	pop	rwork
-	cmp	cl, 'q'
+	mov	rtmp, rtop
 	call	_drop
+	cmp	rtmp, 0xa
+	je	6b
+	cmp	rtmp, 'q'
 	jne	8f
 	call	nodebug
+	call	notrace
 
 	8:
 	pop	rtmp
@@ -988,6 +1008,7 @@ word	key
 	cmp	byte ptr [runmode], RUNMODE_BAREMETAL
 	je	_key_baremetal
 
+	call	_dup
 	call	_read_key
 	ret
 
