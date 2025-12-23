@@ -67,6 +67,8 @@ _restart:
 	mov	[_current], rwork
 	mov	[_context], rwork
 _abort:
+	mov	byte ptr [_trace], 0
+	mov	byte ptr [_debug], 0
 _cold:
 	xor	rtop, rtop
 	xor	rstate, rstate
@@ -149,6 +151,8 @@ _do_trace:
 	mov	rtop, rstack
 	push	rtmp
 	push	rwork
+	inc	rtop
+	neg	rtop
 	call	_dot
 	pop	rwork
 	call	_dup
@@ -1005,10 +1009,10 @@ _read_baremetal:
 # KEY ( -- c )
 # Reads one character from input
 word	key
+	call	_dup
 	cmp	byte ptr [runmode], RUNMODE_BAREMETAL
 	je	_key_baremetal
 
-	call	_dup
 	call	_read_key
 	ret
 
@@ -1232,6 +1236,9 @@ _decomp_print:
 	call	_dot
 	call	_dup
 	call	_dot
+	call	_dup
+	mov	rcx, 0x9
+	call	_emit
 	call	_dup
 	mov	rtop, [rtop - STATES * 16 - 24]	# NFA
 	call	_count
