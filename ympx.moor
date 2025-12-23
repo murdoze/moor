@@ -25,16 +25,20 @@
 : .c'	c@ .c ;							\ ( a color 'c -- a+2 )		Fetch and display character
 : .t count for ||{{ .c' }} 1+ over _ _ ;			\ ( a color 'c u -- a+2*u )	Display string
 
+\ Page allocation
+
+: page								\ ( "<name>" -- )		Creates page-aligned zero-filled buffer
+	here 1000 aligned here! here 1000 allot 
+	:: val
+	latest execute 1000 0 fill ;
+
 \ Scratch playground for code generation
 :: scratch code
-
-here 1000 aligned here!  here 1000 allot 
-:: 'scratch val
+page 'scratch
 
 INTERPRETING ' scratch behavior 				\ Scratch code points to 4K aligned scratch area
 >< _ 'scratch ><
 INTERPRETING ' scratch does
-'scratch 1000 0 fill
 
 : <scratch here 'scratch here! ;
 : scratch> ret, here! ;
@@ -68,10 +72,15 @@ INTERPRETING ' scratch does
 : msr	20 >< asm( 0f ` 32 ` _, rdx shl, rax rdx or, r0 rax mov, )asm   ;
 : msr!  asm( rcx push, _,  rdx rdx xor, rax rcx mov, rcx pop,  0f ` 30 ` _, )asm ;
 
-: vmxon 	asm( 67 ` f3 ` 0f ` c7 ` 31 ` setc, )asm ;	\ ( 'vmcs -- =0 success | <>0 failure )
+: vmres,	setc, xchg01, setz, |, r0 r1 mov, ;	\ ( -- 0 0 success |  0 1 -- fail invalid | 1 0 -- fail valid )
+
+: vmxon 	asm( 67 ` f3 ` 0f ` c7 ` 31 ` vmres, )asm ;
+: vmclear 	asm( 66 ` 0f ` c7 ` 31 ` vmres, )asm ;
+: vmptrld 	asm( 0f ` c7 ` 31 ` vmres, )asm ;
 : vmxoff	asm( 0f ` 01 ` c4 ` )asm ;
 : vmlaunch	asm( 0f ` 01 ` c2 ` )asm ;
 : vmresume	asm( 0f ` 01 ` c3 ` )asm ;
+
 
 \ MSRs
 c0000080 :: EFER val	0000003a :: FCTL val	0000048b :: CTL2 val	00000480 :: VBAS val
@@ -118,12 +127,17 @@ c0000080 :: EFER val	0000003a :: FCTL val	0000048b :: CTL2 val	00000480 :: VBAS 
 	vga d line 1c col 3f " VBAS " .t  2f VBAS msr | { .q _ }
 	_
 	;
-\ VMCS
-here 1000 aligned here! here 1000 allot 
-:: vmcs val
-vmcs 1000 0 fill
+
+: .VmxRes cr 							\ Print result of VMX operations that return result in C and Z flags
+	-if white ." VMX SUCCESS"  norm else red ." VMX FAIL" norm then 
+	-if ." VALID" else ." INVALID" then norm cr ;
+
+\ VMCS and the first and one and only VM
+page vmcs
 vmcs :: 'vmcs var
 
+page vm1
+vm1 :: 'vm1 var
 
 \ Entering VMX root operation
 : VmxOn
@@ -131,8 +145,17 @@ vmcs :: 'vmcs var
 	cr0 VM0S msr or VM0R msr and cr0!
 	cr4 VM4S msr or VM4R msr and cr4!
 	VBAS msr vmcs 4!
-	.cregs
-	'vmcs vmxon | . -if white ." VMXON SUCCESS!" norm else red ." VMXON FAILURE..." norm then
+	'vmcs vmxon | { .VmxRes }
+
+;
+: VmInit
+	VBAS msr vm1 4!
+
+	'vm1 vmclear | { .VmxRes } -try
+	'vm1 vmptrld | { .VmxRes } 
+;
+: VmRun
+	VmxOn 	-try
+	VmInit 	-try
 ;
 
-: q 10 dummy ." AAA" ;
