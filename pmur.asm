@@ -602,10 +602,10 @@ _set_idt64_entry:
 
 _clear_screen:
 	mov	rdi, SCREEN
-	mov	rcx, 16 * 80
+	mov	rcx, 8 * 80
 	mov	ax, 0x082e
 	rep	stosw
-	mov	rcx, 9 * 80
+	mov	rcx, 17 * 80
 	mov	ax, 0x0f00
 	rep	stosw
 	ret
@@ -938,7 +938,7 @@ _interrupt_timer_handler:
 	pushr
 
 	inc	qword ptr [_trap_counter]
-	#call	_print_trap_counter
+	call	_print_trap_counter
 
 	call	_pic_send_eoi
 
@@ -1130,7 +1130,7 @@ _keychar:
 
 	# Display output 
 
-	START_ROW	= 16
+	START_ROW	= 8
 	START_COL	= 0
 	END_ROW		= 25
 	END_COL		= 80
@@ -1574,9 +1574,7 @@ _vmx_on:
 
 	lea	ecx, [pvmxon]
 	vmxon	[ecx]
-	#vmxon	[ecx]
 	jc	1f
-
 
 	boot32_status	'+', 0x3f
 	jmp	.
