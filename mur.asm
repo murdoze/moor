@@ -135,6 +135,16 @@ _interp:
 _do_trace:
 	cmp	byte ptr [_trace], 0
 	jz	9f
+
+	lea	rtmp, [_quit]
+	cmp	rpc, rtmp
+	jb	3f
+	lea	rtmp, [_quit$]
+	cmp	rpc, rtmp
+	jae	3f
+	jmp	9f
+
+	3:
 	call	_dup
 	mov	rtop, rstack
 	push	rtmp
@@ -2005,11 +2015,13 @@ __number:
 # QUIT
 # Interpret loop
 word	quit,,, forth
+_quit:
 	.quad	quit_
 	.quad	interpreting_
 	.quad	qcsp
 	.quad	branch, -5
 	.quad	exit	# Needed here only for decompilation
+_quit$:
 
 # ?CSP ( -- )
 # Aborts on stack underflow
