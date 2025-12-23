@@ -1087,6 +1087,8 @@ _type_baremetal:
 
 	mov	rtmp, rtop	# count
 	call	_drop
+	or	rtmp, rtmp
+	jz 	8f
 	mov	rsi, rtop
 	
 	1:
@@ -1101,6 +1103,7 @@ _type_baremetal:
 	pop	rdi
 	pop	rsi
 	
+	8:
 	call	_drop
 
 	ret
@@ -2100,7 +2103,7 @@ _qcsp:
 .ifndef	BAREMETAL
 MESSAGE	qcsperr, "\r\n\r\n\x1b[31mERROR! \x1b[33m\x1b[7m Stack underflow \x1b[0m\r\n"
 .else
-MESSAGE qcsperr, "\nERROR! \x01\x20 Stack underflow \x01\x02\n\n"
+MESSAGE qcsperr, "\nERROR! \x01\x20 Stack underflow \x01\x02"
 .endif
 .L_qcsp_errm:
 	.byte .L_qcsp_errm$ - .L_qcsp_errm - 1
@@ -2215,7 +2218,7 @@ _warm:
 .ifndef	BAREMETAL
 MESSAGE	hello, "\r\n\x1b[1;32mLinux \x1b[42m\x1b[1;30m \x1b[1;30m MOOR Forth System v 0.0  \x1b[0m\n\n" 
 .else
-MESSAGE hello, "\nBaremetal \x01\x20 MOOR Forth System \x01\x02                                             \x01\x82v 0.0\n\n"
+MESSAGE hello, "\nBaremetal \x01\x20 MOOR Forth System \x01\x02                                             \x01\x82v 0.0"
 .endif
 
 # ( -- ?) BAREMETAL
