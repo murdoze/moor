@@ -6,7 +6,7 @@
 
 ##############################################################################################################################################################
 #																			     #
-#		THIS IS THE PROTECTED MODE PLAYGROUND.                        DO NOT MAKE CHANGES TO CORE FUNCTIONALITY HERE OR FACE MERGES                  #
+#                        		THIS IS THE PROTECTED MODE HYPERVISOR PLAYGROUND.                                                                    #
 #																			     #
 ##############################################################################################################################################################
 
@@ -1188,6 +1188,12 @@ _cursor_newline:
 	call	_cursor_limit
 	ret
 
+_cursor_tab:
+	add	byte ptr [_cursor_col], 8
+	and	byte ptr [_cursor_col], 0xf8
+	call	_cursor_limit
+	ret
+
 _cursor_limit:
 	mov	al, byte ptr [_cursor_col]
 	cmp	al, END_COL
@@ -1234,7 +1240,7 @@ _emitchar:
 
 	3:
 	cmp	al, 10
-	jne	5f
+	jne	4f
 	call	_cursor_newline	
 	mov	byte ptr fs:[_pcolor], 0x02
 
@@ -1242,6 +1248,12 @@ _emitchar:
 	call	_emitchar
 	ret
 	
+	4:
+	cmp	al, 9
+	jne	5f
+	call	_cursor_tab
+	ret
+
 	5:
 	push	rdi
 

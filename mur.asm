@@ -169,7 +169,7 @@ _do_trace:
 	cmp	byte ptr [runmode], RUNMODE_BAREMETAL
 	jne	4f
 	call	_dup
-	mov	rtop, ' '
+	mov	rtop, 0x9
 	call	_emit
 	jmp	5f
 
@@ -2060,7 +2060,7 @@ _qcsp:
 	jmp	9f
 
 	6:
-	lea	rtop, qword ptr [.L_qcsp_errm]
+	lea	rtop, qword ptr [.L_qcsperr_msg]
 	call	_count
 	call	_type
 .ifdef	DEBUG
@@ -2070,6 +2070,11 @@ _qcsp:
 
 	9:
 	ret
+.ifndef	BAREMETAL
+MESSAGE	qcsperr, "\r\n\r\n\x1b[31mERROR! \x1b[33m\x1b[7m Stack underflow \x1b[0m\r\n"
+.else
+MESSAGE qcsperr, "\nERROR! \x01\x20 Stack underflow \x01\x02\n\n"
+.endif
 .L_qcsp_errm:
 	.byte .L_qcsp_errm$ - .L_qcsp_errm - 1
 	.ascii	"\r\n\r\n\x1b[31mERROR! \x1b[33m\x1b[7m Stack underflow \x1b[0m\r\n"
