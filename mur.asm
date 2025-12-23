@@ -136,7 +136,7 @@ _interp:
 
 _do_trace:
 	cmp	byte ptr [_trace], 0
-	jz	9f
+	jz	99f
 
 	lea	rtmp, [_quit]
 	cmp	rpc, rtmp
@@ -144,7 +144,7 @@ _do_trace:
 	lea	rtmp, [_quit$]
 	cmp	rpc, rtmp
 	jae	3f
-	jmp	9f
+	jmp	99f
 
 	3:
 	call	_dup
@@ -160,6 +160,9 @@ _do_trace:
 	push	rwork
 	call	_dot
 	pop	rwork
+
+	lea	r9, [rsi - 8]
+
 	call	_dup
 	mov	rtop, rwork
 	push	rwork
@@ -203,7 +206,14 @@ _do_trace:
 	cmp	byte ptr [_debug], 1
 	jne	8f
 
-	6:
+	cmp	qword ptr [_brkpt], 0
+	jz	7f
+_trace_brkpt:
+	cmp	qword ptr [_brkpt], r9
+	jne	98f
+	mov	qword ptr [_brkpt], 0
+
+	7:
 	call    _dup
 	mov     rtop, '>'
   	call    _emit	
@@ -213,15 +223,18 @@ _do_trace:
 	mov	rtmp, rtop
 	call	_drop
 	cmp	rtmp, 0xa
-	je	6b
-	cmp	rtmp, 'q'
+	je	7b
+	cmp	rtmp, 'c'
 	jne	8f
 	call	nodebug
 	call	notrace
-
 	8:
+	cmp	rtmp, 'q'
+	je	_abort
+	
+	98:
 	pop	rtmp
-	9:
+	99:
 	jmp	_notrace
 	.p2align	3, 0x90
 _state:
@@ -233,6 +246,8 @@ _mem_reserved:
 _current:
 	.quad	0
 _context:
+	.quad	0
+_brkpt:
 	.quad	0
 _trace:
 	.byte	0
@@ -632,7 +647,14 @@ word	debug
 	mov	byte ptr [_debug], 1
 	ret
 
-# NOTDEBUG
+# BRKPT ( pc -- )
+# Set breakpoint in threaded code for debugging
+word	brkpt
+	mov	qword ptr [_brkpt], rtop
+	call	_drop
+	ret
+
+# NODEBUG
 word	nodebug
 	mov	byte ptr [_debug], 0
 	ret
@@ -2186,7 +2208,7 @@ _warm:
 	.quad	exit # Not needed here, for decompiler only for now
 
 .ifndef	BAREMETAL
-MESSAGE	hello, "\r\n\x1b[1;32mLinux \x1b[42m\x1b[1;30m \x1b[1;30m MOOR Forth System v 0.0 \x1b[0m\n\n" 
+MESSAGE	hello, "\r\n\x1b[1;32mLinux \x1b[42m\x1b[1;30m \x1b[1;30m MOOR Forth System v 0.0  \x1b[0m\n\n" 
 .else
 MESSAGE hello, "\nBaremetal \x01\x20 MOOR Forth System \x01\x02                                             \x01\x82v 0.0\n\n"
 .endif
