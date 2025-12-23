@@ -236,6 +236,9 @@
 								\			Syntactic sugar
 : ."       [compile] " compile count compile type ; immediate
 : abort"   compile cr compile red [compile] ." compile norm compile cr compile abort ; immediate
+								\\ Debug
+: ntrace   ' trace execute notrace ;				\ ( "<name>" -- )	Runs in no-debug trace mode
+: dtrace   ' debug trace execute notrace ;			\ ( "<name>" -- )	Runs in debug trace mode
 
 								\\ Improved assembler, r0-15 support						_assembler
 : rex      150b501e7e 0c0de .abort ;				\ Obsolete
