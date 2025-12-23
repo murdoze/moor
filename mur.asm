@@ -1387,7 +1387,10 @@ _word:
 	je	7f
 	cmp	rtop, 0x9
 	je	2f
+	cmp	rtop, 127
+	je	1b
 	jmp	5f
+	
 
 	2:
 	cmp	rbx, 0x20
@@ -1398,8 +1401,11 @@ _word:
 	push	rtmp
 	call	_read
 .ifdef	DEBUG
+	cmp	rcx, 127
+	je	31f
 	call	_dup
 	call	_emit
+	31:
 .endif
 	pop	rtmp
 	cmp	rtop, rbx
@@ -1410,7 +1416,11 @@ _word:
 	je	7f
 	cmp	rtop, 0x9
 	je	4f
-	jmp	5f
+	cmp	rtop, 127
+	jne	5f
+	dec	rdi
+	dec	rtmp
+	jmp	6f
 
 	4:
 	cmp	rbx, 0x20
@@ -1425,6 +1435,7 @@ _word:
 	jmp	3b
 
 	7:
+_backspace:	
 	mov	rcx, rdi
 	and	rcx, 0x7	# zero fill rest of tib till mod 8
 	jz	9f

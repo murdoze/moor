@@ -1124,7 +1124,7 @@ _keychar:
 	call	_emitchar
 	call	_cursor_backward
 	call	_cursor_show
-	jmp	1b
+	mov	rax, 127
 	7:
 	ret
 
@@ -1500,6 +1500,8 @@ _PF:
 
 	cmp     al, 28  # Shift + Enter
 	je     9f
+	cmp	al, 127
+	je	1b
 
 	call	_emitchar
 
