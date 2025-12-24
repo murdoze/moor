@@ -1845,7 +1845,7 @@ word	number
 _number:
 	push	rsi
 	push	rbx
-	xor	rbx, rbx	# Positive number
+	xor	rbx, rbx	# Positive number, hex
 	mov	rsi, rtop
 	movzx	rcx, byte ptr [rtop]
 	test	rcx, rcx
@@ -1858,15 +1858,26 @@ _number:
 	lodsb
 	cmp	bl, 1
 	je	2f
-	cmp	al, 0x2d # "-"
+	cmp	al, '-'
 	jne	2f
-	inc	bl
+	test	rtmp, rtmp
+	jnz	8f	# cannot be in the middle
+	or	bl, 1
 	jmp	5f
 	2:
+	cmp	al, '#'
+	jne	21f
+	test	rtmp, rtmp
+	jnz	8f	# cannot be in the middle
+	or	bl, 2	# decimal number
+	jmp	5f
+	21:
 	cmp	al, 0x30
 	jb	8f
 	cmp	al, 0x39
 	jbe	3f
+	test	bl, 2
+	jnz	8f
 	or	al, 0x20
 	cmp	al, 0x61
 	jb	8f
@@ -1884,8 +1895,8 @@ _number:
 	jnz	1b
 
 	mov	rtop, rtmp
-	cmp	bl, 1
-	jne	7f
+	test	bl, 1
+	jz	7f
 	or	rtop, rtop	# Single "-", "-0", "-0[0...]" is considered an errorneous input
 	jz	8f
 	neg	rtop
