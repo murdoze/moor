@@ -65,6 +65,10 @@ INTERPRETING ' scratch does
 : cs	asm( |, 66 ` 8c ` c9 ` )asm ;
 : ds	asm( |, 66 ` 8c ` d9 ` )asm ;
 
+:: dt adr 0 2, 0 ,
+: gdt@	dt asm( 0f ` 01 ` 01 ` )asm  dt 2@ dt 2 + @ ;		\ ( -- seg base ) Returns GDTR
+: idt@	dt asm( 0f ` 01 ` 09 ` )asm  dt 2@ dt 2 + @ ;		\ ( -- seg base ) Returns IDTR
+
 \ MSRs and Control Registers {{{1
 \ MSRs
 c0000080 :: EFER val	
@@ -172,7 +176,7 @@ c0000103 :: TSC_AUX val
 : 16bit		;
 : 32bit		2 #13 bits set ;
 : 64bit		1 #13 bits set ;
-: natural	3 #12 bits set ;
+: natural	3 #13 bits set ;
 
 
 0	full 32bit vmexit 	:: vminstruction_error val
@@ -200,9 +204,11 @@ c0000103 :: TSC_AUX val
 		8470cafe badf00d4 .abort
 	then ;
 \ }}}
-: try								|| cr yellow . blue .  
-	' | compile | compile, >name 				| count type 
-	[compile] literal compile ?VmReadWrite ; immediate
+: try								
+compile || compile cr compile yellow compile . compile blue compile .  
+	' | compile | compile, >name [compile] literal 
+compile | compile count compile type 
+	compile ?VmReadWrite ; immediate
 
 : VmRead	try vmread ;
 : VmWrite	try vmwrite _ ;
@@ -229,6 +235,13 @@ vmcs :: 'vmcs var
 \ VM
 page vm1
 vm1 :: 'vm1 var
+
+\ Host VM Exit
+page h-stack
+h-stack 1000 + :: h-sp val
+
+:: h-exit	code hlt, -3 sjmp,
+
 
 \ Host and guest MSRs {{{1
 :: host_msrs adr
@@ -282,7 +295,7 @@ here guest_msrs - 8/ 2/ :: #guest_msrs val
 
 	'vm1 try vmclear
 	'vm1 try vmptrld
-	'vm1 try vmlaunch
+	\ 'vm1 try vmlaunch
 ;
 
 : VmCtrls
@@ -297,10 +310,41 @@ here guest_msrs - 8/ 2/ :: #guest_msrs val
 	0  #9 bit set  #21 bit set				\ Table 26-14:	64-bit host, load EFER
 	{ VBAS msr #55 bit set? if 048f else 0483 then msr | 20 sar not } and or
 	6 full 32bit control VmWrite \ primary_exit_ctrl
+
+	0  #9 bit set  						\ Table 26-17:	64-bit guest
+	{ VBAS msr #55 bit set? if 0490 else 0484 then msr | 20 sar not } and or
+	9 full 32bit control VmWrite \ primary_entry_ctrl
+;
+
+: VmHostState
+	\ TODO #0 #1 #2 are defined in CORE. reconsider
+	cr0	0 full natural host VmWrite
+	cr3	1 full natural host VmWrite
+	cr4	2 full natural host VmWrite
+
+	h-sp	#10 full natural host VmWrite
+	h-exit	#11 full natural host VmWrite
+
+	cs	1 full 16bit host VmWrite
+	ds	0 full 16bit host VmWrite
+	ds	2 full 16bit host VmWrite
+	ds	3 full 16bit host VmWrite
+	ds	4 full 16bit host VmWrite
+	ds	5 full 16bit host VmWrite
+	0	6 full 16bit host VmWrite
+	
+	FS_BASE msr 	3 full natural host VmWrite
+	GS_BASE msr 	4 full natural host VmWrite
+
+	gdt@ >< _	6 full natural host VmWrite
+	idt@ >< 	7 full natural host VmWrite
+
+
+
+
 ;
 
 : VmRun
-	VmxOn 
-	VmInit
+	VmxOn VmInit VmCtrls
 ;
 
