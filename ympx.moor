@@ -49,18 +49,6 @@ INTERPRETING ' scratch does
 
 : .scratch	'scratch 40 dump ;
 
-\ Register display
-: reg@	 |, rtop >< mov, ;
-
-: .regname							\ ( a color r -- a+2 )
-	" AXCXBXDXSPBPSIDIR8 9101112131415" 1+ >< 2* + 
-	| c@ >< { >| { .c } }  1+ c@ .c ;
-: .regs 10 
-	for	vga I 1- line 3e col      
-		30  I 1- .regname 
-		2f  asm( I 1- reg@ )asm .q _
-	over ;
-
 \\ CR and MSR
 
 : cr0	asm( |, 0f ` 20 ` c1 ` )asm ;
@@ -74,9 +62,24 @@ INTERPRETING ' scratch does
 : msr	20 >< asm( 0f ` 32 ` _, rdx shl, rax rdx or, r0 rax mov, )asm   ;
 : msr!  asm( rcx push, _,  rdx rdx xor, rax rcx mov, rcx pop,  0f ` 30 ` _, )asm ;
 
+: cs	asm( |, 66 ` 8c ` c9 ` )asm ;
+: ds	asm( |, 66 ` 8c ` d9 ` )asm ;
+
+\ MSRs and Control Registers {{{1
 \ MSRs
-c0000080 :: EFER val	0000003a :: FCTL val	0000048b :: CTL2 val	00000480 :: VBAS val
+c0000080 :: EFER val	
+c0000081 :: STAR val
+c0000082 :: LSTAR val
+c0000083 :: CSTAR val
+c0000083 :: FMASK val
+c0000100 :: FS_BASE val
+c0000101 :: GS_BASE val
+c0000102 :: KERNEL_GS_BASE val
+c0000103 :: TSC_AUX val
+
+0000003a :: FCTL val	0000048b :: CTL2 val	00000480 :: VBAS val
 00000486 :: VM0S val	00000487 :: VM0R val	00000488 :: VM4S val	00000489 :: VM4R val	
+
 
 \ CR0 fields
 80000000 :: PG val	00040000 :: AM val	00010000 :: WP val	00000001 :: PE val
@@ -87,6 +90,19 @@ c0000080 :: EFER val	0000003a :: FCTL val	0000048b :: CTL2 val	00000480 :: VBAS 
 00000001 :: SCE val	00000100 :: LME val	00000400 :: LMA val	00000000 :: NXE val
 \ FCTL fields
 00100000 :: LMCE val	00000001 :: VME val	00000002 :: VMSXE val	00000004 :: VMNSXE val
+\ }}}
+
+\ Register display {{{1
+: reg@	 |, rtop >< mov, ;
+
+: .regname							\ ( a color r -- a+2 )
+	" AXCXBXDXSPBPSIDIR8 9101112131415" 1+ >< 2* + 
+	| c@ >< { >| { .c } }  1+ c@ .c ;
+: .regs 10 
+	for	vga I 1- line 3e col      
+		30  I 1- .regname 
+		2f  asm( I 1- reg@ )asm .q _
+	over ;
 
 : .cregs
 	vga 0 line 1c col 3f " VM0S " .t  2f VM0S msr .d _
@@ -119,7 +135,10 @@ c0000080 :: EFER val	0000003a :: FCTL val	0000048b :: CTL2 val	00000480 :: VBAS 
 	vga d line 1c col 3f " VBAS " .t  2f VBAS msr | { .q _ }
 	_
 	;
+\ }}}
+
 \\ VM 
+\ Instructions
 : vmres,	setc, xchg01, setz, |, r0 rdx mov, ;	\ ( -- 0 0 success |  0 1 -- fail invalid | 1 0 -- fail valid )
 
 : vmxon 	asm( 67 ` f3 ` 0f ` c7 ` 31 ` vmres, )asm ;
@@ -131,60 +150,122 @@ c0000080 :: EFER val	0000003a :: FCTL val	0000048b :: CTL2 val	00000480 :: VBAS 
 
 : vmread	asm(  0f ` 78 ` c8 ` vmres,			\ ( vm-field -- value ZF CF )		Reads field from current VMCS
 		|, r0 rax mov, )asm <<< ;
-: vmwrite	<<< asm( rax r0 mov, _,		\ ( value vm-field -- value ZF CF )	Writes field to current VMCS
+: vmwrite	<<< asm( rax r0 mov, _,				\ ( value vm-field -- value ZF CF )	Writes field to current VMCS
 		0f ` 79 ` c1 ` vmres,	
 		)asm -1 <<< ;
 
-: high		1 ;
-: full		;
+\ VMCS fields
+: bits		shl ;
+: bit		1 >< shl ;
+: set?		shl and ;
+: set		or ;
+: reset		not and ;
+
+: high		2* 1 or ;
+: full		2* ;
 
 : control 	;
-: vmexit	[ 1 a shl ] literal or ;
-: guest		[ 2 a shl ] literal or ;
-: host		[ 3 a shl ] literal or ;
+: vmexit	1 #10 bits set ;
+: guest		2 #10 bits set ;
+: host		3 #10 bits set ;
 
 : 16bit		;
-: 32bit		[ 2 d shl ] literal or ;
-: 64bit		[ 1 d shl ] literal or ;
-: natural	[ 3 d shl ] literal or ;
-
-0	full 32bit vmexit 	:: vminst_error val
+: 32bit		2 #13 bits set ;
+: 64bit		1 #13 bits set ;
+: natural	3 #12 bits set ;
 
 
-: ?VmReadWrite							\ ( field value ZF CF name -- ) 
+0	full 32bit vmexit 	:: vminstruction_error val
+
+
+3	full 64bit control	:: vmexit_msr_store_addr val
+7	full 32bit control	:: vmexit_msr_store_count val
+
+4	full 64bit control	:: vmexit_msr_load_addr val
+8	full 32bit control	:: vmexit_msr_load_count val
+
+5	full 64bit control	:: vmentry_msr_load_addr val
+10	full 32bit control	:: vmentry_msr_load_count val
+
+6	full 32bit control	:: primary_exit_ctl val
+
+0	full 32bit control	:: pin_exec_ctrl val
+1	full 32bit control	:: proc_exec_ctrl val
+
+: ?VmReadWrite							\ ( field value ZF CF name -- )  {{{
 	<<< -if -if _ >< _ else
 		white count type bl emit yellow ." faulted, field " blue _ . norm cr
 		8470cafe 600df00d4 .abort then
 	else _ white count type bl emit red ." failed, field " blue _ . norm cr
 		8470cafe badf00d4 .abort
 	then ;
-
-: try ' | compile | compile, >name [compile] literal compile ?VmReadWrite ; immediate
+\ }}}
+: try								|| cr yellow . blue .  
+	' | compile | compile, >name 				| count type 
+	[compile] literal compile ?VmReadWrite ; immediate
 
 : VmRead	try vmread ;
 : VmWrite	try vmwrite _ ;
 
 
-: ?VmxRes							\ ( ZF CF name -- 0=sucesss | 1=fail )
+: ?VmxRes							\ ( ZF CF name -- 0=sucesss | 1=fail ) {{{
 	<<< -if -if _ else
 		white count type bl emit yellow ." faulted, result "
-		vminst_error VmRead blue . norm cr
-		8470cafe 600df00d .abort then
+		vminstruction_error VmRead blue . norm cr
+		8470cafe 600df00d1 .abort then
 	else _ red count type bl emit " failed" cr
-		8470cafe badf00d .abort
+		8470cafe badf00d1 .abort
 	then ;
-
+\ }}}
 : try
 	' | compile, >name [compile] literal compile ?VmxRes ; immediate
 
 \\ Launch
 
-\ VMCS and the first and one and only VM
+\ VMCS
 page vmcs
 vmcs :: 'vmcs var
 
+\ VM
 page vm1
 vm1 :: 'vm1 var
+
+\ Host and guest MSRs {{{1
+:: host_msrs adr
+EFER 	| , msr ,
+STAR 	| , msr ,
+LSTAR 	| , msr ,
+CSTAR  	| , msr ,
+FMASK 	| , msr ,
+FS_BASE | , msr ,
+GS_BASE | , msr ,
+KERNEL_GS_BASE | , msr ,
+TSC_AUX | , msr ,
+here host_msrs - 8/ 2/ :: #host_msrs val
+
+:: guest_msrs adr
+EFER 	, 0 ,
+STAR 	, 0 ,	
+LSTAR 	, 0 ,
+CSTAR 	, 0 ,
+FMASK 	, 0 ,
+FS_BASE	, 0 ,
+GS_BASE	, 0 ,
+KERNEL_GS_BASE , 0 ,
+TSC_AUX	, 0 ,
+here guest_msrs - 8/ 2/ :: #guest_msrs val
+
+: VmWriteMsr
+	host_msrs	vmexit_msr_load_addr  	VmWrite
+	#host_msrs	vmexit_msr_load_count 	VmWrite
+
+	guest_msrs	vmexit_msr_store_addr 	VmWrite
+	#guest_msrs	vmexit_msr_store_count 	VmWrite
+
+	guest_msrs	vmentry_msr_load_addr	VmWrite
+	#guest_msrs	vmentry_msr_load_count	VmWrite
+;
+\ }}}
 
 \ Entering VMX root operation
 : VmxOn
@@ -195,6 +276,7 @@ vm1 :: 'vm1 var
 
 	'vmcs try vmxon
 ;
+
 : VmInit
 	VBAS msr vm1 4!
 
@@ -202,8 +284,23 @@ vm1 :: 'vm1 var
 	'vm1 try vmptrld
 	'vm1 try vmlaunch
 ;
+
+: VmCtrls
+	0 
+	{ VBAS msr #55 bit set? if 048d else 0481 then msr | 20 sar not } and or
+	0 full 32bit control VmWrite \ pin_exec_ctrl
+
+	0 #31 bit reset						\ Table 26-6:	no secondary controls
+	{ VBAS msr #55 bit set? if 048e else 0482 then msr | 20 sar not } and or
+	1 full 32bit control VmWrite \ proc_exec_ctrl
+
+	0  #9 bit set  #21 bit set				\ Table 26-14:	64-bit host, load EFER
+	{ VBAS msr #55 bit set? if 048f else 0483 then msr | 20 sar not } and or
+	6 full 32bit control VmWrite \ primary_exit_ctrl
+;
+
 : VmRun
 	VmxOn 
-	VmInit 
+	VmInit
 ;
 
