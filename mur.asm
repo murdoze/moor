@@ -228,12 +228,15 @@ _trace_brkpt:
 	cmp	rtmp, 'c'
 	jne	8f
 	call	nodebug
+	mov	qword ptr [_brkpt], 0
 	call	notrace
 	8:
 	cmp	rtmp, 'q'
 	je	_abort
 	cmp	rtmp, 'n'
 	jne	9f
+
+	mov	qword ptr [_brkpt], rsi
 
 	9:
 

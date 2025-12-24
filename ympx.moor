@@ -157,7 +157,7 @@ c0000103 :: TSC_AUX val
 \ VMCS fields
 : bits		shl ;
 : bit		1 >< shl ;
-: set?		shl and ;
+: set?		and ;
 : set		or ;
 : reset		not and ;
 
