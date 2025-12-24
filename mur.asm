@@ -1866,6 +1866,10 @@ _number:
 	or	bl, 1
 	jmp	5f
 	2:
+	cmp	al, '_'
+	je	5f
+	cmp	al, '\''
+	je	5f
 	cmp	al, '#'
 	jne	21f
 	test	rtmp, rtmp
@@ -2100,10 +2104,10 @@ __number:
 	ret
 .ifndef BAREMETAL
 	MESSAGE	quiterr1, "\r\n\x1b[31mERROR! \x1b[0m\x1b[33mWord \x1b[1m\x1b[7m "
-	MESSAGE	quiterr2, " \x1b[27m\x1b[22m not found, or invalid hex number\x1b[0m\r\n"
+	MESSAGE	quiterr2, " \x1b[27m\x1b[22m not found, or invalid number\x1b[0m\r\n"
 .else
 	MESSAGE	quiterr1, "\nERROR! Word ["
-	MESSAGE	quiterr2, "] not found, or invalid hex number\n"
+	MESSAGE	quiterr2, "] not found, or invalid number\n"
 .endif
 
 # QUIT
@@ -2310,9 +2314,9 @@ _source:
 
 .ifdef BOOT_SOURCE
 	.incbin "core.moor"
-	#.ifdef	BAREMETAL
+	.ifdef	BAREMETAL
 		.incbin	"ympx.moor"
-	#.endif
+	.endif
 .else
 	.byte	0
 .endif

@@ -112,8 +112,10 @@
 								\\ Basic math continued
 : 2/       1 sar ;						\ ( n -- n/2)
 : 4/       2 sar ;
+: 8/       3 sar ;
 : 2*       1 shl ;
 : 4*       2 shl ;
+: 8*       2 shl ;
 								\\ Cells									_core_core
 : cell     8 ;							\ ( -- 8 )		Size of one cell
 : cells    3 shl ;						\ ( n -- n*8 )		Convert size in cells to size in bytes
@@ -136,6 +138,7 @@
 :: ><      code ><, ret,
 :: >|      code >|, ret,
 :: >|>|    code >|>|, ret,
+: ||       >|>| ;
 :: >>>     code >>>, ret,
 :: <<<     code <<<, ret,
 
