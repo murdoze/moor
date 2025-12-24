@@ -1,5 +1,4 @@
 .intel_syntax	noprefix
-
 	.globl _start0
 
 .text	
@@ -967,6 +966,14 @@ _interrupt_keyboard_handler:
 	# ESC to restart
 	cmp	byte ptr [_key_code], 0x01	#KEYCODE_ESC
 	jne	1f
+
+	mov	qword ptr fs:[_trap_temp], rax
+	mov	rax, [rsp + 0 + 8 * 6]
+	mov	qword ptr fs:[_trap_rip], rax
+	mov	rax, qword ptr fs:[_trap_temp]
+
+	call	_print_sp_ip
+	call	_print_instructions_dump
 
 	popr	
 
