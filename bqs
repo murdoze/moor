@@ -6,7 +6,7 @@ mv mur moorq
 cat core.moor opti.moor type.moor test.moor > boot_source.moor && echo -e "\0" >> boot_source.moor
 ld -r -b binary -o boot_source.o boot_source.moor
 
-as pmur.asm --defsym DEBUG=1 --defsym ORG=0x100000 --defsym ORG=0 --defsym BAREMETAL=1 --defsym BOOT_SOURCE=1 -n -g -O0 --64 -am -amhls=mur.lst -o mur.o || exit 1
+as pmur.asm --defsym TRACE=1 --defsym DEBUG=1 --defsym ORG=0x100000 --defsym ORG=0 --defsym BAREMETAL=1 --defsym BOOT_SOURCE=1 -n -g -O0 --64 -am -amhls=mur.lst -o mur.o || exit 1
 ld mur.o --section-start=.text=0x000000 -N -o mur || exit 1
 mv mur moorqs
 

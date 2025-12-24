@@ -23,9 +23,8 @@ xdotool windowactivate --sync "$qw"
 
 wmctrl -i -b add,above -r $qw
 
-xdotool windowmove $qw 9999 0
+#xdotool windowmove $qw 9999 0
 
-xdotool key "ctrl+alt+plus"
 xdotool key "ctrl+alt+plus"
 xdotool key "ctrl+alt+plus"
 xdotool key "ctrl+alt+plus"

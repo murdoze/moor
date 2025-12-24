@@ -1,12 +1,12 @@
-cat core.moor opti.moor type.moor test.moor > qt.moor && echo -e "\0" >> qt.moor
-cat core.moor opti.moor type.moor font.moor xwin.moor > qw.moor && echo -e "\0" >> qw.moor
+#cat core.moor opti.moor type.moor test.moor > qt.moor && echo -e "\0" >> qt.moor
+#cat core.moor opti.moor type.moor font.moor xwin.moor > qw.moor && echo -e "\0" >> qw.moor
 
 # https://www.burtonini.com/blog/2007/07/13/embedding-binary-blobs-with-gcc/
 # objcopy --redefine-sym old_name=new_name input_file output_file
 
 
-cat core.moor opti.moor type.moor test.moor > boot_source.moor && echo -e "\0" >> boot_source.moor
-ld -r -b binary -o boot_source.o boot_source.moor
+#cat core.moor opti.moor type.moor ympx.moor > boot_source.moor && echo -e "\0" >> boot_source.moor
+#ld -r -b binary -o boot_source.o boot_source.moor
 
 rm mur.o
 as mur.asm --defsym ORG=0 --defsym BOOT_SOURCE=1 -n -g -O0 --64 -am -amhls=mur.lst -o mur.o
@@ -15,16 +15,16 @@ mv mur moors
 
 rm mur.o
 as mur.asm --defsym ORG=0 --defsym DEBUG=1 --defsym BOOT_SOURCE=1 -n -g -O0 --64 -am -amhls=mur.lst -o mur.o
-ld mur.o boot_source.o -N -o mur
+ld mur.o -N -o mur
 mv mur moorsd
 
 rm mur.o
-as mur.asm --defsym ORG=0 --defsym DEBUG=1 -n -g -O0 --64 -am -amhls=mur.lst -o mur.o
+as mur.asm --defsym ORG=0 --defsym DEBUG=1 --defsym BOOT_SOURCE=1 -n -g -O0 --64 -am -amhls=mur.lst -o mur.o
 ld mur.o -N -o mur
-mv mur moord
+mv mur moorsd
 
 rm mur.o
-as mur.asm --defsym ORG=0 --defsym DEBUG=1 --defsym TRACE=1 -n -g -O0 --64 -am -amhls=mur.lst -o mur.o
+as mur.asm --defsym ORG=0 --defsym TRACE=1 --defsym BOOT_SOURCE=1 -n -g -O0 --64 -am -amhls=mur.lst -o mur.o
 ld mur.o -N -o mur
-mv mur moordt
+mv mur moorst
 
