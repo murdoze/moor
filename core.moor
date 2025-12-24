@@ -414,6 +414,7 @@
 								\\ Control structures: helpers
 : lodsq,   48 ` ad ` ;						\			lodsq	rax, qword ptr [rsi]
 : skip,    48 ` 8d ` 34 ` c6 ` ;				\			lea	rsi, [rsi + rax*8]
+: hlt,     f4 ` ;
 
 :: skip    code rtmp pop, rwork pop, 				\ ( -- )		Skip next address interpreter word TODO: make single ADD
 		rwork inc, rwork inc, rwork inc, rwork inc,
