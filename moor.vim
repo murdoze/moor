@@ -147,6 +147,8 @@ syn keyword forthDefine   BUFFER: COMPILE, DEFER IS MARKER TO VALUE
 syn match   forthDefine   "\<\[COMPILE]\>"
   " Forth-79, Forth-83
 syn keyword forthDefine COMPILE
+  " Eror handling, debug etc
+syn keyword forthDefine DEBUG -try try
 
 " non-standard new words
 syn match   forthClassDef       "\<:CLASS\s*[^ \t]\+\>"
@@ -488,6 +490,7 @@ hi def link forthBlocks Statement
 hi def link forthSpaceError Error
 
 "}}}
+"
 
 let b:current_syntax = "forth"
 
