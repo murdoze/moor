@@ -4,6 +4,7 @@ set autoindent
 set hlsearch
 set incsearch
 set isk+=-,!
+set foldmethod=marker
 
 nnoremap <silent> <PageUp> 25<Up>
 nnoremap <silent> <PageDown> 25<Down>
