@@ -1844,6 +1844,7 @@ _find_:
 word	number
 _number:
 	push	rsi
+	push	rdi
 	push	rbx
 	xor	rbx, rbx	# Positive number, hex
 	mov	rsi, rtop
@@ -1888,6 +1889,18 @@ _number:
 	3:
 	sub	al, 0x30
 	4:
+	test	bl, 2
+	jz	416f
+	410:
+	mov	rdi, rtmp
+	add	rdi, rdi	# *2
+	add	rdi, rdi	# *4
+	add	rdi, rtmp 	# *5
+	add	rdi, rdi	# *10
+	add	rdi, rwork
+	mov	rtmp, rdi
+	jmp	5f
+	416:
 	shl	rtmp, 4
 	add	rtmp, rwork
 	5:
@@ -1911,6 +1924,7 @@ _number:
 
 	9:
 	pop	rbx
+	pop	rdi
 	pop	rsi
 	ret
 
