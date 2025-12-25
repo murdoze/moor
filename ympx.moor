@@ -205,9 +205,9 @@ c0000103 :: TSC_AUX val
 	then ;
 \ }}}
 : try								
-compile || compile cr compile yellow compile . compile blue compile .  
+	compile || compile cr compile yellow compile . compile blue compile .  \ TODO if debug-vm
 	' | compile | compile, >name [compile] literal 
-compile | compile count compile type 
+	compile | compile count compile type 					\ TODO
 	compile ?VmReadWrite ; immediate
 
 : VmRead	try vmread ;
@@ -322,8 +322,8 @@ here guest_msrs - 8/ 2/ :: #guest_msrs val
 	cr3	1 full natural host VmWrite
 	cr4	2 full natural host VmWrite
 
-	h-sp	#10 full natural host VmWrite
-	h-exit	#11 full natural host VmWrite
+	h-sp cell -	#10 full natural host VmWrite
+	['] h-exit	#11 full natural host VmWrite
 
 	cs	1 full 16bit host VmWrite
 	ds	0 full 16bit host VmWrite
@@ -339,9 +339,7 @@ here guest_msrs - 8/ 2/ :: #guest_msrs val
 	gdt@ >< _	6 full natural host VmWrite
 	idt@ >< 	7 full natural host VmWrite
 
-
-
-
+	EFER msr	1 full 64bit host VmWrite
 ;
 
 : VmRun
