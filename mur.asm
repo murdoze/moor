@@ -43,11 +43,11 @@ __emitchar:	.quad	0
 __setcolor:	.quad	0
 
 _start1:	
-	cmp	byte ptr [runmode], 0
+	cmp	byte ptr [runmode], RUNMODE_LINUXUSR
 	je	1f
 
 	lea	rhere, [here0]
-	jmp	_restart
+	jmp	_cold
 
 	1:
 	mov	rax, 12
@@ -59,8 +59,7 @@ _start1:
 	call	_setup_sigsegv_handler
 	mov	rhere, [_mem_reserved]
 
-_restart:
-
+_cold:
 	lea	rwork, last
 	mov	[forth_], rwork
 	lea	rwork, [forth_]
@@ -69,7 +68,7 @@ _restart:
 _abort:
 	mov	byte ptr [_trace], 0
 	mov	byte ptr [_debug], 0
-_cold:
+_restart:
 	xor	rtop, rtop
 	xor	rstate, rstate
 	mov	[_state], rstate
@@ -82,6 +81,12 @@ _cold:
 	mov	qword ptr [_tib], rwork
 	xor	rwork, rwork
 
+	cmp	byte ptr [runmode], RUNMODE_LINUXUSR
+	je	2f
+
+	sti
+
+	2:
 	push	rpc
 
 # Address Interpreter and Compiler
@@ -450,8 +455,8 @@ _sigsegv_handler_needalloc:
 	mov	rax, qword ptr [rdx + 40 + 8 * 16]	# RIP
 	push	rax
 
-	lea	rax, [_restart]
-	mov	qword ptr [rdx + 40 + 8 * 16], rax # continue execution from _restart
+	lea	rax, [_cold]
+	mov	qword ptr [rdx + 40 + 8 * 16], rax # continue execution from _cold
 
 .if	0
 	call	_dup
@@ -1725,6 +1730,18 @@ word	_exec_, "(exec)",, forth
 	.quad	lit, _exec
 	.quad	exit
 
+# (RESTART) ( -- _restart ) 
+# Returns address of the _restart primitive entry point
+word	_restart_, "(restart)",, forth
+	.quad	lit, _restart
+	.quad	exit
+
+# (ABORT) ( -- _abort ) 
+# Returns address of the _abort primitive entry point
+word	_abort_, "(abort)",, forth
+	.quad	lit, _abort
+	.quad	exit
+
 # (DOES>) ( xt -- )
 # Defines execution and compilation semantics for the latest word
 word	_does__, "(does>)",, forth
@@ -2317,9 +2334,9 @@ _source:
 
 .ifdef BOOT_SOURCE
 	.incbin "core.moor"
-	.ifdef	BAREMETAL
+	#.ifdef	BAREMETAL
 		.incbin	"ympx.moor"
-	.endif
+	#.endif
 .else
 	.byte	0
 .endif
