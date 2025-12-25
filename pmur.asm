@@ -553,8 +553,9 @@ _idt_64:
 	.endr
 _idt_64$:
 
-	.equ	DS_64, 0x18
 	.equ	CS_64, 0x10
+	.equ	DS_64, 0x18
+	.equ	TSS_64, 0x20
 
 	.align	16
 _gdtr_64:
@@ -566,8 +567,8 @@ _gdt_64:
 	.quad	0x00cf9a000000ffff	# 08 __KERNEL32_CS
 	.quad	0x00af9a000000ffff	# 10 __KERNEL_CS
 	.quad	0x00cf92000000ffff	# 18 __KERNEL_DS
-	.quad	0x0080890000000000	# 20 TS descriptor
-	.quad   0x0000000000000000	# 28 TS continued
+	.quad	0x00008900100000ff	# 20 TS descriptor
+	.quad   0x0000000000000000	#
 _gdt_64$:	
 
  	# Write an IDT entry to idt_32
@@ -816,7 +817,7 @@ _trap_gp_handler:
 _trap_pf_handler:
 	mov	byte ptr fs:[_trap_number], TRAP_PF
 
-	mov	dword ptr [SCREEN + 4], 0x4f504f46
+	mov	dword ptr [SCREEN + 4], 0x4f464f50
 	
 	jmp	_trap_error_handler
 
@@ -1048,7 +1049,7 @@ _keycode_to_ascii_noshift:
 	.byte	0,	27,	'1',	'2',	'3',	'4',	'5',	'6',	'7',	'8',	'9',	'0',	'-',	'=',	127,	9
 	.byte	'q',	'w',	'e',	'r',	't',	'y',	'u',	'i',	'o',	'p', 	'[',	']',	10,	0,	'a', 	's'
 	.byte	'd',	'f',	'g',	'h',	'j',	'k',	'l',	';',	'\'',	'`',	0,	'\\',	'z',	'x',	'c',	'v'
-	.byte	'b',	'n',	'm',	',',	'.',	'/',	0,	0,	0,	' ',	1
+	.byte	'b',	'n',	'm',	',',	'.',	'/',	0,	2,	0,	' ',	1
 _keycode_to_ascii_shift:
 	.byte	0,	27,	'!',	'@',	'#',	'$',	'%',	'^',	'&',	'*',	'(',	')',	'_',	'+',	127,	9
 	.byte	'Q',	'W',	'E',	'R',	'T',	'Y',	'U',	'I',	'O',	'P', 	'{',	'}',	28,	0,	'A', 	'S'
@@ -1137,7 +1138,7 @@ _keychar:
 
 	# Display output 
 
-	START_ROW	= 8
+	START_ROW	= 1
 	START_COL	= 0
 	END_ROW		= 25
 	END_COL		= 80
@@ -1456,6 +1457,9 @@ _load_gdt64:
 	mov	gs, ax
 	mov	ss, ax
 
+	mov	eax, TSS_64
+	ltr	ax
+
 	boot32_status	'W', 0xcf
 
 	push	CS_64
@@ -1505,8 +1509,8 @@ _PF:
 
 	call	_keychar
 
-	cmp     al, 28  # Shift + Enter
-	je     9f
+	cmp     al, 28 # 28 - SHift+Enter
+	jmp     9f
 	cmp	al, 127
 	je	1b
 
