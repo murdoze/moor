@@ -926,7 +926,7 @@ _interrupt_26_handler:
 _interrupt_27_handler:
 	pushr
 
-	boot32_status	's', 0x5f
+	#boot32_status	's', 0x5f
 
 	call	_pic_send_eoi
 
@@ -1234,6 +1234,8 @@ _emitting_color:
 	.byte	0
 
 _emitchar:
+	out	0xe9, al
+
 	cmp	byte ptr [_emitting_color], 0
 	jz	1f
 	mov	byte ptr fs:[_pcolor], al
@@ -1594,6 +1596,8 @@ _vmx_on:
 	1:
 	boot32_status	'-', 0x4f
 	jmp	.
+
+	mov	word ptr [0xb8000], cx
 
 
 pvmxon:	.quad	_vmcs
