@@ -240,11 +240,17 @@ vm1 :: 'vm1 var
 page h-stack
 h-stack 1000 + :: h-sp val
 
-:: h-exit	code hlt, -3 sjmp,
+: status,	66 ` c7 ` 05 ` f7 ` 7f ` 0b ` 00 ;
+
+:: h-exit	code status, 48 ` 4f ` hlt, -3 sjmp,
+:: g-entry	code status, 47 ` 30 ` hlt, -3 sjmp,
 
 
 \ Host and guest MSRs {{{1
+
+\\ \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ AAA BBB to run under Linux 
 :: host_msrs adr
+: AAAAAAAAA
 EFER 	| , msr ,
 STAR 	| , msr ,
 LSTAR 	| , msr ,
@@ -254,9 +260,11 @@ FS_BASE | , msr ,
 GS_BASE | , msr ,
 KERNEL_GS_BASE | , msr ,
 TSC_AUX | , msr ,
+;
 here host_msrs - 8/ 2/ :: #host_msrs val
 
 :: guest_msrs adr
+: BBBBBBBBBBB
 EFER 	, 0 ,
 STAR 	, 0 ,	
 LSTAR 	, 0 ,
@@ -266,6 +274,7 @@ FS_BASE	, 0 ,
 GS_BASE	, 0 ,
 KERNEL_GS_BASE , 0 ,
 TSC_AUX	, 0 ,
+;
 here guest_msrs - 8/ 2/ :: #guest_msrs val
 
 : VmWriteMsr
@@ -295,9 +304,10 @@ here guest_msrs - 8/ 2/ :: #guest_msrs val
 
 	'vm1 try vmclear
 	'vm1 try vmptrld
-	\ 'vm1 try vmlaunch
 ;
-
+: VmLaunch
+	'vm1 try vmlaunch
+;
 : VmCtrls
 	0 
 	{ VBAS msr #55 bit set? if 048d else 0481 then msr | 20 sar not } and or
@@ -342,7 +352,40 @@ here guest_msrs - 8/ 2/ :: #guest_msrs val
 	EFER msr	1 full 64bit host VmWrite
 ;
 
+: VmGuestState
+	cr0	0 full natural guest VmWrite
+	cr3	1 full natural guest VmWrite
+	cr4	2 full natural guest VmWrite
+
+	cs	1 full 16bit guest VmWrite
+
+	EFER msr	1 full 64bit guest VmWrite
+	00000002	#16 full natural guest VmWrite 	\ flags
+	-1		0 full 64bit guest VmWrite	\ vmcs link pointer
+
+	['] g-entry	#15 full natural guest VmWrite
+
+	-1	0 full 32bit guest VmWrite		\ segment limits
+	-1	1 full 32bit guest VmWrite
+	-1	2 full 32bit guest VmWrite
+	-1	3 full 32bit guest VmWrite
+	-1	4 full 32bit guest VmWrite
+	-1	5 full 32bit guest VmWrite
+							\ Table 26-2. Format of Access Rights
+	0 1 bit set 3 bit set 4 bit set 7 bit set #13 bit set #15 bit set
+		#11 full 32bit guest VmWrite
+
+	0 1 bit set 4 bit set 7 bit set set #14 bit set #15 bit set
+		| #10 full 32bit guest VmWrite
+		| #12 full 32bit guest VmWrite
+		| #13 full 32bit guest VmWrite
+		| #14 full 32bit guest VmWrite
+		| #15 full 32bit guest VmWrite _
+;
+
 : VmRun
 	VmxOn VmInit VmCtrls
+	VmHostState VmGuestState
+	VmLaunch
 ;
 
