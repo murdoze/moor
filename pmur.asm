@@ -1021,6 +1021,7 @@ _waitkey:
 	mov	qword ptr [_keyboard_task], rax
 	mov	byte ptr [_keyboard_wait], 1
 	1:
+	sti
 	hlt
 	jmp	1b
 _key_wait:

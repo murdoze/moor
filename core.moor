@@ -417,7 +417,7 @@
 								\\ Interrupts
 : hlt,     f4 ` ;
 : cli,     fa ` ;
-: sti      fb ` ;
+: sti,     fb ` ;
 
 :: skip    code rtmp pop, rwork pop, 				\ ( -- )		Skip next address interpreter word TODO: make single ADD
 		rwork inc, rwork inc, rwork inc, rwork inc,

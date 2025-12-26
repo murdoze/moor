@@ -41,6 +41,7 @@ runmode:	.byte	0
 __key:		.quad	0
 __emitchar:	.quad	0
 __setcolor:	.quad	0
+__warm:		.quad	_warm0	# Threaded code address to start execution from after warm restart
 
 _start1:	
 	cmp	byte ptr [runmode], RUNMODE_LINUXUSR
@@ -72,7 +73,7 @@ _restart:
 	xor	rtop, rtop
 	xor	rstate, rstate
 	mov	[_state], rstate
-	lea	rpc, qword ptr [_warm]
+	mov	rpc, qword ptr [__warm]
 	lea	rnext, qword ptr [_next]
 	/* TODO: In "hardened" version map stacks to separate pages, with gaps between them */
 	lea	rstack0, [rsp - 0x1000]
@@ -2262,10 +2263,16 @@ _summoner:
 word	cold
 	jmp	_abort
 
-# WARM
+# WARM ( xt -- )
+# Sets restart point to XT
+	mov	[__warm], rtop
+	call	_drop
+	ret
+
+# WARM0
 # Warm start
-word	warm,,, forth
-_warm:
+word	warm0,,, forth
+_warm0:
 	.quad	lit, .L_hello_msg
 	.quad	count
 	.quad	type

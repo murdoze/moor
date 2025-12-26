@@ -239,9 +239,12 @@ vmcs :: 'vmcs var
 page vm1
 vm1 :: 'vm1 var
 
-\ Host VM Exit
+\ Host VM Entry and Exit
 page h-stack
-h-stack 1000 + :: h-sp val
+h-stack 1000 + cell - :: h-sp val
+
+page g-stack
+g-stack 1000 + cell - :: g-sp val
 
 : status,	66 ` c7 ` 04 ` 25 ` 00 ` 80 ` 0b ` 00 ` ;
 :: .status	code 66 ` 89 ` 0c ` 25 ` 00 ` 80 ` 0b ` 00 ` _, ret,
@@ -249,9 +252,9 @@ h-stack 1000 + :: h-sp val
 : restart,	rtmp (restart) mov.i, rtmp push, ret, ;
 :: restart	code restart, 
 
-:: h-exit	code status, 48 ` 4f ` restart, hlt, -3 sjmp,
+:: h-exit	code status, 48 ` 4f ` sti, restart, hlt, -3 sjmp,
 \ :: g-entry	code -2 sjmp,
-:: g-entry	code status, 47 ` 3f ` -2 sjmp,
+:: g-entry	code status, 47 ` 3f ` sti, restart, -2 sjmp,
 
 \ Host and guest MSRs {{{1
 
@@ -339,7 +342,7 @@ here guest_msrs - 8/ 2/ :: #guest_msrs val
 	cr3	1 full natural host VmWrite
 	cr4	2 full natural host VmWrite
 
-	h-sp cell -	#10 full natural host VmWrite
+	h-sp 		#10 full natural host VmWrite
 	['] h-exit	#11 full natural host VmWrite
 
 	cs	1 full 16bit host VmWrite
@@ -371,6 +374,7 @@ here guest_msrs - 8/ 2/ :: #guest_msrs val
 	00000002	#16 full natural guest VmWrite 	\ flags
 	-1		0 full 64bit guest VmWrite	\ vmcs link pointer
 
+	g-sp		#14 full natural guest VmWrite
 	['] g-entry	#15 full natural guest VmWrite
 
 	-1	0 full 32bit guest VmWrite		\ segment limits
