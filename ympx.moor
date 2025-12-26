@@ -319,6 +319,9 @@ here guest_msrs - 8/ 2/ :: #guest_msrs val
 	'vm1 try vmlaunch
 ;
 : VmResume
+	g-sp		#14 full natural guest VmWrite
+	['] g-entry	#15 full natural guest VmWrite
+
 	'vm1 try vmresume
 ;
 : VmCtrls
@@ -429,8 +432,9 @@ here guest_msrs - 8/ 2/ :: #guest_msrs val
 	VmLaunch
 ;
 
-: h-0 notrace ."  HOST >" VmExit? white ."  VM exit reason " yellow . cr  quit ;
+0 :: 'g-0 var
+: h-0 notrace ."  HOST >" 'g-0 @ warm VmExit? white ."  VM exit reason " yellow . cr  quit ;
 : g-0 purple ." GUEST >" ['] h-0 warm quit ;
-' g-0 warm
+' g-0 | 'g-0 ! warm
 
 VmRun 
