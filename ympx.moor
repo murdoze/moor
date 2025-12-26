@@ -318,12 +318,6 @@ here guest_msrs - 8/ 2/ :: #guest_msrs val
 : VmLaunch
 	'vm1 try vmlaunch
 ;
-: VmResume
-	g-sp		#14 full natural guest VmWrite
-	['] g-entry	#15 full natural guest VmWrite
-
-	'vm1 try vmresume
-;
 : VmCtrls
 	0 
 	VBAS msr #55 bit set? if 048d else 0481 then msr 2mask
@@ -433,8 +427,19 @@ here guest_msrs - 8/ 2/ :: #guest_msrs val
 ;
 
 0 :: 'g-0 var
-: h-0 notrace ."  HOST >" 'g-0 @ warm VmExit? white ."  VM exit reason " yellow . cr  quit ;
-: g-0 purple ." GUEST >" ['] h-0 warm quit ;
+: h-0 notrace	cr yellow ."  HOST >" VmExit? white ."  VM exit reason " yellow . cr  quit ;
+: g-0 purple	cr purple ." GUEST >" ['] h-0 warm quit ;
 ' g-0 | 'g-0 ! warm
+
+: VmResume
+	g-sp		#14 full natural guest VmWrite
+	['] g-entry	#15 full natural guest VmWrite
+
+	['] g-0 warm
+
+	'vm1 try vmresume
+
+	['] h-0 warm	\ on failure restore host console?
+;
 
 VmRun 
