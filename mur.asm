@@ -1427,6 +1427,8 @@ _word:
 	je	4f
 	cmp	rtop, 127
 	jne	5f
+	or	rtmp, rtmp
+	jz	6f
 	dec	rdi
 	dec	rtmp
 	jmp	6f
@@ -2265,6 +2267,7 @@ word	cold
 
 # WARM ( xt -- )
 # Sets restart point to XT
+word	warm
 	mov	[__warm], rtop
 	call	_drop
 	ret
