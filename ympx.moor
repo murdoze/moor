@@ -207,9 +207,9 @@ c0000103 :: TSC_AUX val
 	then ;
 \ }}}
 : try								
-	compile || compile cr compile yellow compile . compile blue compile .  \ TODO if debug-vm
+	\\ compile || compile cr compile yellow compile . compile blue compile .  \ TODO if debug-vm
 	' | compile | compile, >name [compile] literal 
-	compile | compile count compile type 					\ TODO
+	\\ compile | compile count compile type 					\ TODO
 	compile ?VmReadWrite ; immediate
 
 : VmRead	try vmread ;
@@ -249,8 +249,8 @@ h-stack 1000 + :: h-sp val
 :: restart	code restart, 
 
 :: h-exit	code status, 48 ` 4f ` restart, hlt, -3 sjmp,
-:: g-entry	code -2 sjmp,
-\ :: g-entry	code status, 47 ` 30 ` -2 sjmp,
+\ :: g-entry	code -2 sjmp,
+:: g-entry	code status, 47 ` 3f ` -2 sjmp,
 
 \ Host and guest MSRs {{{1
 
@@ -316,21 +316,19 @@ here guest_msrs - 8/ 2/ :: #guest_msrs val
 ;
 : VmCtrls
 	0 
-	{ VBAS msr #55 bit set? if 048d else 0481 then msr | 20 sar not } and or
+	{ VBAS msr #55 bit set? if 048d else 0481 then msr | 20 sar >< 0fffffff and >< } and or
 	0 full 32bit control VmWrite \ pin_exec_ctrl
 
 	0 #31 bit reset						\ Table 26-6:	no secondary controls
-	{ VBAS msr #55 bit set? if 048e else 0482 then msr | 20 sar not } and or
+	{ VBAS msr #55 bit set? if 048e else 0482 then msr | 20 sar >< 0fffffff and >< } and or
 	1 full 32bit control VmWrite \ proc_exec_ctrl
 
-	0  #9 bit set  #21 bit set blue | .				\ Table 26-14:	64-bit host, load EFER
-	{ VBAS msr #55 bit set? if 048f else 0483 then msr | 20 sar not } and or
-	#19 bit reset #9 bit set 
-	| .
-	6 full 32bit control yellow | . VmWrite \ primary_exit_ctrl
+	0  #9 bit set  #21 bit set				\ Table 26-14:	64-bit host, load EFER
+	{ VBAS msr #55 bit set? if 048f else 0483 then msr | 20 sar >< 0fffffff and >< } and or
+	6 full 32bit control VmWrite \ primary_exit_ctrl
 
 	0  #9 bit set  						\ Table 26-17:	64-bit guest
-	{ VBAS msr #55 bit set? if 0490 else 0484 then msr | 20 sar not } and or
+	{ VBAS msr #55 bit set? if 0490 else 0484 then msr | 20 sar >< 0fffffff and >< } and or
 	9 full 32bit control VmWrite \ primary_entry_ctrl
 ;
 
@@ -386,13 +384,11 @@ here guest_msrs - 8/ 2/ :: #guest_msrs val
 	0	6 full 16bit guest VmWrite
 	0	7 full 16bit guest VmWrite
 
-	key
-
 	EFER msr _ 0d00	3 full 64bit guest VmWrite
 	00000002	#16 full natural guest VmWrite 	\ flags
 	-1		0 full 64bit guest VmWrite	\ vmcs link pointer
 
-	['] g-entry	#15 full natural guest VmWrite
+	['] g-entry 'scratch _	#15 full natural guest VmWrite
 
 	-1	0 full 32bit guest VmWrite		\ segment limits
 	-1	1 full 32bit guest VmWrite
@@ -426,7 +422,24 @@ here guest_msrs - 8/ 2/ :: #guest_msrs val
 : VmRun
 	VmxOn VmInit VmCtrls
 	VmHostState 
-	cr ." Guest" VmGuestState key _
-	\ VmLaunch
+	VmGuestState
+	VmLaunch
+;
+
+: VmcsDump
+	0 begin | 
+	{
+		| vmread
+		-if 
+			-if
+				>< cr . .
+			else
+				_ _
+			then 
+		else 
+			_ _ _
+		then
+	} 
+	1+ | 7000 < while  repeat _ 
 ;
 
