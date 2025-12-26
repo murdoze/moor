@@ -166,6 +166,7 @@ c0000103 :: TSC_AUX val
 : set?		and ;
 : set		or ;
 : reset		not and ;
+: 2mask		| 20 sar >< 0fffffff and >< >>> and or ;	\ ( v 64-bit-msr-mask-32-set-32-reset -- masked-v )
 
 : high		2* 1 or ;
 : full		2* ;
@@ -207,7 +208,7 @@ c0000103 :: TSC_AUX val
 	then ;
 \ }}}
 : try								
-	\\ compile || compile cr compile yellow compile . compile blue compile .  \ TODO if debug-vm
+	\\ compile || compile cr compile yellow compile . compile blue compile . 	\ TODO if debug-vm
 	' | compile | compile, >name [compile] literal 
 	\\ compile | compile count compile type 					\ TODO
 	compile ?VmReadWrite ; immediate
@@ -316,19 +317,19 @@ here guest_msrs - 8/ 2/ :: #guest_msrs val
 ;
 : VmCtrls
 	0 
-	{ VBAS msr #55 bit set? if 048d else 0481 then msr | 20 sar >< 0fffffff and >< } and or
+	VBAS msr #55 bit set? if 048d else 0481 then msr 2mask
 	0 full 32bit control VmWrite \ pin_exec_ctrl
 
 	0 #31 bit reset						\ Table 26-6:	no secondary controls
-	{ VBAS msr #55 bit set? if 048e else 0482 then msr | 20 sar >< 0fffffff and >< } and or
+	VBAS msr #55 bit set? if 048e else 0482 then msr 2mask
 	1 full 32bit control VmWrite \ proc_exec_ctrl
 
 	0  #9 bit set  #21 bit set				\ Table 26-14:	64-bit host, load EFER
-	{ VBAS msr #55 bit set? if 048f else 0483 then msr | 20 sar >< 0fffffff and >< } and or
+	VBAS msr #55 bit set? if 048f else 0483 then msr 2mask
 	6 full 32bit control VmWrite \ primary_exit_ctrl
 
 	0  #9 bit set  						\ Table 26-17:	64-bit guest
-	{ VBAS msr #55 bit set? if 0490 else 0484 then msr | 20 sar >< 0fffffff and >< } and or
+	VBAS msr #55 bit set? if 0490 else 0484 then msr 2mask
 	9 full 32bit control VmWrite \ primary_entry_ctrl
 ;
 
@@ -388,7 +389,7 @@ here guest_msrs - 8/ 2/ :: #guest_msrs val
 	00000002	#16 full natural guest VmWrite 	\ flags
 	-1		0 full 64bit guest VmWrite	\ vmcs link pointer
 
-	['] g-entry 'scratch _	#15 full natural guest VmWrite
+	['] g-entry	#15 full natural guest VmWrite
 
 	-1	0 full 32bit guest VmWrite		\ segment limits
 	-1	1 full 32bit guest VmWrite
