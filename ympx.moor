@@ -254,7 +254,7 @@ g-stack 1000 + cell - :: g-sp val
 
 :: h-exit	code status, 48 ` 4f ` sti, restart, hlt, -3 sjmp,
 \ :: g-entry	code -2 sjmp,
-:: g-entry	code status, 47 ` 3f ` sti, restart, -2 sjmp,
+:: g-entry	code status, 47 ` 3f ` restart, -2 sjmp,
 
 \ Host and guest MSRs {{{1
 
@@ -316,6 +316,7 @@ here guest_msrs - 8/ 2/ :: #guest_msrs val
 	'vm1 try vmptrld
 ;
 : VmLaunch
+	\ trace
 	'vm1 try vmlaunch
 ;
 : VmCtrls
@@ -369,8 +370,20 @@ here guest_msrs - 8/ 2/ :: #guest_msrs val
 	cr4 _ 00002668 2 full natural guest VmWrite
 
 	cs	1 full 16bit guest VmWrite
+	ds	0 full 16bit guest VmWrite
+	ds	2 full 16bit guest VmWrite
+	ds	3 full 16bit guest VmWrite
+	ds	4 full 16bit guest VmWrite
+	ds	5 full 16bit guest VmWrite
+	tr@ _	7 full 16bit guest VmWrite
 
 	EFER msr _ 0d00	3 full 64bit guest VmWrite
+
+	1000	 	#10 full natural guest VmWrite
+
+	gdt@ >< _	#11 full natural guest VmWrite
+	idt@ >< _ 	#12 full natural guest VmWrite
+	
 	00000002	#16 full natural guest VmWrite 	\ flags
 	-1		0 full 64bit guest VmWrite	\ vmcs link pointer
 
@@ -383,6 +396,11 @@ here guest_msrs - 8/ 2/ :: #guest_msrs val
 	-1	3 full 32bit guest VmWrite
 	-1	4 full 32bit guest VmWrite
 	-1	5 full 32bit guest VmWrite
+
+	67	7 full 32bit guest VmWrite
+	ffff	8 full 32bit guest VmWrite
+	3ff	9 full 32bit guest VmWrite
+
 							\ Table B-10. Table 26-2. Format of Access Rights
 	0 0 bit set 1 bit set 3 bit set 4 bit set 7 bit set #13 bit set #15 bit set
 		#11 full 32bit guest VmWrite
@@ -408,4 +426,11 @@ here guest_msrs - 8/ 2/ :: #guest_msrs val
 	VmGuestState
 	VmLaunch
 ;
+
+: h-0 notrace ."  HOST >" VmExit? white ."  VM exit reason " yellow . cr  quit ;
+: g-0 ." GUEST >" ['] h-0 warm quit ;
+' g-0 warm
+
+VmRun
+
 
