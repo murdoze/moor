@@ -151,8 +151,8 @@ c0000103 :: TSC_AUX val
 : vmclear 	asm( 66 ` 0f ` c7 ` 31 ` vmres, )asm ;
 : vmptrld 	asm( 0f ` c7 ` 31 ` vmres, )asm ;
 : vmxoff	asm( 0f ` 01 ` c4 ` )asm ;
-: vmlaunch	asm( cli, 0f ` 01 ` c2 ` vmres, )asm ;
-: vmresume	asm( 0f ` 01 ` c3 ` )asm ;
+: vmlaunch	asm( 0f ` 01 ` c2 ` vmres, )asm ;
+: vmresume	asm( 0f ` 01 ` c3 ` vmres, )asm ;
 
 : vmread	asm(  0f ` 78 ` c8 ` vmres,			\ ( vm-field -- value ZF CF )		Reads field from current VMCS
 		|, r0 rax mov, )asm <<< ;
@@ -316,8 +316,10 @@ here guest_msrs - 8/ 2/ :: #guest_msrs val
 	'vm1 try vmptrld
 ;
 : VmLaunch
-	\ trace
 	'vm1 try vmlaunch
+;
+: VmResume
+	'vm1 try vmresume
 ;
 : VmCtrls
 	0 
@@ -428,9 +430,7 @@ here guest_msrs - 8/ 2/ :: #guest_msrs val
 ;
 
 : h-0 notrace ."  HOST >" VmExit? white ."  VM exit reason " yellow . cr  quit ;
-: g-0 ." GUEST >" ['] h-0 warm quit ;
+: g-0 purple ." GUEST >" ['] h-0 warm quit ;
 ' g-0 warm
 
-VmRun
-
-
+VmRun 
