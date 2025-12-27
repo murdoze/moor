@@ -160,14 +160,23 @@ c0000103 :: TSC_AUX val
 		0f ` 79 ` c1 ` vmres,	
 		)asm -1 <<< ;
 
-\ VMCS fields
-: bits		shl ;
-: bit		1 >< shl ;
+\ Bit field access
+: bits		shl ;						\ ( value #start-bit -- value_shl_#start-bit )
+: bit		1 >< shl ;					\ ( #bit -- value-with-#bit-set )
 : set?		and ;
 : set		or ;
 : reset		not and ;
+
+: >mask								\ ( #bits #start-bit -- mask )
+		>< 1 >< shl 1- >< shl ;
+;
+: bits?		\ ( value #bits #start-bit )
+;
+
+
 : 2mask		| 20 sar >< 0fffffff and >< >>> and or ;	\ ( v 64-bit-msr-mask-32-set-32-reset -- masked-v )
 
+\ VMCS fields
 : high		2* 1 or ;
 : full		2* ;
 
@@ -252,7 +261,6 @@ vm1 :: 'vm1 var
 :: restart	code restart, 
 
 :: h-exit	code status, 48 ` 4f ` sti, restart, hlt, -3 sjmp,
-\ :: g-entry	code -2 sjmp,
 :: g-entry	code status, 47 ` 3f ` restart, -2 sjmp,
 
 \ Host and guest MSRs {{{1
@@ -441,4 +449,20 @@ here guest_msrs - 8/ 2/ :: #guest_msrs val
 	['] h-0 warm	\ on failure restore host console?
 ;
 
-VmRun 
+\\ Page tables, EPT etc
+				\ Since page table granularity is 2MB, structures start like this
+10_0000 :: BASE_ADDR val	\ 1 MB
+20_0000 :: PGTABLE_ADDR val	\ 2 MB
+40_0000 :: STACK_ADDR val		\ 4 MB
+
+60_0000 :: PTE_ADDR val
+
+\ EPTP
+0	6 0 bits set	\ Write-back memory type
+	3 3 bits set	\ page-walk length - 1 (4-level)
+	6 bit set	\ Accessed and dirty flags
+	PTE_ADDR #12 bits set
+	:: eptp val
+
+
+\ VmRun 
