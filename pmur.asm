@@ -392,7 +392,7 @@ _boot_32:
 
 	X86_CR4_PAE = (1 << 5)
 	
-	BOOT_PGTABLE_SIZE = (32 * 4096)
+	BOOT_PGTABLE_ADDR = 0x200000
 
 	MSR_EFER = 0xc0000080
 	EFER_LME = 8
@@ -406,14 +406,16 @@ _setup_paging:
 
 	xor	edx, edx
 
+	mov	ebp, BOOT_PGTABLE_ADDR
+
 	# Build Level 4
-	lea	edi, [_pgtable + 0]
+	lea	edi, [ebp + 0]
 	lea	eax, [edi + 0x1007]
 	mov	[edi + 0], eax
 	add	[edi + 4], edx		# ??? edx = 0
 
 	# Build Level 3
-	lea	edi, [_pgtable + 0x1000]
+	lea	edi, [ebp + 0x1000]
 	lea	eax, [edi + 0x1007]
 	mov	ecx, 4
 	1:
@@ -425,7 +427,7 @@ _setup_paging:
 	jnz	1b
 
 	# Build Level 2
-	lea	edi, [_pgtable + 0x2000]
+	lea	edi, [ebp + 0x2000]
 	mov	eax, 0x00000183
 	mov	ecx, 2048
 1:	mov	[edi + 0], eax
@@ -436,8 +438,7 @@ _setup_paging:
 	jnz	1b
 
 
-	lea	eax, [_pgtable]
-	mov	cr3, eax
+	mov	cr3, ebp
 
 	mov	ecx, MSR_EFER
 	rdmsr
@@ -1609,11 +1610,6 @@ _vmcs:
 	
 
 __dummy0:
-
-	.align	4096
-_pgtable:
-	.fill	BOOT_PGTABLE_SIZE, 1, 0
-
 	.align	4096
 	.equ	BOOT_STACK_SIZE, 0x4000
 _boot_stack:
