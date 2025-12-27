@@ -309,10 +309,8 @@ here guest_msrs - 8/ 2/ :: #guest_msrs val
 \\ Page tables, EPT etc
 								\ Since page table granularity is 2MB, structures start like this
 10_0000 :: BASE_ADDR val					\ 1 MB
-20_0000 :: PGTABLE_ADDR val					\ 2 MB
-40_0000 :: STACK_ADDR val					\ 4 MB
 
-60_0000 :: ept val
+here 1000 aligned 4000 + :: ept val
 
 1000	:: #page val						\ Page size
 
@@ -354,10 +352,10 @@ pde #page 4 * +	:: pte val
 
 	0 RWXuX 6 3 bits set
 	pte
-	800 for
+	800 10 * for
 		||{{ ! }} { 1000 + } cell+
 	over
-	_ _
+	here! _
 
 
 

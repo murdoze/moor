@@ -377,7 +377,7 @@ _cursor:
 _boot_32:
 
 	mov	edi, SCREEN
-	mov	al, 0x41
+	mov	al, 0x48
 	call	_p32emit
 
 	mov	eax, 0x020a
@@ -392,7 +392,7 @@ _boot_32:
 
 	X86_CR4_PAE = (1 << 5)
 	
-	BOOT_PGTABLE_ADDR = 0x200000
+	BOOT_PGTABLE_ADDR = 0x2200000
 
 	MSR_EFER = 0xc0000080
 	EFER_LME = 8
@@ -406,7 +406,10 @@ _setup_paging:
 
 	xor	edx, edx
 
-	mov	ebp, BOOT_PGTABLE_ADDR
+	boot32_status	'B', 0x5f
+
+	#mov	ebp, BOOT_PGTABLE_ADDR
+	lea	ebp, [_pgtable]
 
 	# Build Level 4
 	lea	edi, [ebp + 0]
@@ -438,7 +441,9 @@ _setup_paging:
 	jnz	1b
 
 
+	boot32_status	'C', 0x5f
 	mov	cr3, ebp
+	boot32_status	'd', 0x5f
 
 	mov	ecx, MSR_EFER
 	rdmsr
@@ -1346,6 +1351,7 @@ _pic_send_eoi:
 
 _boot_64_entry:
 
+	boot32_status	'E', 0x5f
 
 _setup_idt64:
 	# Setup generic handlers
@@ -1488,7 +1494,7 @@ _boot_64:
 
 	boot32_status	'Y', 0x4f
 
-	BOOT_STACK_ADDR = 0x400000 + 0x4000
+	BOOT_STACK_ADDR = 0x300000 + 0x4000
 _warm_64:
 	lea	esp, [BOOT_STACK_ADDR - 8]
 
@@ -1615,6 +1621,11 @@ _vmcs:
 	
 
 __dummy0:
+       .align  4096
+_pgtable:
+	BOOT_PGTABLE_SIZE = (32 * 4096)
+	.fill   BOOT_PGTABLE_SIZE, 1, 0
+
 	.align	4096
 	.equ	BOOT_STACK_SIZE, 0x4000
 _boot_stack:
