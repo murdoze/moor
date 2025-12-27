@@ -852,6 +852,10 @@ _trap_handler64:
 
 	popr
 
+	sti
+
+	jmp	.
+
 	iretq
 
 _trap_error_handler:
@@ -1104,7 +1108,7 @@ _key:
 
 	push	rax
 	mov	ah, 0x5f
-	mov	word ptr [SCREEN + 2], ax
+	mov	word ptr [SCREEN + 20], ax
 	pop	rax
 
 	ret
