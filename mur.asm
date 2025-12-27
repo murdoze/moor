@@ -2279,6 +2279,12 @@ word	warm
 	call	_drop
 	ret
 
+# (WARM) ( -- 'warm )	
+word	_warm_, "(warm)"
+	call	_dup
+	lea	rtop, [warm]
+	ret
+
 # WARM0
 # Warm start
 word	warm0,,, forth
