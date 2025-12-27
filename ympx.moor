@@ -179,7 +179,10 @@ c0000103 :: TSC_AUX val
 
 
 0	full 32bit vmexit 	:: vminstruction_error val	\ Table B-9.; Table 32-1. VM-Instruction Error Numbers
-1	full 32bit vmexit	:: vmexit_reason val
+1	full 32bit vmexit	:: vmexit_reason val		\ Table B-13.
+0	full natural vmexit	:: vmexit_qualification val
+4	full natural vmexit	:: vmexit_rip val
+5	full natural vmexit	:: vmexit_gva val
 
 3	full 64bit control	:: vmexit_msr_store_addr val
 7	full 32bit control	:: vmexit_msr_store_count val
@@ -212,7 +215,12 @@ c0000103 :: TSC_AUX val
 : VmRead	try vmread ;
 : VmWrite	try vmwrite _ ;
 
-: VmExit? vmexit_reason VmRead ;
+: VmExit? 							\ ( -- reason qualification )
+	vmexit_reason VmRead 
+	vmexit_qualification VmRead
+	\ vmexit_rip VmRead
+	vmexit_gva VmRead
+;
 
 : ?VmxRes							\ ( ZF CF name -- 0=sucesss | 1=fail ) {{{
 	<<< -if -if _ else
@@ -249,7 +257,7 @@ vm1 :: 'vm1 var
 :: restart	code restart, 
 : warm,		rtmp (warm) mov.i, rtmp call, ;
 
-: h-0 notrace	cr yellow ."  HOST >" VmExit? white ."  VM exit reason " yellow . cr  quit ;
+: h-0 notrace	cr yellow ."  HOST >" VmExit? white ."  VM exit gva/qualification/reason " blue . white . yellow . cr  quit ;
 : g-0 purple	cr purple ." GUEST >" ['] h-0 warm quit ;
 
 :: h-exit	code nop, nop, status, 48 ` 4f `  rtop ' h-0 mov.i,  warm, restart,
@@ -312,36 +320,48 @@ here guest_msrs - 8/ 2/ :: #guest_msrs val
 	0	
 	6 0 bits set						\ Write-back memory type
 	3 3 bits set						\ Page-walk length - 1 (4-level)
-	6 bit set						\ Accessed and dirty flags
-	ept #12 bits set
+	\ 6 bit set						\ Accessed and dirty flags
+	ept set
 	:: eptp val
 
 ept 		:: pml4e val
 ept #page +	:: pdpte val
 pdpte #page +	:: pde val
+pde #page 4 * +	:: pte val
 
-: RWXuX	0 bit set 1 bit set 2 bit set #10 bit set ;		\ RXW access, execution in use mode allowed
+: RWXuX	0 bit set 1 bit set 2 bit set ;				\ RXW access, \\ #10 bit execution in use mode allowed
 
 
 : EptInit
 	ept 10_0000 0 fill					\ Zero 1MB
 
-	pdpte #12 bits RWXuX
+	pdpte RWXuX
 	pml4e !
 								
-	pde #12 bits RWXuX 					\\ PDPTE
+	pde RWXuX 					\\ PDPTE
 	pdpte
 	4 for
-		||{{ ! }} { #page #12 bits + } cell+
+		||{{ ! }} { #page + } cell+
 	over
 	_ _
 
-	0 RWXuX	7 bit set					\\ PDE
+	pte RWXuX	\ 7 bit set					\\ PDE
 	pde
-	200 4 * for						\ 2048 * 2MB pages = 4 GB, PDE=PTE
-		||{{ ! }} { 20_000 #21 bits + } cell+
+	200 4 * for						\ 2048 * 4KB pages = 8 MB
+		||{{ ! }} { 1000 + } cell+
 	over
 	_ _
+
+	0 RWXuX 6 3 bits set
+	pte
+	800 for
+		||{{ ! }} { 1000 + } cell+
+	over
+	_ _
+
+
+
+	
 ;
 
 \\ Entering VMX root operation
@@ -438,7 +458,7 @@ pdpte #page +	:: pde val
 	-1		0 full 64bit guest VmWrite	\ vmcs link pointer
 
 	g-sp		#14 full natural guest VmWrite
-	['] g-entry	#15 full natural guest VmWrite
+	['] g-entry 	#15 full natural guest VmWrite
 
 	-1	0 full 32bit guest VmWrite		\ segment limits
 	-1	1 full 32bit guest VmWrite
