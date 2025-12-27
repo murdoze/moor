@@ -1,4 +1,4 @@
-								\\ VGA display
+			{					\\ VGA display
 
 \ VGA test buffer
 1000 aligned
@@ -67,9 +67,9 @@ INTERPRETING ' scratch does
 
 :: dt adr 0 2, 0 ,
 : dt@ dt 2@ dt 2 + @ ;
-: gdt@	dt asm( 0f ` 01 ` 01 ` )asm dt@ ;		\ ( -- seg base ) Returns GDTR
-: idt@	dt asm( 0f ` 01 ` 09 ` )asm dt@ ;		\ ( -- seg base ) Returns IDTR
-: tr@   dt asm( 67 ` 0f ` 00 ` 09 ` )asm dt@ ;		\ ( -- seg base ) Returns TR
+: gdt@	dt asm( 0f ` 01 ` 01 ` )asm _ dt@ ;		\ ( -- seg base ) Returns GDTR
+: idt@	dt asm( 0f ` 01 ` 09 ` )asm _ dt@ ;		\ ( -- seg base ) Returns IDTR
+: tr@   dt asm( 67 ` 0f ` 00 ` 09 ` )asm _ dt@ ;	\ ( -- seg base ) Returns TR
 
 \ MSRs and Control Registers {{{1
 \ MSRs
@@ -159,19 +159,6 @@ c0000103 :: TSC_AUX val
 : vmwrite	<<< asm( rax r0 mov, _,				\ ( value vm-field -- value ZF CF )	Writes field to current VMCS
 		0f ` 79 ` c1 ` vmres,	
 		)asm -1 <<< ;
-
-\ Bit field access
-: bits		shl ;						\ ( value #start-bit -- value_shl_#start-bit )
-: bit		1 >< shl ;					\ ( #bit -- value-with-#bit-set )
-: set?		and ;
-: set		or ;
-: reset		not and ;
-
-: >mask								\ ( #bits #start-bit -- mask )
-		>< 1 >< shl 1- >< shl ;
-;
-: bits?		\ ( value #bits #start-bit )
-;
 
 
 : 2mask		| 20 sar >< 0fffffff and >< >>> and or ;	\ ( v 64-bit-msr-mask-32-set-32-reset -- masked-v )
@@ -314,6 +301,8 @@ here guest_msrs - 8/ 2/ :: #guest_msrs val
 	VBAS msr vmcs 4!
 
 	'vmcs try vmxon
+
+	2f48 .status	\ Host after VmxOn
 ;
 
 : VmInit
@@ -321,9 +310,6 @@ here guest_msrs - 8/ 2/ :: #guest_msrs val
 
 	'vm1 try vmclear
 	'vm1 try vmptrld
-;
-: VmLaunch
-	'vm1 try vmlaunch
 ;
 : VmCtrls
 	0 
@@ -426,18 +412,14 @@ here guest_msrs - 8/ 2/ :: #guest_msrs val
 		#16 full 32bit guest VmWrite
 ;
 : VmExit? vmexit_reason VmRead ;
-: VmRun
-	VmxOn VmInit VmCtrls
-	VmHostState 
-	VmGuestState
-	\ VmLaunch
-;
-
-0 :: 'g-0 var
 : h-0 notrace	cr yellow ."  HOST >" VmExit? white ."  VM exit reason " yellow . cr  quit ;
 : g-0 purple	cr purple ." GUEST >" ['] h-0 warm quit ;
-' g-0 | 'g-0 ! warm
 
+: VmLaunch
+	['] g-0 warm
+
+	'vm1 try vmlaunch
+;
 : VmResume
 	g-sp		#14 full natural guest VmWrite
 	['] g-entry	#15 full natural guest VmWrite
@@ -446,23 +428,61 @@ here guest_msrs - 8/ 2/ :: #guest_msrs val
 
 	'vm1 try vmresume
 
-	['] h-0 warm	\ on failure restore host console?
+	['] h-0 warm						\ On failure restore host console?
+;
+: VmRun
+	VmxOn VmInit VmCtrls
+	VmHostState 
+	VmGuestState
+
+	\ VmLaunch
 ;
 
-\\ Page tables, EPT etc
-				\ Since page table granularity is 2MB, structures start like this
-10_0000 :: BASE_ADDR val	\ 1 MB
-20_0000 :: PGTABLE_ADDR val	\ 2 MB
-40_0000 :: STACK_ADDR val		\ 4 MB
+\ VmRun 
 
-60_0000 :: PTE_ADDR val
+\\ Page tables, EPT etc
+								\ Since page table granularity is 2MB, structures start like this
+10_0000 :: BASE_ADDR val					\ 1 MB
+20_0000 :: PGTABLE_ADDR val					\ 2 MB
+40_0000 :: STACK_ADDR val					\ 4 MB
+
+60_0000 :: ept val
+
+1000	:: #page val						\ Page size
 
 \ EPTP
-0	6 0 bits set	\ Write-back memory type
-	3 3 bits set	\ page-walk length - 1 (4-level)
-	6 bit set	\ Accessed and dirty flags
-	PTE_ADDR #12 bits set
+	0	
+	6 0 bits set						\ Write-back memory type
+	3 3 bits set						\ Page-walk length - 1 (4-level)
+	6 bit set						\ Accessed and dirty flags
+	ept #12 bits set
 	:: eptp val
 
+ept 		:: pml4e val
+ept #page +	:: pdpte val
+pdpte #page +	:: pde val
 
-\ VmRun 
+: RWXuX	0 bit set 1 bit set 2 bit set #10 bit set ;		\ RXW access, execution in use mode allowed
+
+
+: EptInit
+	ept 10_0000 0 fill					\ Zero 1MB
+
+	pdpte #12 bits RWXuX
+	pml4e !
+								
+	pde #12 bits RWXuX 					\\ PDPTE
+	pdpte
+	4 for
+		||{{ ! }} { #page #12 bits + } cell+
+	over
+	_ _
+
+	0 RWXuX							\\ PDE
+	pde
+	200 4 * for						\ 2048 * 2MB pages = 4 GB, PDE=PTE
+		||{{ ! }} { 20_000 #12 bits + } cell+
+	over
+	_ _
+;
+
