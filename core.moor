@@ -327,6 +327,7 @@
 
 :: inc,    00 ff instro						\ ( rd -- )		inc	rd
 :: dec,    08 ff instro						\ ( rd -- )		dec	rd
+:: call,   10 ff instro						\ ( rd -- )		call	rd
 :: jmp,    e0 ff instro						\ ( rd -- )		jmp	rd
 :: neg,    d8 f7 instro						\ ( rd -- )		neg	rd
 :: not,    d0 f7 instro						\ ( rd -- )		not	rd
