@@ -239,12 +239,11 @@ vmcs :: 'vmcs var
 page vm1
 vm1 :: 'vm1 var
 
-\ Host VM Entry and Exit
-page h-stack
-h-stack 1000 + cell - :: h-sp val
+\ Host and guest stacks
+: sp	asm( |, r0 rsp mov, )asm ;
 
-page g-stack
-g-stack 1000 + cell - :: g-sp val
+: h-sp	sp ffff_ffff_ffff_f000 and 1000 + 9 - ;
+: g-sp	h-sp 10_0000 + ;
 
 : status,	66 ` c7 ` 04 ` 25 ` 00 ` 80 ` 0b ` 00 ` ;
 :: .status	code 66 ` 89 ` 0c ` 25 ` 00 ` 80 ` 0b ` 00 ` _, ret,
@@ -423,7 +422,7 @@ here guest_msrs - 8/ 2/ :: #guest_msrs val
 	VmxOn VmInit VmCtrls
 	VmHostState 
 	VmGuestState
-	VmLaunch
+	\ VmLaunch
 ;
 
 0 :: 'g-0 var

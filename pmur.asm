@@ -1484,8 +1484,9 @@ _boot_64:
 
 	boot32_status	'Y', 0x4f
 
+	BOOT_STACK_ADDR = 0x400000 + 0x4000
 _warm_64:
-	lea	esp, [_boot_stack$ - 8]
+	lea	esp, [BOOT_STACK_ADDR - 8]
 
 	RUNMODE_LINUXUSR	= 0
 	RUNMODE_BAREMETAL 	= 1
