@@ -239,7 +239,6 @@ _trace_brkpt:
 	cmp	rtmp, 'c'
 	jne	8f
 	call	nodebug
-	mov	qword ptr [_brkpt], 0
 	call	notrace
 	8:
 	cmp	rtmp, 'q'
@@ -677,6 +676,7 @@ word	brkpt
 # NODEBUG
 word	nodebug
 	mov	byte ptr [_debug], 0
+	mov	qword ptr [_brkpt], 0
 	ret
 
 # EXECUTE ( xt -- )
