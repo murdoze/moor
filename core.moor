@@ -514,7 +514,16 @@ DECOMPILING ' branch behavior DECOMPILING ' (-leave) does
 	   1+ ;
 : #aligned >2^ | negate >< 1- >>> + and ;			\ ( a # -- a' )		Align A to #'s nearest power of 2 bytes
 : aligned  #aligned ;						\			This looks better, why we need #? TODO
+								\\ Bit field access
+: bits     shl ;						\ ( value #start-bit -- value_shl_#start-bit )
+: bit      1 >< shl ;						\ ( #bit -- value-with-#bit-set )
+: set?     and ;
+: set      or ;
+: reset    not and ;
 
+: bitmask  >< 1 >< shl 1- >< shl ;				\ ( #bits #start-bit -- mask )
+: bits?    |{ bitmask and } sar ;				\ ( value #bits #start-bit )
+								\\ Characters and strings
 : char     bl word count _ c@ ;
 : [char]   char [compile] literal ; immediate
 
