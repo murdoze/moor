@@ -66,14 +66,18 @@ _cold:
 	lea	rwork, [forth_]
 	mov	[_current], rwork
 	mov	[_context], rwork
+
+_restart:
+	mov	rpc, qword ptr [__warm]
+	jmp	_abort2
 _abort:
+	lea	rpc, [_warm0]
+_abort2:	
 	mov	byte ptr [_trace], 0
 	mov	byte ptr [_debug], 0
-_restart:
 	xor	rtop, rtop
 	xor	rstate, rstate
 	mov	[_state], rstate
-	mov	rpc, qword ptr [__warm]
 	lea	rnext, qword ptr [_next]
 	/* TODO: In "hardened" version map stacks to separate pages, with gaps between them */
 	lea	rstack0, [rsp - 0x1000]
@@ -154,6 +158,7 @@ _do_trace:
 	jmp	99f
 
 	3:
+	push	rwork
 	call	_dup
 	mov	rtop, rstack
 	push	rtmp
@@ -248,6 +253,7 @@ _trace_brkpt:
 
 	98:
 	pop	rtmp
+	pop	rwork
 	99:
 	jmp	_notrace
 	.p2align	3, 0x90
@@ -2159,6 +2165,7 @@ _qcsp:
 .ifdef	DEBUG
 	call	_bye
 .endif
+_qcsp_abort:
 	jmp	_abort
 
 	9:
@@ -2344,9 +2351,9 @@ _source:
 
 .ifdef BOOT_SOURCE
 	.incbin "core.moor"
-	#.ifdef	BAREMETAL
+	.ifdef	BAREMETAL
 		.incbin	"ympx.moor"
-	#.endif
+	.endif
 .else
 	.byte	0
 .endif
