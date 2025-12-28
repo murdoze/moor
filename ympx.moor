@@ -1,4 +1,4 @@
-			{					\\ VGA display
+								\\ VGA display
 
 \ VGA test buffer
 1000 aligned
@@ -251,6 +251,7 @@ vm1 :: 'vm1 var
 : g-sp	h-sp 10_0000 + ;
 
 : status,	66 ` c7 ` 04 ` 25 ` 00 ` 80 ` 0b ` 00 ` ;
+: status2,	66 ` c7 ` 04 ` 25 ` 00 ` 00 ` 00 ` 01 ` ;
 :: .status	code 66 ` 89 ` 0c ` 25 ` 00 ` 80 ` 0b ` 00 ` _, ret,
 
 : restart,	rtmp (restart) mov.i, rtmp push, ret, ;
@@ -260,8 +261,11 @@ vm1 :: 'vm1 var
 : h-0 notrace	cr yellow ."  HOST >" VmExit? white ."  VM exit gva/qualification/reason " blue . white . yellow . cr  quit ;
 : g-0 purple	cr purple ." GUEST >" ['] h-0 warm quit ;
 
-:: h-exit	code nop, nop, status, 48 ` 4f `  rtop ' h-0 mov.i,  warm, restart,
-:: g-entry	code nop, nop, status, 47 ` 3f `  rtop ' g-0 mov.i,  warm, restart,
+:: h-exit	code nop, nop, 
+			\ status, 48 ` 4f `  
+			rtop ' h-0 mov.i,  warm, restart,
+\ :: g-entry	code nop, nop, status, 47 ` 3f `  rtop ' g-0 mov.i,  warm, restart,
+:: g-entry	code cli, nop, nop, status2, 47 ` 3f ` 0f ` 01 ` c4 ` -2 sjmp,
 
 \ Host and guest MSRs {{{1
 
@@ -397,9 +401,16 @@ pde #page 4 * +	:: pte val
 	VBAS msr #55 bit set? if 048f else 0483 then msr 2mask
 	6 full 32bit control VmWrite \ primary_exit_ctrl
 
-	0  #9 bit set  							\ Table 26-17:	64-bit guest
+	0  #9 bit set 	 						\ Table 26-17:	64-bit guest
 	VBAS msr #55 bit set? if 0490 else 0484 then msr 2mask
 	9 full 32bit control VmWrite \ primary_entry_ctrl
+
+	0 0 bit set 1 bit set 2 bit set 3 bit set 4 bit set 5 bit set
+	6 bit set 7 bit set 8 bit set #10 bit set #11 bit set  #13 bit set #14 bit set 
+	#16 bit set #17 bit set  #19 bit set #20 bit set \ #18 bit set
+	#20 bit set #28 bit set #29 bit set
+	
+	2 full 32bit control VmWrite \ Exception bitmap
 
 
 	eptp #13 full 64bit control VmWrite \ EPTP
@@ -433,9 +444,9 @@ pde #page 4 * +	:: pte val
 ;
 
 : VmGuestState
-	cr0 _ 80010033	0 full natural guest VmWrite
+	cr0 	0 full natural guest VmWrite
 	cr3	1 full natural guest VmWrite
-	cr4 _ 00002668 2 full natural guest VmWrite
+	cr4	2 full natural guest VmWrite
 
 	cs	1 full 16bit guest VmWrite
 	ds	0 full 16bit guest VmWrite
@@ -512,9 +523,27 @@ pde #page 4 * +	:: pte val
 	\ VmLaunch
 ;
 
+
+: VmcsDump
+       0 begin |
+       {
+               | vmread
+               -if
+                       -if
+                               >< cr . .
+                       else
+                               _ _
+                       then
+              else
+                       _ _ _
+               then
+       }
+       1+ | 7000 < while  repeat _
+;
+
 VmRun 
 
 
-
+: ll VmLaunch ;
 
 
