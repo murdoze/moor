@@ -150,7 +150,7 @@ _boot_16:
 	cmp	cl, 63
 	jne	.L_next_sector
 	inc	dh
-	cmp	dh, 0xf			# Number of heads
+	cmp	dh, 0xff		# Number of heads
 	jna	.L_forward
 	xor	dh, dh
 	inc	ch
@@ -166,7 +166,7 @@ _boot_16:
 	jmp	.L_next_sector
 
 .L_disk_error:
-	#boot_status	0x39, 0x4f
+	boot_status	0x39, 0x4f
 	
 	jmp	.
 
@@ -267,13 +267,20 @@ _pm_32:
 	#
 
 	.org	ORG + 0x1be
+	/*
 	.byte	0x80			# bootable	TODO sizes are wrong
-	.byte	0x01, 0x01, 0x00	# start CHS address
+	.byte	0x00, 0x02, 0x00	# start CHS address
 	.byte	0x0b			# partition type
-	.byte	0xfe, 0xff, 0xe5	# end CHS address
-	.byte	0x00, 0x00, 0x00, 0x00	# LBA
-	.byte	0xc1, 0xaf, 0xf4, 0x00	# number of sectors
-
+	.byte	0x01, 0x12, 0x4f	# end CHS address
+	.byte	0x01, 0x00, 0x00, 0x00	# LBA
+	.byte	0x3f, 0x0b, 0x00, 0x00	# number of sectors
+	*/
+	.byte   0x80                    # bootable      TODO sizes are wrong
+	.byte   0x01, 0x01, 0x00        # start CHS address
+	.byte   0x0b                    # partition type
+	.byte   0xfe, 0xff, 0xff        # end CHS address
+	.byte   0x3f, 0x00, 0x00, 0x00  # LBA
+	.byte   0xc1, 0x9f, 0xfb, 0x00  # number of sectors
 
 	# Boot signature
 	.org	ORG + 0x1fe
@@ -392,7 +399,7 @@ _boot_32:
 
 	X86_CR4_PAE = (1 << 5)
 	
-	BOOT_PGTABLE_ADDR = 0x2200000
+	BOOT_PGTABLE_ADDR = 0x80000
 
 	MSR_EFER = 0xc0000080
 	EFER_LME = 8
@@ -408,8 +415,8 @@ _setup_paging:
 
 	boot32_status	'B', 0x5f
 
-	#mov	ebp, BOOT_PGTABLE_ADDR
-	lea	ebp, [_pgtable]
+	mov	ebp, BOOT_PGTABLE_ADDR
+	#lea	ebp, [_pgtable]
 
 	# Build Level 4
 	lea	edi, [ebp + 0]
@@ -467,6 +474,22 @@ _setup_pae:
 
 .code64
 
+_itrace:
+	pushf
+	pop	rax
+	or	rax, 0x100
+	push	rax
+	popf
+	ret
+
+_noitrace:
+	pushf
+	pop	rax
+	and	rax, ~0x100
+	push	rax
+	popf
+	ret
+
 _p64emit:
 	mov	[rdi], al
 	inc	rdi
@@ -507,6 +530,41 @@ _p64print1:
 	call	_p64emit
 	ret
 
+
+_emitq:
+	push	rax
+	shr	rax, 32
+	call	_emitd
+	pop	rax
+_emitd:
+	push	rax
+	shr	rax, 16
+	call	_emitw
+	pop	rax
+_emitw:
+	xchg	al, ah
+	call	_emitb
+	xchg	al, ah
+_emitb:
+	push	cx
+	mov	cl, al
+	shr	al, 4
+	call	_emit1
+	mov	al, cl
+	pop	cx
+_emit1:
+	and	al, 0x0f
+	cmp	al, 0xa
+	jb	1f
+	add	al, 0x61 - 0x39 - 1
+	1:
+	add	al, 0x30
+	push	rax
+	push	rcx
+	call	_emitchar
+	pop	rcx
+	pop	rax
+	ret
 
 
 	#
@@ -635,7 +693,7 @@ _print_interrupt_masks:
 
 	# Print stack and instruction pointers
 _print_sp_ip:
-	mov	rdi, SCREEN + 3 * (2 * 80)
+	mov	rdi, SCREEN + 3 * (2 * 80) + 80
 	mov	byte ptr fs:[_pcolor], 0x20
 	mov	al, 'S'
 	call	_p64emit
@@ -649,7 +707,7 @@ _print_sp_ip:
 	mov	rax, rsp
 	call	_p64printq
 
-	mov	rdi, SCREEN + 4 * (2 * 80)
+	mov	rdi, SCREEN + 4 * (2 * 80) + 80
 	mov	byte ptr fs:[_pcolor], 0x20
 	mov	al, 'I'
 	call	_p64emit
@@ -664,13 +722,52 @@ _print_sp_ip:
 	call	_p64printq
 	ret
 
+# RSI = start
+_print_dump:
+	push	rcx
+	push	rdx
+	push	rdi
+
+	mov	rdi, SCREEN + 7 * (2 * 80)
+	mov	byte ptr fs:[_pcolor], 0x0f
+	mov	rcx, 0x100
+
+	0:
+	mov	rdx, 16
+	mov	rax, rsi
+	call	_p64printq
+	mov	al, ':'
+	call	_p64emit
+	mov	al, ' '
+	call	_p64emit
+	1:
+	lodsb
+	call	_p64printb
+	mov	al, ' '
+	call	_p64emit
+	dec	rdx
+	jnz	2f
+	add	rdi, 2 *80 - 2 * (16 * 3) - 2 * 18
+	dec	rcx
+	jnz	0b
+	jmp	9f
+	2:
+	dec	rcx
+	jnz	1b
+	9:
+	pop	rdi
+	pop	rdx
+	pop	rcx
+
+	ret
+
 _print_instructions_dump:
 	push	rcx
 	push	rdx
 	push	rsi
 	push	rdi
 
-	mov	rdi, SCREEN + 7 * (2 * 80)
+	mov	rdi, SCREEN + 7 * (2 * 80) + 80
 	mov	byte ptr fs:[_pcolor], 0x0f
 	mov	rcx, 0x30
 
@@ -698,7 +795,7 @@ _print_instructions_dump:
 	ret
 
 _print_error_code:
-	mov	rdi, SCREEN + 2 * (2 * 80)
+	mov	rdi, SCREEN + 2 * (2 * 80) + 80
 	mov	byte ptr fs:[_pcolor], 0x40
 	mov	al, 'E'
 	call	_p64emit
@@ -714,7 +811,7 @@ _print_error_code:
 	ret
 
 _print_cr2:
-	mov	rdi, SCREEN + 5 * (2 * 80)
+	mov	rdi, SCREEN + 5 * (2 * 80) + 80
 	mov	byte ptr fs:[_pcolor], 0x20
 	mov	al, 'C'
 	call	_p64emit
@@ -731,7 +828,7 @@ _print_cr2:
 
 _print_trap_counter:
 	mov	rdi, SCREEN + 2 * (80 - 16)
-	mov	byte ptr fs:[_pcolor], 0x5f
+	#mov	byte ptr fs:[_pcolor], 0x5f
 	inc	qword ptr [_trap_counter]
 	mov	rax, qword ptr [_trap_counter]
 	call	_p64printq
@@ -943,6 +1040,36 @@ _interrupt_27_handler:
 	popr
 	iretq
 
+
+_interrupt_trace_handler:
+	pushr
+
+	mov	qword ptr fs:[_trap_temp], rax
+	mov	rax, [rsp + 0 + 8 * 6]
+	mov	qword ptr fs:[_trap_rip], rax
+	mov	rax, qword ptr fs:[_trap_temp]
+
+	call	_print_sp_ip
+	add	qword ptr [_trap_counter], 0x10000000
+	call	_print_trap_counter
+
+	mov	al, 10
+	call	_emitchar
+	mov	al, 0x10
+	call	_emitchar
+	mov	rax, [_trap_rip]
+	mov	rsi, [rax]
+	call	_emitq
+	mov	al, ' '
+	call	_emitchar
+	mov	rax, rsi
+	call	_emitq
+
+	sti
+	call	_waitkey
+
+	popr
+	iretq
 
 _interrupt_timer_handler:
 	pushr
@@ -1245,7 +1372,7 @@ _emitting_color:
 	.byte	0
 
 _emitchar:
-	out	0xe9, al
+	#out	0xe9, al
 
 	cmp	byte ptr [_emitting_color], 0
 	jz	1f
@@ -1419,6 +1546,10 @@ _setup_idt64_traps:
 _setup_idt64_interrupts:
 	mov	ebx, GATE_INTERRUPT
 
+	lea	eax, _interrupt_trace_handler
+	mov	esi, 0x01
+	call	_set_idt64_entry
+
 	lea	eax, _interrupt_timer_handler
 	mov	esi, INTERRUPT_TIMER
 	call	_set_idt64_entry
@@ -1490,7 +1621,7 @@ _boot_64:
 
 	call	_pic_remap
 
-	call	_clrscr
+	#call	_clrscr
 
 	boot32_status	'Y', 0x4f
 
@@ -1504,11 +1635,6 @@ _warm_64:
 
 	sti
 
-	/*
-_PF:
-	mov	rax, 0xffffffff00000000
-	mov	[rax], rax
-	*/
 
 	boot32_status	'Y', 0xaf
 
@@ -1518,6 +1644,8 @@ _PF:
 
 	mov	al, 0x10
 	call	_emitchar
+
+
 
 	1:
 	mov	byte ptr fs:[_pcolor], 0x05
@@ -1535,7 +1663,23 @@ _PF:
 
 
 	9:
+	mov	ax, 0x0110	
+	call	_cursor
 
+	#call	_itrace
+
+	lea	rsi, [__start]
+	10:
+	call	_print_dump
+	call	_keychar
+	cmp	al, 'q'
+	je	20f
+	cmp	al, 'b'
+	jne	10b
+	sub	rsi, 0x200
+	jmp	10b
+
+	20:
 
 __start_entry:
 	and	byte ptr [_key_modifiers], ~PRESSED_SHIFT
@@ -1621,16 +1765,17 @@ _vmcs:
 	
 
 __dummy0:
+/*
        .align  4096
 _pgtable:
 	BOOT_PGTABLE_SIZE = (32 * 4096)
 	.fill   BOOT_PGTABLE_SIZE, 1, 0
-
 	.align	4096
 	.equ	BOOT_STACK_SIZE, 0x4000
 _boot_stack:
 	.fill	BOOT_STACK_SIZE, 1, 0
 _boot_stack$:
+*/
 
 
 __start:
