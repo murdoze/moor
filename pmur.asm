@@ -112,6 +112,45 @@ _boot_16:
 
 	.equ	RELOC32_SEG, 0x1000
 	.equ	SECTORS, 512
+
+	mov	ah, 0x41
+	mov	bx, 0x55AA
+	int	0x13
+	jc	.L_edd_error
+	cmp	bx, 0xAA55
+	jne	.L_edd_error
+
+	call	.L_load_lba
+
+_dap:
+	.byte	0x10
+	.byte	0
+	.word	128
+	.word	0
+	.word	0x1000
+	.quad	1
+
+.L_load_lba:
+	pop	si
+	mov	ah, 0x42
+	mov	bx, 0
+	int	0x13
+	jc	.L_disk_error
+	jmp	.L_loaded
+
+	call	.L_load_lba2
+
+_dap2:
+	.byte	0x10
+	.byte	0
+	.word	128
+	.word	0
+	.word	0x2000
+	.quad	1
+
+.L_load_lba2:
+
+	/*
 					# DL contains disk number (normally 0x80)
 	mov	bx, 0x1000		# load sector to memory address 0x10000
 	mov	es, bx                 
@@ -164,15 +203,20 @@ _boot_16:
 	inc	di
 
 	jmp	.L_next_sector
-
+	*/
 .L_disk_error:
 	boot_status	0x39, 0x4f
 	
 	jmp	.
 
+.L_edd_error:
+	boot_status	0x38, 0x4f
+	
+	jmp	.
+
 
 .L_loaded:
-	#boot_status	0x42, 0xaf
+	boot_status	0x42, 0x5f
 
 #
 # Entering protected mode
