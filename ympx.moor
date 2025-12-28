@@ -262,10 +262,10 @@ vm1 :: 'vm1 var
 : g-0 purple	cr purple ." GUEST >" ['] h-0 warm quit ;
 
 :: h-exit	code nop, nop, 
-			\ status, 48 ` 4f `  
+			status, 48 ` 4f `  
 			rtop ' h-0 mov.i,  warm, restart,
-\ :: g-entry	code nop, nop, status, 47 ` 3f `  rtop ' g-0 mov.i,  warm, restart,
-:: g-entry	code cli, nop, nop, status2, 47 ` 3f ` 0f ` 01 ` c4 ` -2 sjmp,
+:: g-entry	code nop, nop, status, 47 ` 3f `  rtop ' g-0 mov.i,  warm, restart,
+\ :: g-entry	code cli, nop, nop, status, 47 ` 3f ` status2, 47 ` 3f ` 0f ` 01 ` c4 ` -2 sjmp,
 
 \ Host and guest MSRs {{{1
 
@@ -354,7 +354,7 @@ pde #page 4 * +	:: pte val
 	over
 	_ _
 
-	0 RWXuX 6 3 bits set
+	0 RWXuX 0 3 bits set \ 6
 	pte
 	800 10 * for
 		||{{ ! }} { 1000 + } cell+
