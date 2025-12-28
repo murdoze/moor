@@ -1,2 +1,4 @@
-sudo dd if=./moorqs.hda of=/dev/sda bs=1 count=262144 conv=fsync
+sudo lsblk /dev/sda || exit 1
+sudo dd if=./moorqs.hda of=/dev/sda conv=fsync
 sync
+eject /dev/sda
