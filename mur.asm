@@ -2321,7 +2321,7 @@ word	baremetalq, "baremetal?"
 
 .ifdef	BAREMETAL
 
-# ( c -- ) COLOR
+# COLOR ( c -- ) 
 # Sets current VGA color
 word	color
 	
@@ -2331,7 +2331,7 @@ word	color
 
 	ret
 
-# ( -- ) SOURCE
+# SOURCE ( -- ) 
 # Marks embedded source as not loaded
 # Needed after warm restart
 word	source
@@ -2342,6 +2342,32 @@ word	source
 	mov	byte ptr [_source_completed], 0
 
 	ret	
+
+# EOI ( -- )
+# Send end-of-interrupt
+word	EOI
+	call _pic_send_eoi
+	ret
+
+# ITRACE ( -- )
+# Turn on instruction trace
+word	itrace
+	pushf
+	pop	rax
+	or	rax, 0x100
+	push	rax
+	popf
+	ret
+
+# NOITRACE ( -- )
+# Turn off instruction trace
+word	noitrace
+	pushf
+	pop	rax
+	and	rax, ~0x100
+	push	rax
+	popf
+	ret
 
 .endif
 
