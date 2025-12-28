@@ -125,85 +125,32 @@ _boot_16:
 _dap:
 	.byte	0x10
 	.byte	0
-	.word	128
+	.word	64
+_dap_ofs:
 	.word	0
+_dap_seg:	
 	.word	0x1000
 	.quad	1
 
 .L_load_lba:
 	pop	si
+	mov	cx, 512 / 64
+
+	1:
 	mov	ah, 0x42
 	mov	bx, 0
+
+	push	cx
 	int	0x13
+	pop	cx
 	jc	.L_disk_error
+	add	word ptr [si + 6], 0x800	# dap seg
+	add	word ptr [si + 8], 64
+	dec	cx
+	jnz	1b
+
 	jmp	.L_loaded
 
-	call	.L_load_lba2
-
-_dap2:
-	.byte	0x10
-	.byte	0
-	.word	128
-	.word	0
-	.word	0x2000
-	.quad	1
-
-.L_load_lba2:
-
-	/*
-					# DL contains disk number (normally 0x80)
-	mov	bx, 0x1000		# load sector to memory address 0x10000
-	mov	es, bx                 
-	mov	bx, 0x0			# ES:BX = 0x1000:0x0
-	mov	si, SECTORS	
-
-	mov	dh, 0x0			# head 0
-	mov	ch, 0x0			# cylinder 0
-	mov	cl, 0x2			# starting sector to read from disk
-
-	mov	di, 2			# debug print
-
-	jmp	.L_load1
-
-.L_next_sector:
-	mov	byte ptr gs:[di], 0x2e
-	inc	di
-	inc	di
-
-	inc	cl
-	dec	si
-	jz	.L_loaded
-
-	add	bh, 0x2
-	jnz	.L_load1
-
-	mov	ax, es
-	add	ax, 0x1000		# next 64K
-	mov	es, ax
-
-.L_load1:
-	mov	ax, 0x0201
-	int	0x13                    # BIOS interrupts for disk functions
-	jc	.L_disk_error
-
-	cmp	cl, 63
-	jne	.L_next_sector
-	inc	dh
-	cmp	dh, 0xff		# Number of heads
-	jna	.L_forward
-	xor	dh, dh
-	inc	ch
-	jnz	.L_forward
-	add	cl, 0x40
-.L_forward:
-	and	cl, 0xc0
-
-	mov	byte ptr gs:[di], 0x2b
-	inc	di
-	inc	di
-
-	jmp	.L_next_sector
-	*/
 .L_disk_error:
 	boot_status	0x39, 0x4f
 	
@@ -1707,23 +1654,8 @@ _warm_64:
 
 
 	9:
-	mov	ax, 0x0110	
-	call	_cursor
-
 	#call	_itrace
 
-	lea	rsi, [__start]
-	10:
-	call	_print_dump
-	call	_keychar
-	cmp	al, 'q'
-	je	20f
-	cmp	al, 'b'
-	jne	10b
-	sub	rsi, 0x200
-	jmp	10b
-
-	20:
 
 __start_entry:
 	and	byte ptr [_key_modifiers], ~PRESSED_SHIFT
