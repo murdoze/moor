@@ -284,11 +284,17 @@ vm1 :: 'vm1 var
 : h-0 		cr VmExit? white ."  VM exit gva/qualification/reason " blue . white . yellow . cr  
 		begin ipurple ." HYPER " 10 emit (quit) again ;
 : g-0		cr begin iblue ." SUPER " 10 emit (quit) again ;
+: u-0		cr begin igreen ."  USER " 10 emit (quit) again ;
 
-:: h-exit	code nop, nop, 
+:: h-exit	code  
 			status, 48 ` 4f `  
 			rtop ' h-0 mov.i,  warm, restart,
-:: g-entry	code nop, nop, status, 47 ` 3f `  rtop ' g-0 mov.i,  warm, restart,
+:: g-entry	code 
+			status, 47 ` 3f `  
+			rtop ' g-0 mov.i,  warm, restart,
+:: u-entry	code 
+			status, 55 ` 1f `  
+			rtop ' u-0 mov.i,  warm, restart,
 
 \ Host and guest MSRs {{{1
 
@@ -337,6 +343,7 @@ here guest_msrs - 8/ 2/ :: #guest_msrs val
 								\ Since page table granularity is 2MB, structures start like this
  80_000 :: PGTABLE_ADDR val					\ 512 KB
 100_000 :: BASE_ADDR val					\ 1 MB
+103_000 :: FORTH_ADDR val					\ can change, here it's for reference only
 200_000 :: EPT_ADDR val
 300_000 :: HOST_STACK val
 400_000 :: GUEST_STACK val
@@ -553,17 +560,67 @@ pde #page 4 * +	:: pte val
 \\ Guest operation
 
 :: u-gdt	adr
-	0 ,	\ 00
-	0 ,	\ 08=CS, so that it differs from guest
-	0 ,	\ 10=DS
+	0 ,	\ 00 Empty
+	0 ,	\ 08 Empty
+	0  	\ 10 Kernel CS
+	0  7 bit set  0 5 bits set  4 bit set 3 bit set  1 bit set  #40 bits set	\ Access: P DPL=0 ~S E R
+	0  3 bit set  1 bit set  #52 bits set						\ Flags:  G L
+	ffff set f #48 bits set								\ Limit
+	,
+	0 	\ 18 Kernel DS
+	0  7 bit set  0 5 bits set  4 bit set  1 bit set  #40 bits set			\ Access: P DPL=0 ~S RW
+	0  3 bit set  1 bit set  #52 bits set						\ Flags:  G L
+	ffff set f #48 bits set								\ Limit
+	,
+	0	\ 20 User CS
+	0  7 bit set  3 5 bits set  4 bit set  3 bit set  1 bit set  #40 bits set	\ Access: P DPL=3 ~S E R
+	0  3 bit set  1 bit set  #52 bits set						\ Flags:  G L
+	ffff set f #48 bits set								\ Limit
+	,
+	0	\ 28 User DS
+	0  7 bit set  3 5 bits set  4 bit set  1 bit set  #40 bits set			\ Access: P DPL=3 ~S RW
+	0  3 bit set  1 bit set  #52 bits set						\ Flags:  G L
+	ffff set f #48 bits set								\ Limit
+	,
 
-:: u-gdtr	adr	0 2, 0 ,
+here u-gdt - 1-
+:: u-gdtr	adr	2, u-gdt ,
 
+:: u-gdt0	adr
+        0000000000000000 , 
+        0 , \ 00cf9a000000ffff , \ 08 __KERNEL32_CS
+        00af9a000000ffff , \ 10 __KERNEL_CS
+        00cf92000000ffff , \ 18 __KERNEL_DS
+        \ 00008900100000ff , \ 20 TS descriptor
+        0000000000000000 ,
 
+: .gdt		cell+ cell+ | @ . cell+ | @ . cell+ | @ . cell+ @ . ;
+: .u-gdt	u-gdt .gdt ;
+: .u-gdt0	u-gdt0 .gdt ;
 
-LOGO
+10 :: KERNEL_CS	val
+18 :: KERNEL_DS	val
+20 :: USER_CS	val
+28 :: USER_DS	val
 
+: lgdt,		0f ` 01 ` 11 ` ;
+: load-gdt,	lgdt, 
+		rtop KERNEL_CS mov.i, rtop push,
+		call0, 
+		rtop pop, rtop 08 add.i, rtop push, \ point to ret,
+		retfq, ret, ;
+
+: UsrLgdt	u-gdtr asm( load-gdt, )asm ;
+: uu	UsrLgdt ;
+
+:: InitGdt	code
+		
+
+:: u-enter	code
+		
 EptInit
 VmRun 
+
+LOGO
 
 
