@@ -407,7 +407,6 @@ _setup_paging:
 	boot32_status	'B', 0x5f
 
 	mov	ebp, BOOT_PGTABLE_ADDR
-	#lea	ebp, [_pgtable]
 
 	# Build Level 4
 	lea	edi, [ebp + 0]

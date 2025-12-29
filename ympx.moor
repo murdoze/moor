@@ -32,10 +32,11 @@
 
 \ Page allocation
 
+1000	:: #page val						\ Page size
 : page								\ ( "<name>" -- )		Creates page-aligned zero-filled buffer
-	here 1000 aligned here! here 1000 allot 
+	here #page aligned here! here #page allot 
 	:: val
-	latest execute 1000 0 fill ;
+	latest execute #page 0 fill ;
 
 \ Scratch playground for code generation
 :: scratch code
@@ -334,11 +335,15 @@ here guest_msrs - 8/ 2/ :: #guest_msrs val
 
 \\ Page tables, EPT etc
 								\ Since page table granularity is 2MB, structures start like this
-10_0000 :: BASE_ADDR val					\ 1 MB
+ 80_000 :: PGTABLE_ADDR val					\ 512 KB
+100_000 :: BASE_ADDR val					\ 1 MB
+200_000 :: EPT_ADDR val
+300_000 :: HOST_STACK val
+400_000 :: GUEST_STACK val
 
-here 1000 aligned 4000 + :: ept val
+\ here 1000 aligned 4000 + :: ept val
+EPT_ADDR :: ept val
 
-1000	:: #page val						\ Page size
 
 \ EPTP
 	0	
@@ -381,7 +386,8 @@ pde #page 4 * +	:: pte val
 	800 10 * for
 		||{{ ! }} { 1000 + } cell+
 	over
-	here! _
+	_ _ 
+	\ here! _
 ;
 
 \\ VMX root operation
@@ -539,6 +545,11 @@ pde #page 4 * +	:: pte val
 	\ VmLaunch
 ;
 
+: ll VmLaunch ;
+: rr VmResume ;
+: LOGO cr 1 emit 5f emit ."  HYPER OPERATION " cr ;
+
+
 \\ Guest operation
 
 :: u-gdt	adr
@@ -550,11 +561,9 @@ pde #page 4 * +	:: pte val
 
 
 
-
+LOGO
 
 EptInit
 VmRun 
 
-: ll VmLaunch ;
-: LOGO cr 1 emit 5f emit ."  HYPER OPERATION " cr ; LOGO
 
