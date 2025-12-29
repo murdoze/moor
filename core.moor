@@ -57,9 +57,18 @@
 : rex,     48 ` ;
 : rex1,    49 ` ;
 
-: call0,	e8 ` 00 ` 00 ` 00 ` 00 ` ;			\ ( -- )		call	0f; 0: ...
+: call0,   e8 ` 00 ` 00 ` 00 ` 00 ` ;				\ ( -- )		call	0f; 0: ...
 : ret,     c3 ` ;						\ ( -- )		ret
-: retfq,   rex, cb ` ;						\ ( -- )		ret
+: retfq,   rex, cb ` ;						\ ( -- )		retfq
+: iretq,   rex, cf ` ;						\ ( -- )		iretq
+
+: cs,      8c ` c9 ` ;						\ ( -- cs )		mov 	ecx, cs
+: ds,      8c ` d9 ` ;						\ ( -- ds )		mov	ecx, ds
+
+: ds!,     8e ` d9 ` ;						\ ( ds -- )		mov	ds, cx
+: es!,     8e ` c1 ` ;						\ ( ds -- )		mov	ds, cx
+: fs!,     8e ` e1 ` ;						\ ( ds -- )		mov	ds, cx
+: gs!,     8e ` e9 ` ;						\ ( ds -- )		mov	ds, cx
 
 :: 1+      code rex, ff ` c1 ` ret,				\ ( n -- n+1)		inc	r0
 :: 1-      code rex, ff ` c9 ` ret,				\ ( n -- n-1)		dec	r0

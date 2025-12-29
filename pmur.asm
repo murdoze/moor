@@ -426,7 +426,7 @@ _setup_paging:
 
 	# Build Level 2
 	lea	edi, [ebp + 0x2000]
-	mov	eax, 0x00000183
+	mov	eax, 0x00000187
 	mov	ecx, 2048
 1:	mov	[edi + 0], eax
 	add	[edi + 4], edx		# ??? edx = 0
@@ -901,7 +901,7 @@ _trap_ss_handler:
 _trap_gp_handler:
 	mov	byte ptr fs:[_trap_number], TRAP_GP
 
-	mov	dword ptr [SCREEN + 4], 0x4f474f50
+	mov	dword ptr [SCREEN + 4], 0x4f504f47
 	
 	jmp	_trap_error_handler
 
@@ -952,7 +952,7 @@ _trap_error_handler:
 	pushr
 
 	mov	qword ptr fs:[_trap_temp], rax
-	mov	rax, [rsp + 0 + 8 * 6]			# must currespond to number of registers pushed by pushr
+	mov	rax, [rsp + 0 + 8 * 6]			# must correspond to number of registers pushed by pushr
 	mov	qword ptr fs:[_trap_error_code], rax
 	mov	rax, [rsp + 8 + 8 * 6]
 	mov	qword ptr fs:[_trap_rip], rax
@@ -970,6 +970,7 @@ _trap_error_handler:
 	mov	byte ptr fs:[_pcolor], 0x8e
 	call	_p64printb
 
+	sti
 	jmp	.
 
 	popr
@@ -1053,8 +1054,8 @@ _interrupt_trace_handler:
 	mov	rax, rsi
 	call	_emitq
 
-	sti
-	call	_waitkey
+	#sti
+	#call	_waitkey
 
 	popr
 	iretq

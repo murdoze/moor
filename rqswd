@@ -4,7 +4,7 @@
 
 cw=$(xdotool getactivewindow)
 
-qemu-system-x86_64 -hda moorqs.hda -enable-kvm -cpu host -s -S &
+qemu-system-x86_64 -hda moorqs.hda -d int -enable-kvm -cpu host -s -S 
 
 sleep 0.3
 

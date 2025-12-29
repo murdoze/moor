@@ -89,7 +89,7 @@ _abort2:
 	cmp	byte ptr [runmode], RUNMODE_LINUXUSR
 	je	2f
 
-	sti
+	#sti
 
 	2:
 	push	rpc
@@ -2142,7 +2142,7 @@ __number:
 	MESSAGE	quiterr1, "\r\n\x1b[31mERROR! \x1b[0m\x1b[33mWord \x1b[1m\x1b[7m "
 	MESSAGE	quiterr2, " \x1b[27m\x1b[22m not found, or invalid number\x1b[0m\r\n"
 .else
-	MESSAGE	quiterr1, "\nERROR! Word \x1\xe0 "
+	MESSAGE	quiterr1, "\nERROR! Word \x1\x4f "
 	MESSAGE	quiterr2, " \x1\x02 not found, or invalid number\n"
 .endif
 
