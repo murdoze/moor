@@ -586,17 +586,8 @@ pde #page 4 * +	:: pte val
 here u-gdt - 1-
 :: u-gdtr	adr	2, u-gdt ,
 
-:: u-gdt0	adr
-        0000000000000000 , 
-        0 , \ 00cf9a000000ffff , \ 08 __KERNEL32_CS
-        00af9a000000ffff , \ 10 __KERNEL_CS
-        00cf92000000ffff , \ 18 __KERNEL_DS
-        \ 00008900100000ff , \ 20 TS descriptor
-        0000000000000000 ,
-
 : .gdt		cell+ cell+ | @ . cell+ | @ . cell+ | @ . cell+ @ . ;
 : .u-gdt	u-gdt .gdt ;
-: .u-gdt0	u-gdt0 .gdt ;
 
 10 :: KERNEL_CS	val
 18 :: KERNEL_DS	val
