@@ -64,8 +64,6 @@ _gdt_32:
 	.quad	0x00cf9a000000ffff	# 08
 	.quad	0x00af9a000000ffff	# 10
 	.quad	0x00cf92000000ffff	# 18: present, code, executable, granulatity=4K base=0, limit=0xfffff000
-	# ?? The following have to be removed, they work but are not as Linux boots
-	# Linux 32-entry has CS = 0x08 and DS = 0x18
 	.quad	0x00cf9b000000ffff	# 20: present, data, writable,   granulatity=4K base=0, limit=0xfffff000
 	.quad	0x00cf93000000ffff	# 28: as in Linux, don't ask
 _gdt_32$:
@@ -621,8 +619,8 @@ _gdt_64:
 	.quad	0x00cf9a000000ffff	# 08 __KERNEL32_CS
 	.quad	0x00af9a000000ffff	# 10 __KERNEL_CS
 	.quad	0x00cf92000000ffff	# 18 __KERNEL_DS
-	.quad	0x00008900100000ff	# 20 TS descriptor
-	.quad   0x0000000000000000	#
+	.quad	0x00008900100000ff	# 20 TSS descriptor
+	.quad   0x0000000000000000	# This line is needed!
 _gdt_64$:	
 
  	# Write an IDT entry to idt_32
@@ -1362,7 +1360,7 @@ _emitting_color:
 	.byte	0
 
 _emitchar:
-	#out	0xe9, al
+	out	0xe9, al
 
 	cmp	byte ptr [_emitting_color], 0
 	jz	1f
