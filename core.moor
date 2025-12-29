@@ -1,7 +1,7 @@
 : \ 0 word drop ; immediate
 : \\ 0 word drop ; immediate
 \
-\\ Moore Forth System
+\\ Moor Forth System
 \
 \\ Index:		Press <S-8>=<*> to navigate in Vim
 \\ _core_core
@@ -167,6 +167,7 @@
 
 
 : >name    23 cells - @ ; 					\ ( xt -- c-addr )	Returns address of the name counted string
+: >link    22 cells - ; 					\ ( xt -- lfa )		Returns address of the LFA
 
 								\\ Control structures								_control
 : >mark    here 0 , ;						\ ( -- a )		Address for forward branch fixup
@@ -226,8 +227,6 @@
 								\\ Debug output
 : ..S .S ;
 : .S blue ..S norm ;						\ Blue stack
-
-.( Moore Forth System ) cr
 
 
 								\\ Search									_search

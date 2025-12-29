@@ -25,6 +25,11 @@
 : .c'	c@ .c ;							\ ( a color 'c -- a+2 )		Fetch and display character
 : .t count for ||{{ .c' }} 1+ over _ _ ;			\ ( a color 'c u -- a+2*u )	Display string
 
+\ VGA colors
+: igreen	1 emit 2f emit ;	
+: iblue		1 emit 3f emit ;	
+: ipurple	1 emit 5f emit ;	
+
 \ Page allocation
 
 : page								\ ( "<name>" -- )		Creates page-aligned zero-filled buffer
@@ -215,6 +220,23 @@ c0000103 :: TSC_AUX val
 : VmRead	try vmread ;
 : VmWrite	try vmwrite _ ;
 
+: VmcsDump	\ {{{
+       0 begin |
+       {
+               | vmread
+               -if
+                       -if
+                               >< cr . .
+                       else
+                               _ _
+                       then
+              else
+                       _ _ _
+               then
+       }
+       1+ | 7000 < while  repeat _
+; \ }}}
+
 : VmExit? 							\ ( -- reason qualification )
 	vmexit_reason VmRead 
 	vmexit_qualification VmRead
@@ -258,14 +280,14 @@ vm1 :: 'vm1 var
 :: restart	code restart, 
 : warm,		rtmp (warm) mov.i, rtmp call, ;
 
-: h-0 notrace	cr yellow ."  HOST >" VmExit? white ."  VM exit gva/qualification/reason " blue . white . yellow . cr  quit ;
-: g-0 purple	cr purple ." GUEST >" ['] h-0 warm quit ;
+: h-0 		cr VmExit? white ."  VM exit gva/qualification/reason " blue . white . yellow . cr  
+		begin ipurple ." HYPER " 10 emit (quit) again ;
+: g-0		cr begin iblue ." SUPER " 10 emit (quit) again ;
 
 :: h-exit	code nop, nop, 
 			status, 48 ` 4f `  
 			rtop ' h-0 mov.i,  warm, restart,
 :: g-entry	code nop, nop, status, 47 ` 3f `  rtop ' g-0 mov.i,  warm, restart,
-\ :: g-entry	code cli, nop, nop, status, 47 ` 3f ` status2, 47 ` 3f ` 0f ` 01 ` c4 ` -2 sjmp,
 
 \ Host and guest MSRs {{{1
 
@@ -347,9 +369,9 @@ pde #page 4 * +	:: pte val
 	over
 	_ _
 
-	pte RWXuX	\ 7 bit set					\\ PDE
+	pte RWXuX					\\ PDE
 	pde
-	200 4 * for						\ 2048 * 4KB pages = 8 MB
+	200 4 * for					\ 2048 * 4KB pages = 8 MB
 		||{{ ! }} { 1000 + } cell+
 	over
 	_ _
@@ -360,13 +382,9 @@ pde #page 4 * +	:: pte val
 		||{{ ! }} { 1000 + } cell+
 	over
 	here! _
-
-
-
-	
 ;
 
-\\ Entering VMX root operation
+\\ VMX root operation
 : VmxOn
 	cr4 VMXE or cr4! 
 	cr0 VM0S msr or VM0R msr and cr0!
@@ -518,32 +536,25 @@ pde #page 4 * +	:: pte val
 	VmHostState 
 	VmGuestState
 
-	EptInit
-
 	\ VmLaunch
 ;
 
+\\ Guest operation
 
-: VmcsDump
-       0 begin |
-       {
-               | vmread
-               -if
-                       -if
-                               >< cr . .
-                       else
-                               _ _
-                       then
-              else
-                       _ _ _
-               then
-       }
-       1+ | 7000 < while  repeat _
-;
+:: u-gdt	adr
+	0 ,	\ 00
+	0 ,	\ 08=CS, so that it differs from guest
+	0 ,	\ 10=DS
 
+:: u-gdtr	adr	0 2, 0 ,
+
+
+
+
+
+EptInit
 VmRun 
 
-
 : ll VmLaunch ;
-
+: LOGO cr 1 emit 5f emit ."  HYPER OPERATION " cr ; LOGO
 

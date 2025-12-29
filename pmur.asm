@@ -657,10 +657,10 @@ _set_idt64_entry:
 
 _clear_screen:
 	mov	rdi, SCREEN
-	mov	rcx, 8 * 80
+	mov	rcx, 1 * 80
 	mov	ax, 0x082e
 	rep	stosw
-	mov	rcx, 17 * 80
+	mov	rcx, 24 * 80
 	mov	ax, 0x0f00
 	rep	stosw
 	ret
@@ -1654,6 +1654,7 @@ _warm_64:
 
 
 	9:
+	call	_clrscr
 	#call	_itrace
 
 
@@ -1739,30 +1740,12 @@ pvmxon:	.quad	_vmcs
 _vmcs:
 	.fill	4096, 1, 0
 	
-
-__dummy0:
-/*
-       .align  4096
-_pgtable:
-	BOOT_PGTABLE_SIZE = (32 * 4096)
-	.fill   BOOT_PGTABLE_SIZE, 1, 0
-	.align	4096
-	.equ	BOOT_STACK_SIZE, 0x4000
-_boot_stack:
-	.fill	BOOT_STACK_SIZE, 1, 0
-_boot_stack$:
-*/
-
-
 __start:
 
 
 	#
 	# 64-bit code	
 	#
-
-
-
 
 .include "mur.asm"
 

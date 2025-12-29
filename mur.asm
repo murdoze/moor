@@ -1390,8 +1390,13 @@ _word:
 	push	rtmp
 	call	_read
 .ifdef	DEBUG
+.ifdef	BAREMETAL
+	cmp	byte ptr [_source_completed], 0
+	je	11f
+.endif	
 	call	_dup
 	call	_emit
+	11:
 .endif
 	pop	rtmp
 	cmp	rtop, rbx
@@ -1418,6 +1423,10 @@ _word:
 .ifdef	DEBUG
 	cmp	rcx, 127
 	je	31f
+.ifdef	BAREMETAL
+	cmp	byte ptr [_source_completed], 0
+	je	31f
+.endif	
 	call	_dup
 	call	_emit
 	31:
@@ -1866,8 +1875,6 @@ _find_:
 	pop	rsi
 	ret
 
-# TODO: BUG: Input -?branch causes stack underflow
-# TODO: BUG: Minus can be at the end of a number, or in the middle of a number, and it is ok
 # NUMBER ( c-addr -- n -1 | 0 )
 # Parses string as a number (in HEX base)
 word	number
@@ -2135,8 +2142,8 @@ __number:
 	MESSAGE	quiterr1, "\r\n\x1b[31mERROR! \x1b[0m\x1b[33mWord \x1b[1m\x1b[7m "
 	MESSAGE	quiterr2, " \x1b[27m\x1b[22m not found, or invalid number\x1b[0m\r\n"
 .else
-	MESSAGE	quiterr1, "\nERROR! Word ["
-	MESSAGE	quiterr2, "] not found, or invalid number\n"
+	MESSAGE	quiterr1, "\nERROR! Word \x1\xe0 "
+	MESSAGE	quiterr2, " \x1\x02 not found, or invalid number\n"
 .endif
 
 # QUIT
