@@ -1391,8 +1391,8 @@ _word:
 	call	_read
 .ifdef	DEBUG
 .ifdef	BAREMETAL
-	cmp	byte ptr [_source_completed], 0
-	je	11f
+	#cmp	byte ptr [_source_completed], 0
+	#je	11f
 .endif	
 	call	_dup
 	call	_emit
@@ -1424,8 +1424,8 @@ _word:
 	cmp	rcx, 127
 	je	31f
 .ifdef	BAREMETAL
-	cmp	byte ptr [_source_completed], 0
-	je	31f
+	#cmp	byte ptr [_source_completed], 0
+	#je	31f
 .endif	
 	call	_dup
 	call	_emit
