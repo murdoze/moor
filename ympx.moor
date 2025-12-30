@@ -363,6 +363,7 @@ here guest_msrs - 8/ 2/ :: #guest_msrs val
 304_000 :: HOST_STACK val
 404_000 :: GUEST_STACK val
 504_000 :: USER_STACK val
+600_000 :: KERNEL_PGTABLE_ADDR val
 
 \ here 1000 aligned 4000 + :: ept val
 EPT_ADDR :: ept val
@@ -377,41 +378,52 @@ TSS_ADDR :: tss val
 	:: eptp val
 
 ept 		:: pml4e val
+: >pdpte	#page +	; 					\ ( pml4e -- pdpte )
+: >pde		#page +	;					\ ( pdpte -- pde )
+: >pte		#page 4 * + ;					\ ( pde -- pte )
+
 ept #page +	:: pdpte val
 pdpte #page +	:: pde val
 pde #page 4 * +	:: pte val
 
 : RWXuX	0 bit set 1 bit set 2 bit set ;				\ RXW access, \\ #10 bit execution in use mode allowed
 
+: PtInit							\ ( pml4e -- )
+	|{ 10_0000 0 fill }
 
-: EptInit
-	ept 10_0000 0 fill					\ Zero 1MB
-
-	pdpte RWXuX
-	pml4e !
+	| >pdpte |{ RWXuX >< ! }
 								
-	pde RWXuX 					\\ PDPTE
-	pdpte
+	| >pde |{ RWXuX
+	><
 	4 for
-		||{{ ! }} { #page + } cell+
+		||{{ ! } #page + } cell+
 	over
-	_ _
+	_ _ }
 
-	pte RWXuX					\\ PDE
-	pde
-	200 4 * for					\ 2048 * 4KB pages = 8 MB
-		||{{ ! }} { 1000 + } cell+
+	| >pte |{ RWXuX
+	><
+		200 4 * for					\ 2048 * 4KB pages = 8 MB
+		||{{ ! }  #page + } cell+
 	over
-	_ _
+	_ _ }
 
-	0 RWXuX 0 3 bits set \ 6
-	pte
+	{ 0 RWXuX 0 3 bits set }				\ UC memory type
 	800 10 * for
-		||{{ ! }} { 1000 + } cell+
+		||{{ ! } #page + } cell+
 	over
 	_ _ 
-	\ here! _
 ;
+
+\ EPT
+: EptInit
+	ept PtInit
+;
+
+\ Supervisor Pagetable
+: SptInit
+;
+
+\\ TSS
 
 : TssInit
 	tss 68 0 fill
@@ -664,7 +676,8 @@ cr .S
 		rtop ' u-entry mov.i, rtop push,
 		iretq,
 cr .S
-		
+
+\\ Page table access
 		
 EptInit
 TssInit
