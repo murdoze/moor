@@ -382,10 +382,6 @@ ept 		:: pml4e val
 : >pde		#page +	;					\ ( pdpte -- pde )
 : >pte		#page 4 * + ;					\ ( pde -- pte )
 
-ept #page +	:: pdpte val
-pdpte #page +	:: pde val
-pde #page 4 * +	:: pte val
-
 : RWXuX	0 bit set 1 bit set 2 bit set ;				\ RXW access, \\ #10 bit execution in use mode allowed
 
 : PtInit							\ ( pml4e -- )
@@ -585,11 +581,6 @@ pde #page 4 * +	:: pte val
 	\ VmLaunch
 ;
 
-: ll VmLaunch ;
-: rr VmResume ;
-: LOGO cr 1 emit 5f emit ."  HYPER OPERATION " cr ;
-
-
 \\ Guest operation
 
 :: u-gdt	adr
@@ -684,8 +675,12 @@ TssInit
 VmRun
 \\ UsrLgdt
 
-LOGO
+: LOGO cr 1 emit 5f emit ."  HYPER OPERATION " cr ;
 
+: ll VmLaunch ;
+: rr VmResume ;
 : uu UsrLgdt ;
-: qq trace u-enter ;
+: qq u-enter ;
+
+LOGO
 
