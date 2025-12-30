@@ -158,6 +158,15 @@ _do_trace:
 	jmp	99f
 
 	3:
+	lea	r9, [rsi - 8]
+
+	cmp	qword ptr [_brkpt], 0
+	jz	31f
+	cmp	qword ptr [_brkpt], r9
+	jne	99f
+	mov	qword ptr [_brkpt], 0
+
+	31:
 	push	rwork
 	call	_dup
 	mov	rtop, rstack
@@ -173,10 +182,9 @@ _do_trace:
 	call	_dot
 	pop	rwork
 
-	lea	r9, [rsi - 8]
-
 	call	_dup
 	mov	rtop, rwork
+
 	push	rwork
 	call	_decomp_print
 	pop	rwork
