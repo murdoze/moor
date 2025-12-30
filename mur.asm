@@ -163,7 +163,7 @@ _do_trace:
 	cmp	qword ptr [_brkpt], 0
 	jz	31f
 	cmp	qword ptr [_brkpt], r9
-	jne	99f
+	#jne	99f
 	mov	qword ptr [_brkpt], 0
 
 	31:
@@ -684,7 +684,10 @@ word	brkptset, "brkpt!"
 # BRKPT ( -- )
 # Breaks execution during tracing
 word	brkpt, "brkpt"
-	mov	qword ptr [_brkpt], rpc
+	lea	rwork, [rpc + 8]
+	mov	qword ptr [_brkpt], rwork
+	call	debug
+	call	trace
 	ret
 
 # NODEBUG
