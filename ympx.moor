@@ -307,7 +307,7 @@ vm1 :: 'vm1 var
 			rtop ' g-0 mov.i,  warm, sti, restart,
 :: u-entry	code 
 			nop, nop, status2, 55 ` 1f `
-			status, 55 ` 1f `  
+			status, 55 ` 1f `
 			rtop ' u-0 mov.i,  warm, restart,
 
 \ Host and guest MSRs {{{1
@@ -353,20 +353,20 @@ here guest_msrs - 8/ 2/ :: #guest_msrs val
 ;
 \ }}}
 
-\\ Page tables, EPT etc
+\\ Page tables, EPT, TSS etc
 								\ Since page table granularity is 2MB, structures start like this
  80_000 :: PGTABLE_ADDR val					\ 512 KB
+ 90_000 :: TSS_ADDR val
 100_000 :: BASE_ADDR val					\ 1 MB
 103_000 :: FORTH_ADDR val					\ can change, here it's for reference only
 200_000 :: EPT_ADDR val
 304_000 :: HOST_STACK val
 404_000 :: GUEST_STACK val
 504_000 :: USER_STACK val
- 90_000 :: USER_STACK val
 
 \ here 1000 aligned 4000 + :: ept val
 EPT_ADDR :: ept val
-
+TSS_ADDR :: tss val
 
 \ EPTP
 	0	
@@ -412,6 +412,13 @@ pde #page 4 * +	:: pte val
 	_ _ 
 	\ here! _
 ;
+
+: TssInit
+	tss 68 0 fill
+	GUEST_STACK 10000 - tss 4 + !
+	68 tss 66 + 2!
+;
+
 
 \\ VMX root operation
 : VmxOn
@@ -607,7 +614,15 @@ pde #page 4 * +	:: pte val
 	0  3 bit set  1 bit set  #52 bits set						\ Flags:  G L
 	ffff set f #48 bits set								\ Limit
 	,
-	00008900100000ff	\ 40 TSS descriptor
+	0	\ 40 TSS
+	0  7 bit set 0 5 bits set 4 bit reset  9 0 bits set  #40 bits set		\ Access: P DPL=0 S 64-bit available TSS
+
+	90000 #16 bits set								\ Base 90_000
+	67 set										\ Limit
+
+
+
+	\ 0000 89 001000 00ff	\ 40 TSS descriptor
 	,
 	0000000000000000	\ This line is needed!
 	,
@@ -615,7 +630,7 @@ pde #page 4 * +	:: pte val
 here u-gdt - 1-
 :: u-gdtr	adr	2, u-gdt ,
 
-: .gdt		cell+ cell+ cell+ cell+ | @ . cell+ | @ . cell+ | @ . cell+ @ . ;
+: .gdt		cell+ cell+ cell+ cell+ | @ . cell+ | @ . cell+ | @ . cell+ | @ . cell+ @ . ;
 : .u-gdt	u-gdt .gdt ;
 
 20 		:: KERNEL_CS val
@@ -642,7 +657,7 @@ cr .S
 		cli,
 		rtop USER_DS mov.i, rtop push,
 		ds!, es!, fs!, gs!,
-		\ rtop KERNEL_TSS mov.i, ltr,
+		rtop KERNEL_TSS mov.i, ltr,
 		rtop USER_STACK mov.i, rtop push,
 		rtop 3202 mov.i, rtop push, \ TF on
 		rtop USER_CS mov.i, rtop push,
@@ -652,6 +667,7 @@ cr .S
 		
 		
 EptInit
+TssInit
 VmRun
 \\ UsrLgdt
 
