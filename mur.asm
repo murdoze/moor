@@ -674,11 +674,17 @@ word	debug
 	mov	byte ptr [_debug], 1
 	ret
 
-# BRKPT ( pc -- )
+# BRKPT! ( pc -- )
 # Set breakpoint in threaded code for debugging
-word	brkpt
+word	brkptset, "brkpt!"
 	mov	qword ptr [_brkpt], rtop
 	call	_drop
+	ret
+
+# BRKPT ( -- )
+# Breaks execution during tracing
+word	brkpt, "brkpt"
+	mov	qword ptr [_brkpt], rpc
 	ret
 
 # NODEBUG
@@ -2399,7 +2405,7 @@ _source:
 .ifdef BOOT_SOURCE
 	.incbin "core.moor"
 	.ifdef	BAREMETAL
-		.incbin	"ympx.moor"
+		.incbin	"vamp.moor"
 	.endif
 .else
 	.byte	0
