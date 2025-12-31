@@ -106,7 +106,14 @@ _boot_16:
 	mov	ax, 0xb800
 	mov	gs, ax
 
-	#boot_status	0x42, 0x4f
+	boot_status	0x42, 0x4f
+
+	# Switch to 80x50 mode
+	#mov	ax, 0x0003	# VGA text mode, 720x400 pixels, 9x16 font, 80x25 characters
+	#int	0x10
+	#mov	ax, 0x1112	# replace 9x16 font with 9x8 font, so now it's 80x50 characters
+	#mov	bl, 0x00
+	#int	0x10
 
 	.equ	RELOC32_SEG, 0x1000
 	.equ	SECTORS, 512
