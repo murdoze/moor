@@ -157,8 +157,11 @@ c0000103 :: TSC_AUX val
 
 \\ VM 
 \ Instructions
-: vmres,	setc, xchg01, setz, |, r0 rdx mov, ;	\ ( -- 0 0 success |  0 1 -- fail invalid | 1 0 -- fail valid )
+: vmres,	setc, xchg01, setz, |, r0 rdx mov, ;		\ ( -- 0 0 success |  0 1 -- fail invalid | 1 0 -- fail valid )
 
+: invept							\ ( eptp --  )	 	invept rax, [rcx]
+		asm( rax 1 mov.i,
+		66 ` 0f ` 38 ` 80 ` 01 ` vmres, )asm ; 		
 : vmxon 	asm( 67 ` f3 ` 0f ` c7 ` 31 ` vmres, )asm ;
 : vmclear 	asm( 66 ` 0f ` c7 ` 31 ` vmres, )asm ;
 : vmptrld 	asm( 0f ` c7 ` 31 ` vmres, )asm ;
@@ -195,6 +198,7 @@ c0000103 :: TSC_AUX val
 : natural	3 #13 bits set ;
 
 
+0	full 64bit vmexit	:: vmexit_gpa val
 0	full 32bit vmexit 	:: vminstruction_error val	\ Table B-9.; Table 32-1. VM-Instruction Error Numbers
 1	full 32bit vmexit	:: vmexit_reason val		\ Table B-13.
 2	full 32bit vmexit	:: vmexit_int_info val
@@ -264,6 +268,7 @@ c0000103 :: TSC_AUX val
 	vmexit_reason VmRead 
 	| VMEXIT_VMCALL <> if
 		vmexit_qualification VmRead
+		vmexit_gpa VmRead
 		vmexit_gva VmRead
 		vmexit_int_info VmRead
 		vmexit_int_errcode VmRead
@@ -322,16 +327,16 @@ vm1 :: 'vm1 var
 
 : h-0 		VmExit? if
 			cr white ."  VM exit " 
-			ired bl emit . [char] : emit . yellow bl emit . . . . . . blue . white . yellow .
+			ired bl emit . [char] : emit . yellow bl emit . . . . . . blue . red .  white . yellow .
 		then
 		'h-begin @ ?execute cr ipurple ." HYPER " begin ipurple 10 emit (quit) again ;
 : g-0		'g-begin @ ?execute cr iblue   ." SUPER " begin iblue   10 emit (quit) again ;
 : u-0		'u-begin @ ?execute cr igreen  ."  USER " begin igreen  10 emit (quit) again ;
 
-:: h-exit	code  
+:: h-exit	code  	nop, nop,
 			status, 48 ` 4f `  
 			rtop ' h-0 mov.i,  warm, sti, restart,
-:: g-entry	code 
+:: g-entry	code	nop, nop, 
 			status, 47 ` 3f `  
 			rtop ' g-0 mov.i,  warm, sti, restart,
 :: u-entry	code 
@@ -392,7 +397,7 @@ here guest_msrs - 8/ 2/ :: #guest_msrs val
 304_000 :: HOST_STACK val
 404_000 :: GUEST_STACK val
 504_000 :: USER_STACK val
-700_000 :: KERNEL_PT_ADDR val
+800_000 :: KERNEL_PT_ADDR val
 
 10	:: HOST_CS val						\ Hypervisor CS
 10	:: GUEST_CS val						\ Guest CS before it loads new GDT
@@ -409,9 +414,13 @@ KERNEL_PT_ADDR	:: kpt val
 	0	
 	6 0 bits set						\ Write-back memory type
 	3 3 bits set						\ Page-walk length - 1 (4-level)
-	6 bit set						\ Accessed and dirty flags
+	\\ 6 bit set						\ Accessed and dirty flags
 	ept set
-	:: eptp val
+	:: eptp val 
+	0 , 							\ For INVEPT
+
+0 :: kpt-pte var
+
 
 : >pdpte	#page +	; 					\ ( pml4e -- pdpte )
 : >pde		#page +	;					\ ( pdpte -- pde )
@@ -468,6 +477,7 @@ KERNEL_PT_ADDR	:: kpt val
 
 	{ 0 RWXuX 7 bit set 6 bit reset 6 3 bits set 20_0000 + }
 	200 4 * 1- for						\ 2048 * 4KB pages = 8 MB
+		>< | fff not and KERNEL_PT_ADDR = if >< | kpt-pte ! >< then ><
 		||{{ ! }  20_0000 + } cell+
 	over
 	 
@@ -476,7 +486,7 @@ KERNEL_PT_ADDR	:: kpt val
 	{ 0 RWXuX 6 3 bits set  6 bit set }				\ WB memory type
 	200 for
 		\\ || >< cr yellow . .
-		>< | fff not and b8000 = if ." Video !" | . 7 3 bits reset | . else 6 3 bits set then >< \ 7 3 bits reset | . 
+		>< | fff not and b8000 = if 7 3 bits reset else 6 3 bits set then >< \ 7 3 bits reset | . 
 		||{{ ! } #page + } cell+
 	over
 	_ _ 
@@ -679,6 +689,11 @@ KERNEL_PT_ADDR	:: kpt val
 
 	['] h-0 warm						\ On failure restore host console?
 ;
+: InvEpt
+	['] eptp try invept
+;
+
+
 : VmRun
 	VmxOn VmInit VmCtrls
 	VmHostState 
