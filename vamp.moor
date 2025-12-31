@@ -468,16 +468,15 @@ KERNEL_PT_ADDR	:: kpt val
 
 	{ 0 RWXuX 7 bit set 6 bit reset 6 3 bits set 20_0000 + }
 	200 4 * 1- for						\ 2048 * 4KB pages = 8 MB
-		|| >< cr . . 
 		||{{ ! }  20_0000 + } cell+
 	over
 	 
 
-	|| >< cr yellow . . 
-
-	{ 0 RWXuX 6 3 bits set }				\ WB memory type
+	>< _
+	{ 0 RWXuX 6 3 bits set  6 bit set }				\ WB memory type
 	200 for
-		>< | fff not and b8000 = if ." Video !" | . 7 3 bits reset | .  then >< \ 7 3 bits reset | . 
+		\\ || >< cr yellow . .
+		>< | fff not and b8000 = if ." Video !" | . 7 3 bits reset | . else 6 3 bits set then >< \ 7 3 bits reset | . 
 		||{{ ! } #page + } cell+
 	over
 	_ _ 

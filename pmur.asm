@@ -1273,7 +1273,7 @@ _keychar:
 
 	START_ROW	= 1
 	START_COL	= 0
-	END_ROW		= 25
+	END_ROW		= 24
 	END_COL		= 80
 
 _cursor_row:	.byte	START_ROW
