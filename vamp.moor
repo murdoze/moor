@@ -409,7 +409,7 @@ KERNEL_PT_ADDR	:: kpt val
 	0	
 	6 0 bits set						\ Write-back memory type
 	3 3 bits set						\ Page-walk length - 1 (4-level)
-	\ 6 bit set						\ Accessed and dirty flags
+	6 bit set						\ Accessed and dirty flags
 	ept set
 	:: eptp val
 
@@ -420,7 +420,9 @@ KERNEL_PT_ADDR	:: kpt val
 : RWXuX	0 bit set 1 bit set 2 bit set ;				\ RXW access, \\ #10 bit execution in use mode allowed
 
 : PtInit							\ ( pml4e -- )
-	|{ 10_0000 0 fill }
+	cr ." Memory fill..."
+	|{ 10_0000 0 fill }					
+	."  Done." cr					
 
 	| >pdpte |{ RWXuX >< ! }
 								
@@ -438,8 +440,9 @@ KERNEL_PT_ADDR	:: kpt val
 	over
 	_ _ }
 
-	{ 0 RWXuX 0 3 bits set }				\ UC memory type
+	{ 0 RWXuX 6 3 bits set }				\ WB memory type
 	800 10 * for
+		>< | fff not and b8000 = if ." Video !" | . 7 3 bits reset | .  then >< \ 7 3 bits reset | . 
 		||{{ ! } #page + } cell+
 	over
 	_ _ 
@@ -713,30 +716,30 @@ cr .S
 
 \\ Initialization
 		
-EptInit
-KptInit
-TssInit
-VmRun
-\\ UsrLgdt
-
 \ Guest
 0 :: g-init? var
 : GuestInit
 	g-init? @ if exit then 1 g-init? !
 
-	purple ." Guest initialization..."
+	purple ." Guest initialization..." white
 	
-	UsrLgdt
-	KptInit
-	kpt cr3!
+	UsrLgdt ." 1 "
+	KptInit ." 2 "
+	kpt cr3! ." 3 "
 ;
 ' GuestInit 'g-begin !
 
 : LOGO cr 1 emit 5f emit ."  HYPER OPERATION " cr ;
 
 : ll VmLaunch ;
+: uu UsrLgdt ;
 : rr VmResume ;
 : qq u-enter ;
+: xx vmcall ;
+
+EptInit
+TssInit
+VmRun
 
 LOGO
 
