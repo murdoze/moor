@@ -448,14 +448,72 @@ KERNEL_PT_ADDR	:: kpt val
 	_ _ 
 ;
 
+: Pt2MiInit							\ ( pml4e -- )
+	cr ." Memory fill..."
+	|{ 10_0000 0 fill }					
+	."  Done." cr					
+
+	| >pdpte |{ RWXuX >< ! }
+								
+	| >pde |{ RWXuX
+	><
+	4 for
+		||{{ ! } #page + } cell+
+	over
+	_ _ }
+
+	| >pte |{
+	{ 0 RWXuX 7 bit set 6 bit reset }
+	||{{ ! }} cell+
+	{ 6 3 bits set 20_0000 + }
+	4 * for						\ 2048 * 4KB pages = 8 MB
+		||{{ ! }  20_0000 + } cell+
+	over
+	_ _ }
+	
+	{ 0 RWXuX 6 3 bits set }				\ WB memory type
+	800 10 * for
+		>< | fff not and b8000 = if ." Video !" | . 7 3 bits reset | .  then >< \ 7 3 bits reset | . 
+		||{{ ! } #page + } cell+
+	over
+	_ _ 
+;
+
+: Pt2MiInit2							\ ( pml4e -- )
+	cr ." Memory fill..."
+	|{ 10_0000 0 fill }					
+	."  Done." cr					
+
+	| >pdpte |{ RWXuX >< ! }
+								
+	| >pde |{ RWXuX
+	><
+	4 for
+		||{{ ! } #page + } cell+
+	over
+	_ _ }
+
+	{ 0 RWXuX 7 bit set 6 bit reset }
+	|| >< cr . . 
+	||{{ ! }} cell+ >< _
+
+	{ 0 RWXuX 7 bit set 6 bit reset 6 3 bits set 20_0000 + }
+	200 4 * for						\ 2048 * 4KB pages = 8 MB
+		|| >< cr . . 
+		||{{ ! }  20_0000 + } cell+
+	over
+	_ _ 
+	
+;
+
 \ EPT
 : EptInit
-	ept PtInit
+	ept Pt2MiInit2
 ;
 
 \ Kernel (Supervisor) Pagetable
 : KptInit
-	kpt PtInit
+	kpt Pt2MiInit
 ;
 
 \\ TSS
@@ -724,8 +782,8 @@ cr .S
 	purple ." Guest initialization..." white
 	
 	UsrLgdt ." 1 "
-	KptInit ." 2 "
-	kpt cr3! ." 3 "
+	\ KptInit ." 2 "
+	\ kpt cr3! ." 3 "
 ;
 ' GuestInit 'g-begin !
 
@@ -737,7 +795,9 @@ cr .S
 : qq u-enter ;
 : xx vmcall ;
 
+.S
 EptInit
+.S
 TssInit
 VmRun
 
