@@ -165,6 +165,7 @@ c0000103 :: TSC_AUX val
 : vmxoff	asm( 0f ` 01 ` c4 ` )asm ;
 : vmlaunch	asm( 0f ` 01 ` c2 ` vmres, )asm ;
 : vmresume	asm( 0f ` 01 ` c3 ` vmres, )asm ;
+: vmcall	asm( 0f ` 01 ` c1 ` vmres, )asm ;
 
 : vmread	asm(  0f ` 78 ` c8 ` vmres,			\ ( vm-field -- value ZF CF )		Reads field from current VMCS
 		|, r0 rax mov, )asm <<< ;
@@ -174,6 +175,10 @@ c0000103 :: TSC_AUX val
 
 
 : 2mask		| 20 sar >< 0fffffff and >< >>> and or ;	\ ( v 64-bit-msr-mask-32-set-32-reset -- masked-v )
+
+\ VM exit reasons
+
+12 :: VMEXIT_VMCALL val
 
 \ VMCS fields
 : high		2* 1 or ;
@@ -257,17 +262,22 @@ c0000103 :: TSC_AUX val
 
 : VmExit? 							\ ( -- reason qualification )
 	vmexit_reason VmRead 
-	vmexit_qualification VmRead
-	\ vmexit_rip VmRead
-	vmexit_gva VmRead
-	vmexit_int_info VmRead
-	vmexit_int_errcode VmRead
-	vmexit_idt_info VmRead
-	vmexit_idt_errcode VmRead
-	vmexit_instr_len VmRead
-	vmexit_instr_info VmRead
-	guest_rip VmRead \ Guest RIP
-	guest_cs VmRead
+	| VMEXIT_VMCALL <> if
+		vmexit_qualification VmRead
+		vmexit_gva VmRead
+		vmexit_int_info VmRead
+		vmexit_int_errcode VmRead
+		vmexit_idt_info VmRead
+		vmexit_idt_errcode VmRead
+		vmexit_instr_len VmRead
+		vmexit_instr_info VmRead
+		guest_rip VmRead
+		guest_cs VmRead
+		1
+	else
+		_ 
+		0
+	then
 ;
 
 : ?VmxRes							\ ( ZF CF name -- 0=sucesss | 1=fail ) {{{
@@ -306,13 +316,17 @@ vm1 :: 'vm1 var
 :: restart	code restart, 
 : warm,		rtmp (warm) mov.i, rtmp call, ;
 
-: h-0 		cr VmExit? white ."  VM exit " 
-		ired bl emit . [char] : emit . yellow bl emit . . . . . . blue . white . yellow .
+0 :: 'h-begin var
+0 :: 'g-begin var
+0 :: 'u-begin var
 
-		cr ipurple ." HYPER " begin ipurple 10 emit (quit) again ;
-
-: g-0		cr iblue   ." SUPER " begin iblue   10 emit (quit) again ;
-: u-0		cr igreen  ."  USER " begin igreen  10 emit (quit) again ;
+: h-0 		VmExit? if
+			cr white ."  VM exit " 
+			ired bl emit . [char] : emit . yellow bl emit . . . . . . blue . white . yellow .
+		then
+		'h-begin @ ?execute cr ipurple ." HYPER " begin ipurple 10 emit (quit) again ;
+: g-0		'g-begin @ ?execute cr iblue   ." SUPER " begin iblue   10 emit (quit) again ;
+: u-0		'u-begin @ ?execute cr igreen  ."  USER " begin igreen  10 emit (quit) again ;
 
 :: h-exit	code  
 			status, 48 ` 4f `  
@@ -697,7 +711,7 @@ cr .S
 		iretq,
 cr .S
 
-\\ Page table access
+\\ Initialization
 		
 EptInit
 KptInit
@@ -705,11 +719,23 @@ TssInit
 VmRun
 \\ UsrLgdt
 
+\ Guest
+0 :: g-init? var
+: GuestInit
+	g-init? @ if exit then 1 g-init? !
+
+	purple ." Guest initialization..."
+	
+	UsrLgdt
+	KptInit
+	kpt cr3!
+;
+' GuestInit 'g-begin !
+
 : LOGO cr 1 emit 5f emit ."  HYPER OPERATION " cr ;
 
 : ll VmLaunch ;
 : rr VmResume ;
-: uu UsrLgdt ;
 : qq u-enter ;
 
 LOGO
