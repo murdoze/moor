@@ -449,7 +449,7 @@ KERNEL_PT_ADDR	:: kpt val
 ;
 
 
-: Pt2MiInit1							\ ( pml4e -- )
+: Pt4Ki2MiInit							\ ( pml4e -- )
 	cr ." Memory fill..."
 	|{ 10_0000 0 fill }					
 	."  Done." cr					
@@ -483,7 +483,7 @@ KERNEL_PT_ADDR	:: kpt val
 	
 ;
 
-: Pt2MiInit2							\ ( pml4e -- )
+: Pt2MiInit							\ ( pml4e -- )
 	cr ." Memory fill..."
 	|{ 10_0000 0 fill }					
 	."  Done." cr					
@@ -510,7 +510,7 @@ KERNEL_PT_ADDR	:: kpt val
 
 \ EPT
 : EptInit
-	ept Pt2MiInit1
+	ept Pt4Ki2MiInit
 ;
 
 \ Kernel (Supervisor) Pagetable
@@ -784,8 +784,8 @@ cr .S
 	purple ." Guest initialization..." white
 	
 	UsrLgdt ." 1 "
-	\ KptInit ." 2 "
-	\ kpt cr3! ." 3 "
+	KptInit ." 2 "
+	kpt cr3! ." 3 "
 ;
 ' GuestInit 'g-begin !
 
