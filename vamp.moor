@@ -34,6 +34,7 @@
 : igreen	1 emit 2f emit ;	
 : iblue		1 emit 3f emit ;	
 : ipurple	1 emit 5f emit ;	
+: ired		1 emit 4f emit ;	
 
 \ Page allocation
 
@@ -215,6 +216,11 @@ c0000103 :: TSC_AUX val
 0	full 32bit control	:: pin_exec_ctrl val
 1	full 32bit control	:: proc_exec_ctrl val
 
+1	full 16bit guest	:: guest_cs val
+#14	full natural guest	:: guest_rsp val
+#15	full natural guest 	:: guest_rip val
+#16	full natural guest	:: guest_rflags val
+
 : ?VmReadWrite							\ ( field value ZF CF name -- )  {{{
 	<<< -if -if _ >< _ else
 		white count type bl emit yellow ." faulted, field " blue _ . norm cr
@@ -260,7 +266,8 @@ c0000103 :: TSC_AUX val
 	vmexit_idt_errcode VmRead
 	vmexit_instr_len VmRead
 	vmexit_instr_info VmRead
-	#15 full natural guest VmRead
+	guest_rip VmRead \ Guest RIP
+	guest_cs VmRead
 ;
 
 : ?VmxRes							\ ( ZF CF name -- 0=sucesss | 1=fail ) {{{
@@ -299,10 +306,13 @@ vm1 :: 'vm1 var
 :: restart	code restart, 
 : warm,		rtmp (warm) mov.i, rtmp call, ;
 
-: h-0 		cr VmExit? white ."  VM exit RIP/.../gva/qualification/reason " ipurple . yellow . . . . . . blue . white . yellow . cr  
-		begin ipurple ." HYPER " 10 emit (quit) again ;
-: g-0		cr begin iblue ." SUPER " 10 emit (quit) again ;
-: u-0		cr begin igreen ."  USER " 10 emit (quit) again ;
+: h-0 		cr VmExit? white ."  VM exit " 
+		ired bl emit . [char] : emit . yellow bl emit . . . . . . blue . white . yellow .
+
+		cr ipurple ." HYPER " begin ipurple 10 emit (quit) again ;
+
+: g-0		cr iblue   ." SUPER " begin iblue   10 emit (quit) again ;
+: u-0		cr igreen  ."  USER " begin igreen  10 emit (quit) again ;
 
 :: h-exit	code  
 			status, 48 ` 4f `  
@@ -358,9 +368,9 @@ here guest_msrs - 8/ 2/ :: #guest_msrs val
 ;
 \ }}}
 
-\\ Page tables, EPT, TSS etc
+\\ Page tables, EPT, selectors TSS etc
 								\ Since page table granularity is 2MB, structures start like this
- 80_000 :: PGTABLE_ADDR val					\ 512 KB
+ 80_000 :: PT_ADDR val						\ 512 KB
  90_000 :: TSS_ADDR val
 100_000 :: BASE_ADDR val					\ 1 MB
 103_000 :: FORTH_ADDR val					\ can change, here it's for reference only
@@ -368,11 +378,18 @@ here guest_msrs - 8/ 2/ :: #guest_msrs val
 304_000 :: HOST_STACK val
 404_000 :: GUEST_STACK val
 504_000 :: USER_STACK val
-600_000 :: KERNEL_PGTABLE_ADDR val
+700_000 :: KERNEL_PT_ADDR val
+
+10	:: HOST_CS val						\ Hypervisor CS
+10	:: GUEST_CS val						\ Guest CS before it loads new GDT
+20	:: SUPERVISOR_CS val					\ Supervisor CS (= gust with new GDT)
+33	:: USER_CS val						\ User app CS
+
 
 \ here 1000 aligned 4000 + :: ept val
-EPT_ADDR :: ept val
-TSS_ADDR :: tss val
+EPT_ADDR	:: ept val
+TSS_ADDR	:: tss val
+KERNEL_PT_ADDR	:: kpt val 
 
 \ EPTP
 	0	
@@ -382,7 +399,6 @@ TSS_ADDR :: tss val
 	ept set
 	:: eptp val
 
-ept 		:: pml4e val
 : >pdpte	#page +	; 					\ ( pml4e -- pdpte )
 : >pde		#page +	;					\ ( pdpte -- pde )
 : >pte		#page 4 * + ;					\ ( pde -- pte )
@@ -420,8 +436,9 @@ ept 		:: pml4e val
 	ept PtInit
 ;
 
-\ Supervisor Pagetable
-: SptInit
+\ Kernel (Supervisor) Pagetable
+: KptInit
+	kpt PtInit
 ;
 
 \\ TSS
@@ -528,11 +545,12 @@ ept 		:: pml4e val
 	gdt@ >< _	#11 full natural guest VmWrite
 	idt@ >< _ 	#12 full natural guest VmWrite
 	
-	00000002	#16 full natural guest VmWrite 	\ flags
 	-1		0 full 64bit guest VmWrite	\ vmcs link pointer
 
-	g-sp		#14 full natural guest VmWrite
-	['] g-entry 	#15 full natural guest VmWrite
+	00000002	guest_rflags VmWrite 	\ flags
+	g-sp		guest_rsp VmWrite
+	cs		guest_cs VmWrite
+	['] g-entry 	guest_rip VmWrite
 
 	-1	0 full 32bit guest VmWrite		\ segment limits
 	-1	1 full 32bit guest VmWrite
@@ -569,10 +587,16 @@ ept 		:: pml4e val
 	'vm1 try vmlaunch
 ;
 : VmResume
-	g-sp		#14 full natural guest VmWrite
-	['] g-entry	#15 full natural guest VmWrite
+	guest_cs VmRead
+	| GUEST_CS = if GUEST_STACK ['] g-entry	['] g-0 else
+	| SUPERVISOR_CS = if GUEST_STACK ['] g-entry ['] g-0 else
+	| USER_CS = if USER_STACK ['] u-entry ['] u-0 else
+		abort" Unknown guest CS " . cr
+	then then then _
 
-	['] g-0 warm
+	guest_rip VmWrite
+	guest_rsp VmWrite
+	warm
 
 	'vm1 try vmresume
 
@@ -676,6 +700,7 @@ cr .S
 \\ Page table access
 		
 EptInit
+KptInit
 TssInit
 VmRun
 \\ UsrLgdt
