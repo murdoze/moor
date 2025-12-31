@@ -246,6 +246,7 @@
 : compile, , ;							\ ( xt -- )		Compiles XT on the top of the stack into current definition
 : [compile] ' compile, ; immediate				\ ( "<name>" -- )	Compiles XT of the next word in the input stream
 : [']      ' [compile] literal ; immediate			\ ( "<name>" -- )	Compiles XT of the next word in the input stream as a literal
+: ?execute | if execute else _ then ;				\ ( xt | 0 -- )		Execute if not zero
 								\			Syntactic sugar
 : ."       [compile] " compile count compile type ; immediate
 : abort"   compile cr compile red [compile] ." compile norm compile cr compile abort ; immediate
