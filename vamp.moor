@@ -322,10 +322,14 @@ vm1 :: 'vm1 var
 : warm,		rtmp (warm) mov.i, rtmp call, ;
 
 0 :: 'h-begin var
+0 :: 'h-vmexit var
+
 0 :: 'g-begin var
 0 :: 'u-begin var
 
-: h-0 		VmExit? if
+
+
+: h-0 		'h-vmexit @ ?execute VmExit? if
 			cr white ."  VM exit " 
 			ired bl emit . [char] : emit . yellow bl emit . . . . . . blue . red .  white . yellow .
 		then
@@ -429,9 +433,7 @@ KERNEL_PT_ADDR	:: kpt val
 : RWXuX	0 bit set 1 bit set 2 bit set ;				\ RXW access, \\ #10 bit execution in use mode allowed
 
 : PtInit							\ ( pml4e -- )
-	cr ." Memory fill..."
 	|{ 10_0000 0 fill }					
-	."  Done." cr					
 
 	| >pdpte |{ RWXuX >< ! }
 								
@@ -451,7 +453,9 @@ KERNEL_PT_ADDR	:: kpt val
 
 	{ 0 RWXuX 6 3 bits set }				\ WB memory type
 	800 10 * for
-		>< | fff not and b8000 = if ." Video !" | . 7 3 bits reset | .  then >< \ 7 3 bits reset | . 
+		>< | fff not and b8000 = if 
+			7 3 bits reset 
+		then >< 
 		||{{ ! } #page + } cell+
 	over
 	_ _ 
@@ -775,7 +779,6 @@ here u-gdt - 1-
 
 :: s-ret	code retfq,
 
-cr .S
 :: u-enter	code
 		|, 
 		cli,
@@ -787,7 +790,6 @@ cr .S
 		rtop USER_CS mov.i, rtop push,
 		rtop ' u-entry mov.i, rtop push,
 		iretq,
-cr .S
 
 \\ Initialization
 		
@@ -796,11 +798,10 @@ cr .S
 : GuestInit
 	g-init? @ if exit then 1 g-init? !
 
-	purple ." Guest initialization..." white
+	cr purple ." Guest initialization..." white
 	
-	UsrLgdt ." 1 "
-	KptInit ." 2 "
-	kpt cr3! ." 3 "
+	UsrLgdt
+	KptInit kpt cr3!
 ;
 ' GuestInit 'g-begin !
 
