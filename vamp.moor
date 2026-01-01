@@ -165,14 +165,15 @@ reg-save 100 + :: 'reg-save-sp val
 		0 push,  1 push,  2 push,  3 push,
 		         5 push,  6 push,  7 push,
 		8 push,  9 push,  a push,  b push,
-		c push,  d push,  e push,  f push, ;
+		c push,  d push,  e push,  f push, 
+		;
 
 : popa,
 		rsp 'reg-save-sp f 8 * - mov.i,
-		f push,  e push,  2 push,  c push,
-		b push,  a push,  9 push,  8 push,
-		7 push,  6 push,  5 push,	
-		3 push,  2 push,  1 push,  0 push, ;
+		f pop,  e pop,  2 pop,  c pop,
+		b pop,  a pop,  9 pop,  8 pop,
+		7 pop,  6 pop,  5 pop,	
+		3 pop,  2 pop,  1 pop,  0 pop, ;
 
 \\ VM
 \ Instructions
@@ -187,8 +188,8 @@ reg-save 100 + :: 'reg-save-sp val
 : vmptrld 	asm( 0f ` c7 ` 31 ` vmres, )asm ;
 : vmxoff	asm( 0f ` 01 ` c4 ` )asm ;
 : vmlaunch	asm( 0f ` 01 ` c2 ` vmres, )asm ;
-: vmresume	igreen ." R" asm( 0f ` 01 ` c3 ` vmres, )asm ;
-: vmresumea	igreen ." r" asm( popa, 0f ` 01 ` c3 ` vmres, )asm ;
+: vmresume	asm( 0f ` 01 ` c3 ` vmres, )asm ;
+: vmresumea	asm( popa, 0f ` 01 ` c3 ` vmres, )asm ;
 : vmcall	asm( 0f ` 01 ` c1 ` vmres, )asm ;
 
 : vmread	asm(  0f ` 78 ` c8 ` vmres,			\ ( vm-field -- value ZF CF )		Reads field from current VMCS
@@ -718,6 +719,7 @@ KERNEL_PT_ADDR	:: kpt val
 ;
 : VmResumeCurrent
 	'vm1 try vmresumea
+	." ========= VMRESUMEA FAILED ==============="
 
 ;
 : InvEpt
@@ -842,13 +844,16 @@ latest 'g-begin !
 : Mtf-	primary_proc_exec_ctrl |{ VmRead #27 bit reset } VmWrite ;
 
 : HostVmExitHandler
-	
-	ipurple ." h"
+	\\ ipurple ." h"
 	vmexit_gpa VmRead KERNEL_PT_ADDR = if
 		guest_rip VmRead
 		vmexit_reason VmRead 
-		| VMEXIT_EPT = if _ cr ipurple ." E " . norm EptW+ Mtf+ VmResumeCurrent else
-		| VMEXIT_MTF = if _ cr ipurple ." M " . norm EptW- Mtf- VmResumeCurrent else
+		| VMEXIT_EPT = if _ 
+			\\ cr ipurple ." E " . norm 
+			EptW+ Mtf+ VmResumeCurrent else
+		| VMEXIT_MTF = if _ 
+			\\ cr ipurple ." M " . norm 
+			EptW- Mtf- VmResumeCurrent else
 		then  
 	then
 ;
