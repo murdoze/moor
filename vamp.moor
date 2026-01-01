@@ -182,6 +182,8 @@ c0000103 :: TSC_AUX val
 \ VM exit reasons
 
 12 :: VMEXIT_VMCALL val
+25 :: VMEXIT_MTF val
+30 :: VMEXIT_EPT val
 
 \ VMCS fields
 : high		2* 1 or ;
@@ -223,7 +225,7 @@ c0000103 :: TSC_AUX val
 6	full 32bit control	:: primary_exit_ctl val
 
 0	full 32bit control	:: pin_exec_ctrl val
-1	full 32bit control	:: proc_exec_ctrl val
+1	full 32bit control	:: primary_proc_exec_ctrl val
 
 1	full 16bit guest	:: guest_cs val
 #14	full natural guest	:: guest_rsp val
@@ -498,9 +500,7 @@ KERNEL_PT_ADDR	:: kpt val
 ;
 
 : Pt2MiInit							\ ( pml4e -- )
-	cr ." Memory fill..."
 	|{ 10_0000 0 fill }					
-	."  Done." cr					
 
 	| >pdpte |{ RWXuX >< ! }
 								
@@ -567,7 +567,7 @@ KERNEL_PT_ADDR	:: kpt val
 
 	0 #31 bit set  1 bit set					\ Table 26-6: Primary Execution Controls
 	VBAS msr #55 bit set? if 048e else 0482 then msr 2mask
-	1 full 32bit control VmWrite
+	primary_proc_exec_ctrl VmWrite
 
 	0 #31 bit reset	 1 bit set 048b msr 2mask			\ Table 26-7: Secondary Execution Controls
 	#15 full 32bit control VmWrite 
@@ -677,7 +677,7 @@ KERNEL_PT_ADDR	:: kpt val
 
 	'vm1 try vmlaunch
 ;
-: VmResume
+: VmResumeRestart
 	guest_cs VmRead
 	| GUEST_CS = if GUEST_STACK ['] g-entry	['] g-0 else
 	| SUPERVISOR_CS = if GUEST_STACK ['] g-entry ['] g-0 else
@@ -692,6 +692,10 @@ KERNEL_PT_ADDR	:: kpt val
 	'vm1 try vmresume
 
 	['] h-0 warm						\ On failure restore host console?
+;
+: VmResumeCurrent
+	'vm1 try vmresume
+
 ;
 : InvEpt
 	['] eptp try invept
@@ -803,19 +807,42 @@ here u-gdt - 1-
 	UsrLgdt
 	KptInit kpt cr3!
 ;
-' GuestInit 'g-begin !
+latest 'g-begin !
+
+\\ EPT-based mitigation
+
+: Ept@	kpt-pte @ @ ;
+: EptW+	kpt-pte @ |{ @   1 bit set   } ! ;
+: EptW-	kpt-pte @ |{ @   1 bit reset } ! ;
+: Mtf+	primary_proc_exec_ctrl |{ VmRead #27 bit set   } VmWrite ;
+: Mtf-	primary_proc_exec_ctrl |{ VmRead #27 bit reset } VmWrite ;
+
+: HostVmExitHandler
+	
+
+	vmexit_gpa VmRead KERNEL_PT_ADDR = if
+		guest_rip VmRead
+		vmexit_reason VmRead 
+		| VMEXIT_EPT = if _ cr ipurple ." E " . norm EptW+ Mtf+ VmResumeCurrent else
+		| VMEXIT_MTF = if _ cr ipurple ." M " . norm EptW- Mtf- VmResumeCurrent else
+		then  
+	then
+;
+latest 'h-vmexit !
+
+
+\\ Logo, UI, Run
 
 : LOGO cr 1 emit 5f emit ."  HYPER OPERATION " cr ;
 
 : ll VmLaunch ;
 : uu UsrLgdt ;
-: rr VmResume ;
+: rr VmResumeRestart ;
+: rc VmResumeCurrent ;
 : qq u-enter ;
 : xx vmcall ;
 
-.S
 EptInit
-.S
 TssInit
 VmRun
 
