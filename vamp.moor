@@ -155,8 +155,28 @@ c0000103 :: TSC_AUX val
 	;
 \ }}}
 
-\\ VM 
+\\ Guest general purpose register save area
+
+page reg-save
+reg-save 100 + :: 'reg-save-sp val
+
+: pusha,
+		rsp 'reg-save-sp mov.i,
+		0 push,  1 push,  2 push,  3 push,
+		         5 push,  6 push,  7 push,
+		8 push,  9 push,  a push,  b push,
+		c push,  d push,  e push,  f push, ;
+
+: popa,
+		rsp 'reg-save-sp f 8 * - mov.i,
+		f push,  e push,  2 push,  c push,
+		b push,  a push,  9 push,  8 push,
+		7 push,  6 push,  5 push,	
+		3 push,  2 push,  1 push,  0 push, ;
+
+\\ VM
 \ Instructions
+
 : vmres,	setc, xchg01, setz, |, r0 rdx mov, ;		\ ( -- 0 0 success |  0 1 -- fail invalid | 1 0 -- fail valid )
 
 : invept							\ ( eptp --  )	 	invept rax, [rcx]
@@ -167,7 +187,8 @@ c0000103 :: TSC_AUX val
 : vmptrld 	asm( 0f ` c7 ` 31 ` vmres, )asm ;
 : vmxoff	asm( 0f ` 01 ` c4 ` )asm ;
 : vmlaunch	asm( 0f ` 01 ` c2 ` vmres, )asm ;
-: vmresume	asm( 0f ` 01 ` c3 ` vmres, )asm ;
+: vmresume	igreen ." R" asm( 0f ` 01 ` c3 ` vmres, )asm ;
+: vmresumea	igreen ." r" asm( popa, 0f ` 01 ` c3 ` vmres, )asm ;
 : vmcall	asm( 0f ` 01 ` c1 ` vmres, )asm ;
 
 : vmread	asm(  0f ` 78 ` c8 ` vmres,			\ ( vm-field -- value ZF CF )		Reads field from current VMCS
@@ -341,6 +362,7 @@ vm1 :: 'vm1 var
 
 :: h-exit	code  	nop, nop,
 			status, 48 ` 4f `  
+			pusha,
 			rtop ' h-0 mov.i,  warm, sti, restart,
 :: g-entry	code	nop, nop, 
 			status, 47 ` 3f `  
@@ -690,11 +712,12 @@ KERNEL_PT_ADDR	:: kpt val
 	warm
 
 	'vm1 try vmresume
+	." ========= VMRESUME FAILED ==============="
 
 	['] h-0 warm						\ On failure restore host console?
 ;
 : VmResumeCurrent
-	'vm1 try vmresume
+	'vm1 try vmresumea
 
 ;
 : InvEpt
@@ -800,6 +823,7 @@ here u-gdt - 1-
 \ Guest
 0 :: g-init? var
 : GuestInit
+	iblue ." g"	
 	g-init? @ if exit then 1 g-init? !
 
 	cr purple ." Guest initialization..." white
@@ -819,7 +843,7 @@ latest 'g-begin !
 
 : HostVmExitHandler
 	
-
+	ipurple ." h"
 	vmexit_gpa VmRead KERNEL_PT_ADDR = if
 		guest_rip VmRead
 		vmexit_reason VmRead 
@@ -836,6 +860,7 @@ latest 'h-vmexit !
 : LOGO cr 1 emit 5f emit ."  HYPER OPERATION " cr ;
 
 : ll VmLaunch ;
+: lll EptW- VmLaunch ;
 : uu UsrLgdt ;
 : rr VmResumeRestart ;
 : rc VmResumeCurrent ;
