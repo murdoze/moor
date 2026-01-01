@@ -190,7 +190,7 @@ reg-save 100 + :: 'reg-save-sp val
 : vmlaunch	asm( 0f ` 01 ` c2 ` vmres, )asm ;
 : vmresume	asm( 0f ` 01 ` c3 ` vmres, )asm ;
 : vmresumea	asm( popa, 0f ` 01 ` c3 ` vmres, )asm ;
-: vmcall	asm( 0f ` 01 ` c1 ` vmres, )asm ;
+: vmcall	asm( 0f ` 01 ` c1 `  )asm ;
 
 : vmread	asm(  0f ` 78 ` c8 ` vmres,			\ ( vm-field -- value ZF CF )		Reads field from current VMCS
 		|, r0 rax mov, )asm <<< ;
@@ -849,10 +849,10 @@ latest 'g-begin !
 		guest_rip VmRead
 		vmexit_reason VmRead 
 		| VMEXIT_EPT = if _ 
-			\\ cr ipurple ." E " . norm 
+			cr ipurple ." E " . norm .S
 			EptW+ Mtf+ VmResumeCurrent else
 		| VMEXIT_MTF = if _ 
-			\\ cr ipurple ." M " . norm 
+			cr ipurple ." M " . norm .S
 			EptW- Mtf- VmResumeCurrent else
 		then  
 	then
