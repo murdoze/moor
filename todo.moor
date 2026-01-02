@@ -1,0 +1,36 @@
+\\ Here I collect ugly errors that are hard to catch
+
+\\ 1
+: AAA ... NONEXISTENT-WORD ... ;
+: BBB
+\ Compilation of AAA fails
+\ AAA is invalid and crashes on execution
+\ TODO: `:` should be immediate and in compilation state should err
+
+\\ 1.1
+Need a word, ':, to define other sates behavior for words
+Rename state names to lowercase, make them look RED
+
+\\ 2
+\ Error handling via abort seems good
+
+\\ 3
+\ Value imbalance
+\ Maybe have a special modifer to allow a word return different counts of parameters?
+
+\\ 3.1
+:: xxx
+\ creates an invalid word that crashes
+
+\\ 4
+\ `read` instead of `red`
+\ `while` instead of `white`
+\ Looks catastrophic
+\ But is C you can call rest() vs reset()
+
+\\ 5
+\ Source code, file, line and position
+
+\\ 6
+\ +backspace
+\ readline in baremetal

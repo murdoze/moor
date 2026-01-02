@@ -1,0 +1,1 @@
+qemu-system-x86_64 -hda moorqs.hda -enable-kvm -cpu host -debugcon file:/dev/tty

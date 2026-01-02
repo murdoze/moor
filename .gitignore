@@ -6,6 +6,17 @@ moordt
 moorq
 moorq.bin
 moorq0.bin
+moorq.hda
+moorq0s.bin
+moorq_source.bin
+moorqs
+moorqs.bin
+moorqs.hda
+moorqs0.bin
+moors
+moorsd
+moorst
+moort
 bzMoorq
 bzImage
 vmlinux
@@ -17,4 +28,8 @@ test
 q.moor
 caprecorn.log
 *.swp
+
+boot_source.moor
+qt.moor
+qw.moor
 

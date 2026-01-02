@@ -1,0 +1,24 @@
+# TODO: https://wiki.osdev.org/X86-64_Instruction_Encoding
+# https://github.com/chip-red-pill/uCodeDisasm
+# https://stackoverflow.com/questions/48046814/what-methods-can-be-used-to-efficiently-extend-instruction-length-on-modern-x86
+# https://stackoverflow.com/questions/36510095/inc-instruction-vs-add-1-does-it-matter
+# https://groups.google.com/g/llvm-dev/c/xwcJKiLcgnU?pli=1 Spilling to vector registers for LLVM
+# https://www.forwardcom.info/
+# https://jacobfilipp.com/DrDobbs/articles/DDJ/1988/8810/8810b/8810b.htm
+# https://www.complang.tuwien.ac.at/forth/fth79std/FORTH-79.TXT
+# https://www.complang.tuwien.ac.at/forth/fth83std/FORTH83.TXT
+# https://forth-standard.org/standard/words
+# https://www.mpeforth.com/resource-links/downloads/
+# https://iforth.nl/
+# https://github.com/orgMINT/MINT
+# TODO: Benchmarks
+# https://github.com/quepas/Compiler-benchmark-suites
+# https://github.com/embench/embench-iot/
+# https://gist.github.com/FredEckert/3425429  Writing to framebuffer directly
+# http://liujunming.top/2019/10/22/libdrm-samples/
+# https://dvdhrm.wordpress.com/2012/09/13/linux-drm-mode-setting-api/
+# https://gist.github.com/uobikiemukot/c2be4d7515e977fd9e85
+# https://stackoverflow.com/questions/34268518/creating-a-bootable-iso-image-with-custom-bootloader
+
+
+
