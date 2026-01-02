@@ -73,8 +73,8 @@ _restart:
 _abort:
 	lea	rpc, [_warm0]
 _abort2:	
-	mov	byte ptr [_trace], 0
-	mov	byte ptr [_debug], 0
+	#mov	byte ptr [_trace], 0
+	#mov	byte ptr [_debug], 0
 	xor	rtop, rtop
 	xor	rstate, rstate
 	mov	[_state], rstate
@@ -2392,6 +2392,33 @@ word	noitrace
 	push	rax
 	popf
 	ret
+
+
+word	_vmread_, "(vmread)"
+	nop
+	nop
+	mov	ax, cs
+	cmp	ax, 0x33
+	je	_vmread_xxx
+
+	vmread	rax, rcx
+	setc	cl
+	movzx	rcx, cl
+	xchg	rcx, rdx
+	setz	cl
+	movzx	rcx, cl
+	call	_dup
+	mov	rcx, rdx
+	call	_dup
+	mov	rcx, rax
+	ret
+
+_vmread_xxx:
+	lea	rtop, [.L_vmreaderr1_msg]
+	call	_count
+	call	_type
+	jmp	_abort	
+	MESSAGE	vmreaderr1, "\nERROR! \x1\x4f VMREAD from USER !!!!\n "
 
 .endif
 

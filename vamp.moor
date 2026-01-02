@@ -77,6 +77,9 @@ INTERPRETING ' scratch does
 :: cs	code |, cs, ret,				\ ( -- cs )	mov 	ecx, cs
 :: ds	code |, ds, ret,				\ ( -- ds )	mov	ecx, ds
 
+:: sp	code |, rtop rsp mov, ret,	
+
+
 :: dt adr 0 2, 0 ,
 : dt@ dt 2@ dt 2 + @ ;
 : gdt@	dt asm( 0f ` 01 ` 01 ` )asm _ dt@ ;		\ ( -- seg base ) Returns GDTR
@@ -155,30 +158,61 @@ c0000103 :: TSC_AUX val
 	;
 \ }}}
 
+\\ Page tables, EPT, selectors TSS etc
+\ 80_000 :: PT_ADDR val						\ 512 KB
+ 90_000 :: TSS_ADDR val
+100_000 :: BASE_ADDR val					\ 1 MB
+103_000 :: FORTH_ADDR val					\ can change, here it's for reference only
+200_000 :: EPT_ADDR val
+304_000 :: HOST_STACK val
+404_000 :: GUEST_STACK val
+504_000 :: USER_STACK val
+800_000 :: KERNEL_PT_ADDR val
+a00_000 :: reg-save val
+
+10	:: HOST_CS val						\ Hypervisor CS
+10	:: GUEST_CS val						\ Guest CS before it loads new GDT
+20	:: SUPERVISOR_CS val					\ Supervisor CS (= gust with new GDT)
+33	:: USER_CS val						\ User app CS
+
+
 \\ Guest general purpose register save area
 
-page reg-save
+\ page reg-save
 reg-save 100 + :: 'reg-save-sp val
+reg-save 100 + 8 + :: 'reg-save-guest-sp val
+
+: mov-[]rsp,	48 ` 89 ` 24 ` 25 ` ;
+: mov-rsp[],	48 ` 8b ` 24 ` 25 ` ; 
 
 : pusha,
+		\ mov-[]rsp, 'reg-save-guest-sp 4,
 		rsp 'reg-save-sp mov.i,
 		0 push,  1 push,  2 push,  3 push,
 		         5 push,  6 push,  7 push,
 		8 push,  9 push,  a push,  b push,
 		c push,  d push,  e push,  f push, 
+		rsp HOST_STACK  mov.i,
 		;
 
 : popa,
+		\ mov-[]rsp, 'reg-save-guest-sp 4,
 		rsp 'reg-save-sp f 8 * - mov.i,
 		f pop,  e pop,  2 pop,  c pop,
 		b pop,  a pop,  9 pop,  8 pop,
 		7 pop,  6 pop,  5 pop,	
-		3 pop,  2 pop,  1 pop,  0 pop, ;
+		3 pop,  2 pop,  1 pop,  0 pop, 
+		\ mov-rsp[], 'reg-save-guest-sp 4,
+		;
 
 \\ VM
 \ Instructions
 
 : vmres,	setc, xchg01, setz, |, r0 rdx mov, ;		\ ( -- 0 0 success |  0 1 -- fail invalid | 1 0 -- fail valid )
+
+\\ :: (vmread)	code  0f ` 78 ` c8 ` vmres,			\ ( vm-field -- value ZF CF )		Reads field from current VMCS
+\\		|, r0 rax mov, ret, 
+: vmread	(vmread) <<< ;
 
 :: invept	code						\ ( eptp --  )	 	invept rax, [rcx]
 		rax 1 mov.i, 66 ` 0f ` 38 ` 80 ` 01 ` vmres, ret, 		
@@ -190,10 +224,6 @@ reg-save 100 + :: 'reg-save-sp val
 :: vmresume	code 0f ` 01 ` c3 ` vmres, ret,
 :: vmresumea	code popa, 0f ` 01 ` c3 ` vmres, ret,
 :: vmcall	code 0f ` 01 ` c1 `  ret,
-
-:: (vmread)	code  0f ` 78 ` c8 ` vmres,			\ ( vm-field -- value ZF CF )		Reads field from current VMCS
-		|, r0 rax mov, ret, 
-: vmread	(vmread) <<< ;
 
 :: (vmwrite)	code rax r0 mov, _,				\ ( value vm-field -- value ZF CF )	Writes field to current VMCS
 		0f ` 79 ` c1 ` vmres, ret,
@@ -254,6 +284,8 @@ reg-save 100 + :: 'reg-save-sp val
 #14	full natural guest	:: guest_rsp val
 #15	full natural guest 	:: guest_rip val
 #16	full natural guest	:: guest_rflags val
+
+#10	full natural host	:: host_rsp val
 
 : ?VmReadWrite							\ ( field value ZF CF name -- )  {{{
 	<<< -if -if _ >< _ else
@@ -365,10 +397,10 @@ vm1 :: 'vm1 var
 :: h-exit	code  	nop, nop,
 			\ status, 48 ` 4f `  
 			pusha,
-			rtop ' h-0 mov.i,  warm, sti, restart,
+			rtop ' h-0 mov.i,  warm, sti, restart, ret,
 :: g-entry	code	nop, nop, 
 			status, 47 ` 3f `  
-			rtop ' g-0 mov.i,  warm, sti, restart,
+			rtop ' g-0 mov.i,  warm, sti, restart, ret,
 :: u-entry	code 
 			nop, nop, 
 			status, 55 ` 1f `
@@ -376,7 +408,7 @@ vm1 :: 'vm1 var
 			status, 56 ` 1f `
 			warm, 
 			status, 57 ` 1f `
-			restart,
+			restart, ret, 
 
 \ Host and guest MSRs {{{1
 
@@ -420,24 +452,6 @@ here guest_msrs - 8/ 2/ :: #guest_msrs val
 	#guest_msrs	vmentry_msr_load_count	VmWrite
 ;
 \ }}}
-
-\\ Page tables, EPT, selectors TSS etc
-								\ Since page table granularity is 2MB, structures start like this
-\ 80_000 :: PT_ADDR val						\ 512 KB
- 90_000 :: TSS_ADDR val
-100_000 :: BASE_ADDR val					\ 1 MB
-103_000 :: FORTH_ADDR val					\ can change, here it's for reference only
-200_000 :: EPT_ADDR val
-304_000 :: HOST_STACK val
-404_000 :: GUEST_STACK val
-504_000 :: USER_STACK val
-800_000 :: KERNEL_PT_ADDR val
-
-10	:: HOST_CS val						\ Hypervisor CS
-10	:: GUEST_CS val						\ Guest CS before it loads new GDT
-20	:: SUPERVISOR_CS val					\ Supervisor CS (= gust with new GDT)
-33	:: USER_CS val						\ User app CS
-
 
 \ here 1000 aligned 4000 + :: ept val
 EPT_ADDR	:: ept val
@@ -849,30 +863,34 @@ latest 'g-begin !
 : Mtf+	primary_proc_exec_ctrl |{ VmRead #27 bit set   } VmWrite ;
 : Mtf-	primary_proc_exec_ctrl |{ VmRead #27 bit reset } VmWrite ;
 
+: within <<< >| <= { >= } and ;	
+	
+
 : HostVmExitHandler
-	vmexit_gpa VmRead KERNEL_PT_ADDR = if
+	vmexit_gpa VmRead KERNEL_PT_ADDR | 200_000 + 1- within if
 		guest_rip VmRead
 		vmexit_reason VmRead 
 		| VMEXIT_EPT = if _ 
-			cr ipurple ." E " . norm 
+			\ cr ipurple ." E " . ." g-rsp " guest_rsp VmRead . ." h-rsp " host_rsp VmRead . ." rsp " sp . red vmexit_gpa VmRead .
+			norm 
 			EptW+ Mtf+ VmResumeCurrent else
 		| VMEXIT_MTF = if _ 
 			\ ipurple ." M " . norm .S
 			EptW- Mtf- VmResumeCurrent else
 		_
 		then then 
-	else
-		vmexit_reason VmRead 
-		| VMEXIT_EXC = if _
-			vmexit_int_info VmRead | . 0ff and 01 = if
-				VmResumeCurrent
-			else
-			_
-			then
+	then
+
+	vmexit_reason VmRead 
+	| VMEXIT_EXC = if _
+		vmexit_int_info VmRead | . 0ff and 01 = if
+			VmResumeCurrent
 		else
 		_
-		then 
-	then
+		then
+	else
+	_
+	then 
 ;
 latest 'h-vmexit !
 

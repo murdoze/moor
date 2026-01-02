@@ -408,7 +408,7 @@
 
 
 : movzxc,  48 ` 0f ` b6 ` c9 ` ;						\			movzx	rcx, cl
-: xchg01, 48 ` 87 ` d1 ` ;								\			xchg	rax, rcx
+: xchg01, 48 ` 87 ` d1 ` ;							\			xchg	rcx, rdx
 : setnz,  r0 .nz setf, movzxc, ;						\ 			setnz	cl ; movzx rcx, cl
 : setz,   r0 .z setf,  movzxc, ;						\ 			setz	cl ; movzx rcx, cl
 : setc,   r0 .c setf,  movzxc, ;						\ 			setc	cl ; movzx rcx, cl

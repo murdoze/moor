@@ -1049,6 +1049,7 @@ _interrupt_trace_handler:
 	add	qword ptr [_trap_counter], 0x10000000
 	call	_print_trap_counter
 
+	/*
 	mov	al, 10
 	call	_emitchar
 	mov	al, 0x10
@@ -1060,7 +1061,8 @@ _interrupt_trace_handler:
 	call	_emitchar
 	mov	rax, rsi
 	call	_emitq
-
+	*/
+	
 	#sti
 	#call	_waitkey
 
@@ -1736,6 +1738,10 @@ _vmx_on:
 	jmp	.
 
 	mov	word ptr [0xb8000], cx
+
+	mov	qword ptr [0x100000], rsp
+	mov	rsp, qword ptr [0x100000]
+
 
 
 pvmxon:	.quad	_vmcs
