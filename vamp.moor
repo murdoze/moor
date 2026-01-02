@@ -74,8 +74,8 @@ INTERPRETING ' scratch does
 : msr	20 >< asm( 0f ` 32 ` _, rdx shl, rax rdx or, r0 rax mov, )asm   ;
 : msr!  asm( rcx push, _,  rdx rdx xor, rax rcx mov, rcx pop,  0f ` 30 ` _, )asm ;
 
-: cs	asm( |, cs, )asm ;			\ ( -- cs )	mov 	ecx, cs
-: ds	asm( |, ds, )asm ;			\ ( -- ds )	mov	ecx, ds
+:: cs	code |, cs, ret,				\ ( -- cs )	mov 	ecx, cs
+:: ds	code |, ds, ret,				\ ( -- ds )	mov	ecx, ds
 
 :: dt adr 0 2, 0 ,
 : dt@ dt 2@ dt 2 + @ ;
@@ -203,6 +203,7 @@ reg-save 100 + :: 'reg-save-sp val
 
 \ VM exit reasons
 
+ 0 :: VMEXIT_EXC val
 12 :: VMEXIT_VMCALL val
 25 :: VMEXIT_MTF val
 30 :: VMEXIT_EPT val
@@ -332,7 +333,7 @@ page vm1
 vm1 :: 'vm1 var
 
 \ Host and guest stacks
-: sp	asm( |, r0 rsp mov, )asm ;
+:: sp	code |, r0 rsp mov, ret,
 
 : h-sp	sp ffff_ffff_ffff_f000 and 1000 + 9 - ;
 : g-sp	h-sp 10_0000 + ;
@@ -358,20 +359,24 @@ vm1 :: 'vm1 var
 			ired bl emit . [char] : emit . yellow bl emit . . . . . . blue . red .  white . yellow .
 		then
 		'h-begin @ ?execute cr ipurple ." HYPER " begin ipurple 10 emit (quit) again ;
-: g-0		'g-begin @ ?execute cr iblue   ." SUPER " begin iblue   10 emit (quit) again ;
-: u-0		." UUUU " 'u-begin @ ?execute cr igreen  ."  USER " begin igreen  10 emit (quit) again ;
+: g-0		." GGGG" 'g-begin @ ?execute cr iblue   ." SUPER " begin iblue   10 emit (quit) again ;
+: u-0		'u-begin @ ?execute cr igreen  ."  USER " begin igreen  10 emit (quit) again ;
 
 :: h-exit	code  	nop, nop,
-			status, 48 ` 4f `  
+			\ status, 48 ` 4f `  
 			pusha,
 			rtop ' h-0 mov.i,  warm, sti, restart,
 :: g-entry	code	nop, nop, 
 			status, 47 ` 3f `  
 			rtop ' g-0 mov.i,  warm, sti, restart,
 :: u-entry	code 
-			nop, nop, status2, 55 ` 1f `
+			nop, nop, 
 			status, 55 ` 1f `
-			rtop ' u-0 mov.i,  warm, restart,
+			rtop ' u-0 mov.i,  
+			status, 56 ` 1f `
+			warm, 
+			status, 57 ` 1f `
+			restart,
 
 \ Host and guest MSRs {{{1
 
@@ -718,6 +723,7 @@ KERNEL_PT_ADDR	:: kpt val
 	['] h-0 warm						\ On failure restore host console?
 ;
 : VmResumeCurrent
+	guest_cs VmRead
 	'vm1 vmresumea
 	." ========= VMRESUMEA FAILED ==============="
 
@@ -844,18 +850,28 @@ latest 'g-begin !
 : Mtf-	primary_proc_exec_ctrl |{ VmRead #27 bit reset } VmWrite ;
 
 : HostVmExitHandler
-	\\ ipurple ." h"
 	vmexit_gpa VmRead KERNEL_PT_ADDR = if
 		guest_rip VmRead
 		vmexit_reason VmRead 
 		| VMEXIT_EPT = if _ 
-			EptW+
-			cr ipurple ." E " . norm guest_cs VmRead .
-			Mtf+ VmResumeCurrent else
+			cr ipurple ." E " . norm 
+			EptW+ Mtf+ VmResumeCurrent else
 		| VMEXIT_MTF = if _ 
-			cr ipurple ." M " . norm .S
+			\ ipurple ." M " . norm .S
 			EptW- Mtf- VmResumeCurrent else
-		then  
+		_
+		then then 
+	else
+		vmexit_reason VmRead 
+		| VMEXIT_EXC = if _
+			vmexit_int_info VmRead | . 0ff and 01 = if
+				VmResumeCurrent
+			else
+			_
+			then
+		else
+		_
+		then 
 	then
 ;
 latest 'h-vmexit !
