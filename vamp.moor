@@ -877,7 +877,7 @@ latest 'g-begin !
 		| VMEXIT_EPT = if _ 
 			vmexit_gpa VmRead KERNEL_PT_ADDR <> if
 				\ 10 1 cursor
-				cr ipurple ." E " . ." g-rsp " guest_rsp VmRead . ." h-rsp " host_rsp VmRead . ." rsp " sp . red vmexit_gpa VmRead .
+				\ cr ipurple ." E " . ." g-rsp " guest_rsp VmRead . ." h-rsp " host_rsp VmRead . ." rsp " sp . red vmexit_gpa VmRead .
 			else
 				EptW+ Mtf+ VmResumeCurrent 
 			then
