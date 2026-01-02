@@ -407,22 +407,22 @@
            |, rdtsc, rtop rdx mov, 20 shl0, rtop rax or, ret,
 
 
-: movzxc,  48 ` 0f ` b6 ` c9 ` ;						\			movzx	rcx, cl
-: xchg01, 48 ` 87 ` d1 ` ;							\			xchg	rcx, rdx
-: setnz,  r0 .nz setf, movzxc, ;						\ 			setnz	cl ; movzx rcx, cl
-: setz,   r0 .z setf,  movzxc, ;						\ 			setz	cl ; movzx rcx, cl
-: setc,   r0 .c setf,  movzxc, ;						\ 			setc	cl ; movzx rcx, cl
-: setl,   r0 .l setf,  movzxc, ;						\ 			setl	cl ; movzx rcx, cl
-: setle,  r0 .le setf, movzxc, ;						\ 			setle	cl ; movzx rcx, cl
-: setg,   r0 .g setf,  movzxc, ;						\ 			setl	cl ; movzx rcx, cl
-: setge,  r0 .ge setf, movzxc, ;						\ 			setle	cl ; movzx rcx, cl
+: movzxc,  48 ` 0f ` b6 ` c9 ` ;				\			movzx	rcx, cl
+: xchg01, 48 ` 87 ` d1 ` ;					\			xchg	rcx, rdx
+: setnz,  r0 .nz setf, movzxc, ;				\ 			setnz	cl ; movzx rcx, cl
+: setz,   r0 .z setf,  movzxc, ;				\ 			setz	cl ; movzx rcx, cl
+: setc,   r0 .c setf,  movzxc, ;				\ 			setc	cl ; movzx rcx, cl
+: setl,   r0 .l setf,  movzxc, ;				\ 			setl	cl ; movzx rcx, cl
+: setle,  r0 .le setf, movzxc, ;				\ 			setle	cl ; movzx rcx, cl
+: setg,   r0 .g setf,  movzxc, ;				\ 			setl	cl ; movzx rcx, cl
+: setge,  r0 .ge setf, movzxc, ;				\ 			setle	cl ; movzx rcx, cl
 
 :: =       code #1 r1 load, r1 r0 cmp, setz, off, ret,		\ ( a b -- a=b )	Compare two top elements, return 1 if equal and 0 otherwise
-:: <>      code #1 r1 load, r1 r0 cmp, setnz, off, ret,	\ ( a b -- a<>b )	Compare two top elements, return 1 if not equal and 0 otherwise
+:: <>      code #1 r1 load, r1 r0 cmp, setnz, off, ret,		\ ( a b -- a<>b )	Compare two top elements, return 1 if not equal and 0 otherwise
 :: <       code #1 r1 load, r1 r0 cmp, setl, off, ret,		\ ( a b -- a<b )	
-:: <=      code #1 r1 load, r1 r0 cmp, setle, off, ret,	\ ( a b -- a<=b )	
+:: <=      code #1 r1 load, r1 r0 cmp, setle, off, ret,		\ ( a b -- a<=b )	
 :: >       code #1 r1 load, r1 r0 cmp, setg, off, ret,		\ ( a b -- a>b )	
-:: >=      code #1 r1 load, r1 r0 cmp, setge, off, ret,	\ ( a b -- a>=b )	
+:: >=      code #1 r1 load, r1 r0 cmp, setge, off, ret,		\ ( a b -- a>=b )	
 								\\ Control structures: helpers
 : lodsq,   48 ` ad ` ;						\			lodsq	rax, qword ptr [rsi]
 : skip,    48 ` 8d ` 34 ` c6 ` ;				\			lea	rsi, [rsi + rax*8]
