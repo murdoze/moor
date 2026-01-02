@@ -41,7 +41,8 @@ runmode:	.byte	0
 __key:		.quad	0
 __emitchar:	.quad	0
 __setcolor:	.quad	0
-__warm:		.quad	_warm0	# Threaded code address to start execution from after warm restart
+__warm:		.quad	_warm0
+__warm2:	.quad	_warm0
 
 _start1:	
 	cmp	byte ptr [runmode], RUNMODE_LINUXUSR
@@ -69,6 +70,9 @@ _cold:
 
 _restart:
 	mov	rpc, qword ptr [__warm]
+	jmp	_abort2
+_restart2:
+	mov	rpc, qword ptr [__warm2]
 	jmp	_abort2
 _abort:
 	lea	rpc, [_warm0]
@@ -1771,6 +1775,12 @@ word	_restart_, "(restart)",, forth
 	.quad	lit, _restart
 	.quad	exit
 
+# (RESTART2) ( -- _restart2 ) 
+# Returns address of the _restart primitive entry point
+word	_restart2_, "(restart2)",, forth
+	.quad	lit, _restart2
+	.quad	exit
+
 # (ABORT) ( -- _abort ) 
 # Returns address of the _abort primitive entry point
 word	_abort_, "(abort)",, forth
@@ -2303,10 +2313,23 @@ word	warm
 	call	_drop
 	ret
 
+# WARM2 ( xt -- )
+# Sets restart point to XT
+word	warm2
+	mov	[__warm2], rtop
+	call	_drop
+	ret
+
 # (WARM) ( -- 'warm )	
 word	_warm_, "(warm)"
 	call	_dup
 	lea	rtop, [warm]
+	ret
+
+# (WARM2) ( -- 'warm2 )	
+word	_warm2_, "(warm2)"
+	call	_dup
+	lea	rtop, [warm2]
 	ret
 
 # WARM0
@@ -2393,6 +2416,14 @@ word	noitrace
 	popf
 	ret
 
+# CURSOR ( row col -- )
+word	cursor
+	mov	[_cursor_col], cl	
+	call	_drop
+	mov	[_cursor_row], cl	
+	call	_drop
+	call	_cursor_limit
+	ret
 
 word	_vmread_, "(vmread)"
 	nop

@@ -375,8 +375,9 @@ vm1 :: 'vm1 var
 :: .status	code 66 ` 89 ` 0c ` 25 ` 00 ` 80 ` 0b ` 00 ` _, ret,
 
 : restart,	rtmp (restart) mov.i, rtmp push, ret, ;
-:: restart	code restart, 
+: restart2,	rtmp (restart2) mov.i, rtmp push, ret, ;
 : warm,		rtmp (warm) mov.i, rtmp call, ;
+: warm2,	rtmp (warm2) mov.i, rtmp call, ;
 
 0 :: 'h-begin var
 0 :: 'h-vmexit var
@@ -391,11 +392,11 @@ vm1 :: 'vm1 var
 			ired bl emit . [char] : emit . yellow bl emit . . . . . . blue . red .  white . yellow .
 		then
 		'h-begin @ ?execute cr ipurple ." HYPER " begin ipurple 10 emit (quit) again ;
-: g-0		." GGGG" 'g-begin @ ?execute cr iblue   ." SUPER " begin iblue   10 emit (quit) again ;
+: g-0		'g-begin @ ?execute cr iblue   ." SUPER " begin iblue   10 emit (quit) again ;
 : u-0		'u-begin @ ?execute cr igreen  ."  USER " begin igreen  10 emit (quit) again ;
 
 :: h-exit	code  	nop, nop,
-			\ status, 48 ` 4f `  
+			status, 48 ` 4f `  
 			pusha,
 			rtop ' h-0 mov.i,  warm, sti, restart, ret,
 :: g-entry	code	nop, nop, 
@@ -406,9 +407,9 @@ vm1 :: 'vm1 var
 			status, 55 ` 1f `
 			rtop ' u-0 mov.i,  
 			status, 56 ` 1f `
-			warm, 
+			warm2, 
 			status, 57 ` 1f `
-			restart, ret, 
+			restart2, ret, 
 
 \ Host and guest MSRs {{{1
 
@@ -737,10 +738,9 @@ KERNEL_PT_ADDR	:: kpt val
 	['] h-0 warm						\ On failure restore host console?
 ;
 : VmResumeCurrent
-	guest_cs VmRead
+	1f75 .status
 	'vm1 vmresumea
 	." ========= VMRESUMEA FAILED ==============="
-
 ;
 : InvEpt
 	['] eptp try invept
@@ -867,13 +867,21 @@ latest 'g-begin !
 	
 
 : HostVmExitHandler
+	cs 33 = if
+		cr cr red ." ******************************************************************************* "
+	then
+
 	vmexit_gpa VmRead KERNEL_PT_ADDR | 200_000 + 1- within if
 		guest_rip VmRead
 		vmexit_reason VmRead 
 		| VMEXIT_EPT = if _ 
-			\ cr ipurple ." E " . ." g-rsp " guest_rsp VmRead . ." h-rsp " host_rsp VmRead . ." rsp " sp . red vmexit_gpa VmRead .
-			norm 
-			EptW+ Mtf+ VmResumeCurrent else
+			vmexit_gpa VmRead KERNEL_PT_ADDR <> if
+				\ 10 1 cursor
+				cr ipurple ." E " . ." g-rsp " guest_rsp VmRead . ." h-rsp " host_rsp VmRead . ." rsp " sp . red vmexit_gpa VmRead .
+			else
+				EptW+ Mtf+ VmResumeCurrent 
+			then
+		else
 		| VMEXIT_MTF = if _ 
 			\ ipurple ." M " . norm .S
 			EptW- Mtf- VmResumeCurrent else
