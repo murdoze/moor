@@ -1002,6 +1002,11 @@ _emit:
 	ret
 
 _emit_baremetal:
+	mov	al, cl
+	out	0xe9, al
+	ret
+
+
 	push	rtop
 	push	rwork
 	push	rdx
