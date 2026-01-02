@@ -435,7 +435,8 @@ _setup_paging:
 	lea	edi, [ebp + 0x2000]
 	mov	eax, 0x00000187
 	mov	ecx, 2048
-1:	mov	[edi + 0], eax
+	1:	
+	mov	[edi + 0], eax
 	add	[edi + 4], edx		# ??? edx = 0
 	add	eax, 0x00200000
 	add	edi, 8
