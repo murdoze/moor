@@ -883,6 +883,7 @@ latest 'g-begin !
 			then
 		else
 		| VMEXIT_MTF = if _ 
+			801027 800000 !
 			\ ipurple ." M " . norm .S
 			EptW- Mtf- VmResumeCurrent else
 		_
