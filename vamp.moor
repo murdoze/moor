@@ -180,24 +180,24 @@ reg-save 100 + :: 'reg-save-sp val
 
 : vmres,	setc, xchg01, setz, |, r0 rdx mov, ;		\ ( -- 0 0 success |  0 1 -- fail invalid | 1 0 -- fail valid )
 
-: invept							\ ( eptp --  )	 	invept rax, [rcx]
-		asm( rax 1 mov.i,
-		66 ` 0f ` 38 ` 80 ` 01 ` vmres, )asm ; 		
-: vmxon 	asm( 67 ` f3 ` 0f ` c7 ` 31 ` vmres, )asm ;
-: vmclear 	asm( 66 ` 0f ` c7 ` 31 ` vmres, )asm ;
-: vmptrld 	asm( 0f ` c7 ` 31 ` vmres, )asm ;
-: vmxoff	asm( 0f ` 01 ` c4 ` )asm ;
-: vmlaunch	asm( 0f ` 01 ` c2 ` vmres, )asm ;
-: vmresume	asm( 0f ` 01 ` c3 ` vmres, )asm ;
-: vmresumea	asm( popa, 0f ` 01 ` c3 ` vmres, )asm ;
-: vmcall	asm( 0f ` 01 ` c1 `  )asm ;
+:: invept	code						\ ( eptp --  )	 	invept rax, [rcx]
+		rax 1 mov.i, 66 ` 0f ` 38 ` 80 ` 01 ` vmres, ret, 		
+:: vmxon 	code 67 ` f3 ` 0f ` c7 ` 31 ` vmres, ret,
+:: vmclear 	code 66 ` 0f ` c7 ` 31 ` vmres, ret,
+:: vmptrld 	code 0f ` c7 ` 31 ` vmres, ret,
+:: vmxoff	code 0f ` 01 ` c4 ` ret,
+:: vmlaunch	code 0f ` 01 ` c2 ` vmres, ret,
+:: vmresume	code 0f ` 01 ` c3 ` vmres, ret,
+:: vmresumea	code popa, 0f ` 01 ` c3 ` vmres, ret,
+:: vmcall	code 0f ` 01 ` c1 `  ret,
 
-: vmread	asm(  0f ` 78 ` c8 ` vmres,			\ ( vm-field -- value ZF CF )		Reads field from current VMCS
-		|, r0 rax mov, )asm <<< ;
-: vmwrite	<<< asm( rax r0 mov, _,				\ ( value vm-field -- value ZF CF )	Writes field to current VMCS
-		0f ` 79 ` c1 ` vmres,	
-		)asm -1 <<< ;
+:: (vmread)	code  0f ` 78 ` c8 ` vmres,			\ ( vm-field -- value ZF CF )		Reads field from current VMCS
+		|, r0 rax mov, ret, 
+: vmread	(vmread) <<< ;
 
+:: (vmwrite)	code rax r0 mov, _,				\ ( value vm-field -- value ZF CF )	Writes field to current VMCS
+		0f ` 79 ` c1 ` vmres, ret,
+: vmwrite	<<< (vmwrite) -1 <<< ;
 
 : 2mask		| 20 sar >< 0fffffff and >< >>> and or ;	\ ( v 64-bit-msr-mask-32-set-32-reset -- masked-v )
 
@@ -359,7 +359,7 @@ vm1 :: 'vm1 var
 		then
 		'h-begin @ ?execute cr ipurple ." HYPER " begin ipurple 10 emit (quit) again ;
 : g-0		'g-begin @ ?execute cr iblue   ." SUPER " begin iblue   10 emit (quit) again ;
-: u-0		'u-begin @ ?execute cr igreen  ."  USER " begin igreen  10 emit (quit) again ;
+: u-0		." UUUU " 'u-begin @ ?execute cr igreen  ."  USER " begin igreen  10 emit (quit) again ;
 
 :: h-exit	code  	nop, nop,
 			status, 48 ` 4f `  
@@ -702,23 +702,23 @@ KERNEL_PT_ADDR	:: kpt val
 ;
 : VmResumeRestart
 	guest_cs VmRead
-	| GUEST_CS = if GUEST_STACK ['] g-entry	['] g-0 else
-	| SUPERVISOR_CS = if GUEST_STACK ['] g-entry ['] g-0 else
-	| USER_CS = if USER_STACK ['] u-entry ['] u-0 else
+	| GUEST_CS =		if _ ." G1" GUEST_STACK ['] g-entry ['] g-0 else
+	| SUPERVISOR_CS =	if _ ." G2" GUEST_STACK ['] g-entry ['] g-0 else
+	| USER_CS =		if _ ." U " USER_STACK  ['] u-entry ['] u-0 else
 		abort" Unknown guest CS " . cr
-	then then then _
+	then then then 
 
+	warm
 	guest_rip VmWrite
 	guest_rsp VmWrite
-	warm
 
-	'vm1 try vmresume
+	'vm1 vmresume
 	." ========= VMRESUME FAILED ==============="
 
 	['] h-0 warm						\ On failure restore host console?
 ;
 : VmResumeCurrent
-	'vm1 try vmresumea
+	'vm1 vmresumea
 	." ========= VMRESUMEA FAILED ==============="
 
 ;
@@ -849,8 +849,9 @@ latest 'g-begin !
 		guest_rip VmRead
 		vmexit_reason VmRead 
 		| VMEXIT_EPT = if _ 
-			cr ipurple ." E " . norm .S
-			EptW+ Mtf+ VmResumeCurrent else
+			EptW+
+			cr ipurple ." E " . norm guest_cs VmRead .
+			Mtf+ VmResumeCurrent else
 		| VMEXIT_MTF = if _ 
 			cr ipurple ." M " . norm .S
 			EptW- Mtf- VmResumeCurrent else
@@ -865,12 +866,12 @@ latest 'h-vmexit !
 : LOGO cr 1 emit 5f emit ."  HYPER OPERATION " cr ;
 
 : ll VmLaunch ;
-: lll EptW- VmLaunch ;
 : uu UsrLgdt ;
 : rr VmResumeRestart ;
 : rc VmResumeCurrent ;
 : qq u-enter ;
 : xx vmcall ;
+: ww EptW- ;
 
 EptInit
 TssInit
