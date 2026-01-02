@@ -1073,8 +1073,8 @@ _interrupt_trace_handler:
 _interrupt_timer_handler:
 	pushr
 
-	inc	qword ptr [_trap_counter]
-	call	_print_trap_counter
+	#inc	qword ptr [_trap_counter]
+	#call	_print_trap_counter
 
 	call	_pic_send_eoi
 
@@ -1096,7 +1096,7 @@ _interrupt_keyboard_handler:
 	in	al, 0x60
 	mov	byte ptr [_key_code], al
 
-	call	_print_key_pressed
+	#call	_print_key_pressed
 
 	call	_pic_send_eoi
 

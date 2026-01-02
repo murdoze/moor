@@ -401,7 +401,7 @@ vm1 :: 'vm1 var
 			rtop ' h-0 mov.i,  warm, sti, restart, ret,
 :: g-entry	code	nop, nop, 
 			status, 47 ` 3f `  
-			rtop ' g-0 mov.i,  warm, sti, restart, ret,
+			rtop ' g-0 mov.i,  warm2, sti, restart2, ret,
 :: u-entry	code 
 			nop, nop, 
 			status, 55 ` 1f `
@@ -864,7 +864,8 @@ latest 'g-begin !
 : Mtf-	primary_proc_exec_ctrl |{ VmRead #27 bit reset } VmWrite ;
 
 : within <<< >| <= { >= } and ;	
-	
+
+0 :: eptv var
 
 : HostVmExitHandler
 	cs 33 = if
@@ -876,15 +877,17 @@ latest 'g-begin !
 		vmexit_reason VmRead 
 		| VMEXIT_EPT = if _ 
 			vmexit_gpa VmRead KERNEL_PT_ADDR <> if
-				\ 10 1 cursor
-				\ cr ipurple ." E " . ." g-rsp " guest_rsp VmRead . ." h-rsp " host_rsp VmRead . ." rsp " sp . red vmexit_gpa VmRead .
+				\ Fault
 			else
-				EptW+ Mtf+ VmResumeCurrent 
+				EptW+ Mtf+ 
+				eptv @ 1+ eptv !
+				VmResumeCurrent 
 			then
 		else
 		| VMEXIT_MTF = if _ 
-			801027 800000 !
-			\ ipurple ." M " . norm .S
+			\\ 801027 800000 !
+			\\ ." *"
+
 			EptW- Mtf- VmResumeCurrent else
 		_
 		then then 
