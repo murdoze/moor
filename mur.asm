@@ -856,11 +856,25 @@ _mqbranch:
 
 # COMPILE ( -- )
 # Compiles the next address in the threaded code into current definition
-word	compile
+word	compile,,,,, _compile_decomp, 0
 _compile:
 	lodsq
 	stosq
 	ret
+_compile_decomp:
+	call	_dup
+	mov	rtop, rwork
+	call	_decomp_print
+	call	_dup
+	mov	rtop, 0x9
+	call	_emit
+
+	lodsq
+	mov	rtop, rwork
+	call	_decomp_print_name
+	mov	rtop, 0xa
+	call	_emit
+	jmp	rnext
 
 # ALIGN
 # Aligns HERE to 16-byte boundary
@@ -1305,6 +1319,7 @@ _decomp_print:
 	call	_dup
 	mov	rcx, 0x9
 	call	_emit
+_decomp_print_name:
 	call	_dup
 	mov	rtop, [rtop - STATES * 16 - 24]	# NFA
 	call	_count
