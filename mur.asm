@@ -1275,6 +1275,16 @@ word	see
 _see:
 	mov	qword ptr [_state], DECOMPILING
 	ret
+	
+# DECOMPILE ( pc -- )
+# Decompile starting from PC
+word	decompile
+	mov	qword ptr [_decompiling], 1
+	mov	rstate, DECOMPILING
+	push	rpc
+	mov	rpc, rtop
+	call	_drop
+	jmp	rnext
 
 # DECOMP ( -- )
 # Decompile XT being currently interpreted
@@ -1300,6 +1310,7 @@ _decomp1:
 	1:
 	call	_dup
 	mov	rtop, rwork
+__decompile:
 	call	_decomp_print
 	call	_dup
 	mov	rtop, 0xa
