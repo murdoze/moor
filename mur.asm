@@ -1002,10 +1002,10 @@ _emit:
 	ret
 
 _emit_baremetal:
-	mov	al, cl
-	out	0xe9, al
-	ret
-
+	##mov	al, cl
+	##out	0xe9, al
+	##call	_drop
+	##ret
 
 	push	rtop
 	push	rwork
@@ -1083,6 +1083,11 @@ _read_key:
 	ret
 
 _read_baremetal:
+	##in	al, 0xe9
+	##movzx	rcx, al
+	##ret
+
+
 	call	_key_baremetal
 	#call	_dup
 	#call	_emit
