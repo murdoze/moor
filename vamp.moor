@@ -501,6 +501,9 @@ KERNEL_PT_ADDR	:: kpt val
 		>< | fff not and b8000 = if 
 			7 3 bits reset 
 		then >< 
+		>< | fff not and 30000 = if 
+			7 3 bits reset 
+		then >< 
 		||{{ ! } #page + } cell+
 	over
 	_ _ 
@@ -885,8 +888,7 @@ latest 'g-begin !
 			then
 		else
 		| VMEXIT_MTF = if _ 
-			\\ 801027 800000 !
-			\\ ." *"
+			801027 800000 !
 
 			EptW- Mtf- VmResumeCurrent else
 		_
@@ -924,4 +926,9 @@ TssInit
 VmRun
 
 LOGO
+
+: VV 100000 for 5f5f 0b8002 2! over ;
+: WW 100000 for 5f5f 030002 2! over ;
+: MM 100000 for 5f5f 700000 2! over ;
+: PP eptv @ . ;
 
