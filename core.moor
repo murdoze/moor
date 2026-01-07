@@ -444,7 +444,7 @@
 :: self    code |, rtop rpc mov, rtop 8 sub.i, ret,		\ ( a -- )		Returns RPC for the calling word
 								\			If SELF is the first compiled word, it returns caller's XT
 								\\ Stack, continued
-: depth,   #0 r0 store, r0 rstack mov, r0 neg, on, ;			\ ( -- # )		Stack depth 
+: depth,   #0 r0 store, r0 rstack mov, r0 neg, on, ;		\ ( -- # )		Stack depth 
 :: depth   code depth, ret,
 								\\ States									_states
 :: MAX_STATE	 0 var
