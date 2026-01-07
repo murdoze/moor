@@ -674,8 +674,6 @@ $ (repeat-post) $;
 	   ['] exit %.debug %.S cr %.used-regs
 	   cr .dump
 
-           1 opt-debug !
-
 	   cr white ." PASS=1 Initial code generation" norm
 	   OPT-PASS-BRANCHLEN opt-pass !
 	   0 opt-index !
@@ -688,8 +686,6 @@ $ (repeat-post) $;
 	   r> | >r regalloc
 	   ['] exit %.debug %.S %.used-regs
 	   cr .dump
-
-           1 opt-debug !
 
 	   cr white ." PASS=2 Final code generation" norm
 	   OPT-PASS-BRANCHLEN opt-pass !
