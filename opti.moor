@@ -260,7 +260,7 @@ $ assm     $;
 % -?branch @skip 1+ | opt-branch ! opt-index 1+! .(( .. ).( _ )) ⊻ %;		\ ( r # -- #-1 )
 
 % (if)     >< { 1- phi-stack revupload } >< 1+ %;		\			Upload stack as if after ?BRANCH
-% (else-pre)
+% (else-pre) 
            tmp-stack diroffload %;
 % (else-post)
            phi-stack download
@@ -501,7 +501,7 @@ $ (if)     { | |
 	   ).( ¦ test, ))
 	   } $;
 
-$ ?branch  { opt-branch @ opt-index @ +
+$ ?branch  opt-branch @ opt-index @ +
            .(( " jz " .inst .label
 	   ).(
 	   opt-pass @
@@ -519,9 +519,9 @@ $ ?branch  { opt-branch @ opt-index @ +
 	   then 
 	   then 
 	   ))
-	   } $;
+	   $;
 
-$ -?branch { opt-branch @ opt-index @ +
+$ -?branch opt-branch @ opt-index @ +
            .(( " jnz" .inst .label
 	   ).(
 	   opt-pass @
@@ -539,11 +539,11 @@ $ -?branch { opt-branch @ opt-index @ +
 	   then 
 	   then 
 	   ))
-	   } $;
+	   $;
 
-$ branch   { opt-branch @ opt-index @ +
+$ branch   opt-branch @ opt-index @ + .S
            .(( " jmp" .inst .label
-	   ).(
+	   ).( 
 	   opt-pass @
 	   | OPT-PASS-INITCODEGEN = if _
 	   	0 ljmp, branch-mark
@@ -557,9 +557,9 @@ $ branch   { opt-branch @ opt-index @ +
 		here 2 + start-adr @ - - sjmp, 
 		then
 	   then 
-	   then 
+	   then  ." Z"
 	   ))
-	   } $;
+	   $;
 
 
 $ (for)    { >|>| - if
