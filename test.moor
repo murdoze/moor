@@ -169,31 +169,36 @@ cold
 
 cold
 : cs-if0 1 >< | if + else - then noop ;
-: cs-if1 1 >< | if 11 + else - 55 then + ;
-: cs-if2 1 >< | if >< then noop - ;
 0 cs-if0 .. 
 1 cs-if0 .. 
 2 cs-if0 .. 
+
+cold
+:^ ?^ 1 ^.> cs-if0 
+
+cold
+:^ ?^ 1 ^> cs-if0 
+
+: cs-if1 1 >< | if 11 + else - 55 then + ;
+
+cold
+:^ ?^ 1 ^> cs-if1 
+
+: cs-if2 1 >< | if >< then noop - ;
+
+cold
+:^ ?^ 1 ^.> cs-if2 
+cold
+:^ ?^ 1 ^> cs-if2 
+
 0 cs-if1 .. 
 1 cs-if1 .. 
 2 cs-if1 .. 
 0 cs-if2 .. 
 1 cs-if2 .. 
 2 cs-if2 .. 
-cold
-:^ ?^ 1 ^.> cs-if0 
-cold
-:^ ?^ 1 ^> cs-if0 
 
-cold
-:^ ?^ 1 ^.> cs-if2 
-cold
-:^ ?^ 1 ^> cs-if2 
-cold
-:^ ?^ 1 ^> cs-if0 
 
-cold
-:^ ?^ 1 ^> cs-if1 
 
 : cs-if3 2 >< | | if 1 >< - then - - ;
 cold 0 cs-if3 .S 
@@ -459,11 +464,11 @@ cold
 
 : #type count type ;
 
-\\ ' #type typecheck
+\ ' #type typecheck
 
 : print1 " Printing 1" count type cr ;
 print1
-' print1 typecheck 
+\ ' print1 typecheck 
 
 
 
@@ -471,11 +476,11 @@ print1
 type-test-1
 
 cr .S
-' type-test-1 trace typecheck notrace
+\ ' type-test-1 trace typecheck notrace
 
 cr .S
 see fib
-' fib trace typecheck notrace
+\ ' fib trace typecheck notrace
 
 
 
