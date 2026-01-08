@@ -356,7 +356,7 @@ $ assm     $;
 
           | if for						\			Load input parameters from Forth stack into registers
 	  	" load" .inst | .r
-		#1 >< load, off,
+		#_1 >< load, off,
 		cr %.S
 	  over else _ then
 	  cr %.S
@@ -365,7 +365,7 @@ $ assm     $;
 : epilogue,
 	  | if for						\			Store output parameters onto Forth stack
 	  	" store" .inst | .r
-		| #0 >< store, on, ∨ 
+		| #_0 >< store, on, ∨ 
 		cr %.S 
           over else _ then								
 

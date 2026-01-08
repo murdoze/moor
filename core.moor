@@ -46,9 +46,9 @@
 : rnext    0d ;							\ r13 = rnext
 : rstack0  0f ;							\ r15 = rstack0
 
-: #0 0 ;							\ Offset of the first available stack item
-: #1 8 ;							\ Offset of the second stack item
-: #2 10 ;							\ Offset of the third stack item
+: #_0 0 ;							\ Offset of the first available stack item
+: #_1 8 ;							\ Offset of the second stack item
+: #_2 10 ;							\ Offset of the third stack item
 
 								\\ Basic assembler for r0-r7. Stack access is hardcoded
 
@@ -85,7 +85,7 @@
 : (store,  rex1, 89 ` ;
 : load),   ef ` ` ;
 : store),  ef ` ` ;
-: load1,   (load, 54 ` #1 load), ;				\ ( -- )		mov	r1, [S+8]
+: load1,   (load, 54 ` #_1 load), ;				\ ( -- )		mov	r1, [S+8]
 :: load1   code load1, ret,
 
 : (or),    rex, 09 ` ;
@@ -117,8 +117,8 @@
 : (sub),   rex, 29 ` ;
 : add,     (add), 3 shl c0 or r0 or ` ;				\ ( rs -- )		add	r0, Rs
 : sub,     (sub), c0 or r0 3 shl or ` ;				\ ( rd -- )		sub	Rd, r0
-:: +       code #1 r1 load, r1 add, off, ret,			\ ( n1 n2 -- n1+n2 )	mov	r1, [S+8] ; add r0, r1 ; inc rstack
-:: -       code #1 r1 load, r1 sub, r0 r1 mov, off, ret,	\ ( n1 n2 -- n1-n2 )	mov	r1, [S+8] ; sub r1, r0 ; mov r0, r1 ; inc rstack
+:: +       code #_1 r1 load, r1 add, off, ret,			\ ( n1 n2 -- n1+n2 )	mov	r1, [S+8] ; add r0, r1 ; inc rstack
+:: -       code #_1 r1 load, r1 sub, r0 r1 mov, off, ret,	\ ( n1 n2 -- n1-n2 )	mov	r1, [S+8] ; sub r1, r0 ; mov r0, r1 ; inc rstack
 
 								\\ Basic math continued
 : 2/       1 sar ;						\ ( n -- n/2)
@@ -134,15 +134,15 @@
 : cell+    cell + ;
 
 								\\ Stack manipulation words with modern and fancy names not without visual semantics
-: _,       #1 r0 load, off, ;					\ ( a -- )		drop
-: |,       #0 r0 store, on, ;					\ ( a -- a a )		dup
-: ><,      #1 r1 load, #1 r0 store, r0 r1 mov, ;		\ ( a b -- b a )	swap
-: >|,      #1 r1 load, on, #1 r0 store, r0 r1 mov, ;		\ ( a b -- a b a )	over
-: >|>|,    #1 r1 load, on, #1 r0 store, on, #1 r1 store, ;	\ ( a b -- a b a b )	2dup = over over
-: >>>,     #1 r1 load, #2 r2 load,				\ ( a b c -- b c a )	rot
-           #2 r1 store, #1 r0 store, r0 r2 mov, ;
-: <<<,     #1 r1 load, #2 r2 load,				\ ( a b c -- c a b )	-rot
-           #2 r0 store, #1 r2 store, r0 r1 mov, ;
+: _,       #_1 r0 load, off, ;					\ ( a -- )		drop
+: |,       #_0 r0 store, on, ;					\ ( a -- a a )		dup
+: ><,      #_1 r1 load, #_1 r0 store, r0 r1 mov, ;		\ ( a b -- b a )	swap
+: >|,      #_1 r1 load, on, #_1 r0 store, r0 r1 mov, ;		\ ( a b -- a b a )	over
+: >|>|,    #_1 r1 load, on, #_1 r0 store, on, #_1 r1 store, ;	\ ( a b -- a b a b )	2dup = over over
+: >>>,     #_1 r1 load, #_2 r2 load,				\ ( a b c -- b c a )	rot
+           #_2 r1 store, #_1 r0 store, r0 r2 mov, ;
+: <<<,     #_1 r1 load, #_2 r2 load,				\ ( a b c -- c a b )	-rot
+           #_2 r0 store, #_1 r2 store, r0 r1 mov, ;
 
 :: _       code _, ret,
 :: |       code |, ret,
@@ -162,14 +162,14 @@
 :: 4@      code 8b ` 09 ` ret,					\ ( a -- [a] )		mov	r0d, dword ptr [r0]
 :: @       code rex, 8b ` 09 ` ret,				\ ( a -- [a] )		mov	r0, [r0]
 
-:: c!      code #1 r1 load, rex, 88 ` 11 ` off, off,		\ ( n a -- )		mov	r1, [S+8] ; mov [r0], r1 ; inc rstack ; inc rstack 
-           #0 r0 load, ret,					\			mov	r0, [S+8]
-:: 2!      code #1 r1 load, 66 ` 89 ` 11 ` off, off,		\ ( n a -- )		mov	r1, [S+8] ; mov [r0], r1 ; inc rstack ; inc rstack 
-           #0 r0 load, ret,					\			mov	r0, [S+8]
-:: 4!      code #1 r1 load, 89 ` 11 ` off, off,			\ ( n a -- )		mov	r1, [S+8] ; mov [r0], r1 ; inc rstack ; inc rstack 
-           #0 r0 load, ret,					\			mov	r0, [S+8]
-:: !       code #1 r1 load, rex, 89 ` 11 ` off, off,		\ ( n a -- )		mov	r1, [S+8] ; mov [r0], r1 ; inc rstack ; inc rstack 
-           #0 r0 load, ret,					\			mov	r0, [S+8]
+:: c!      code #_1 r1 load, rex, 88 ` 11 ` off, off,		\ ( n a -- )		mov	r1, [S+8] ; mov [r0], r1 ; inc rstack ; inc rstack 
+           #_0 r0 load, ret,					\			mov	r0, [S+8]
+:: 2!      code #_1 r1 load, 66 ` 89 ` 11 ` off, off,		\ ( n a -- )		mov	r1, [S+8] ; mov [r0], r1 ; inc rstack ; inc rstack 
+           #_0 r0 load, ret,					\			mov	r0, [S+8]
+:: 4!      code #_1 r1 load, 89 ` 11 ` off, off,		\ ( n a -- )		mov	r1, [S+8] ; mov [r0], r1 ; inc rstack ; inc rstack 
+           #_0 r0 load, ret,					\			mov	r0, [S+8]
+:: !       code #_1 r1 load, rex, 89 ` 11 ` off, off,		\ ( n a -- )		mov	r1, [S+8] ; mov [r0], r1 ; inc rstack ; inc rstack 
+           #_0 r0 load, ret,					\			mov	r0, [S+8]
 
 								\\ Variables and constants							_var_val
 : adr      does> ;						\ :: a adr
@@ -356,7 +356,7 @@
 
 :: *       code rtmp rtop mov, _, rtop rtmp imul, ret,		\ ( a b -- a*b )
 
-:: xor     code #1 r1 load, r0 r1 xor, off, ret,		\ ( n1 n2 -- n1 xor n2 )
+:: xor     code #_1 r1 load, r0 r1 xor, off, ret,		\ ( n1 n2 -- n1 xor n2 )
 
 
 								\ Parameters: rax rdi rsi rdx r10 r8 r9
@@ -417,12 +417,12 @@
 : setg,   r0 .g setf,  movzxc, ;				\ 			setl	cl ; movzx rcx, cl
 : setge,  r0 .ge setf, movzxc, ;				\ 			setle	cl ; movzx rcx, cl
 
-:: =       code #1 r1 load, r1 r0 cmp, setz, off, ret,		\ ( a b -- a=b )	Compare two top elements, return 1 if equal and 0 otherwise
-:: <>      code #1 r1 load, r1 r0 cmp, setnz, off, ret,		\ ( a b -- a<>b )	Compare two top elements, return 1 if not equal and 0 otherwise
-:: <       code #1 r1 load, r1 r0 cmp, setl, off, ret,		\ ( a b -- a<b )	
-:: <=      code #1 r1 load, r1 r0 cmp, setle, off, ret,		\ ( a b -- a<=b )	
-:: >       code #1 r1 load, r1 r0 cmp, setg, off, ret,		\ ( a b -- a>b )	
-:: >=      code #1 r1 load, r1 r0 cmp, setge, off, ret,		\ ( a b -- a>=b )	
+:: =       code #_1 r1 load, r1 r0 cmp, setz, off, ret,		\ ( a b -- a=b )	Compare two top elements, return 1 if equal and 0 otherwise
+:: <>      code #_1 r1 load, r1 r0 cmp, setnz, off, ret,	\ ( a b -- a<>b )	Compare two top elements, return 1 if not equal and 0 otherwise
+:: <       code #_1 r1 load, r1 r0 cmp, setl, off, ret,		\ ( a b -- a<b )	
+:: <=      code #_1 r1 load, r1 r0 cmp, setle, off, ret,	\ ( a b -- a<=b )	
+:: >       code #_1 r1 load, r1 r0 cmp, setg, off, ret,		\ ( a b -- a>b )	
+:: >=      code #_1 r1 load, r1 r0 cmp, setge, off, ret,	\ ( a b -- a>=b )	
 								\\ Control structures: helpers
 : lodsq,   48 ` ad ` ;						\			lodsq	rax, qword ptr [rsi]
 : skip,    48 ` 8d ` 34 ` c6 ` ;				\			lea	rsi, [rsi + rax*8]
@@ -444,7 +444,7 @@
 :: self    code |, rtop rpc mov, rtop 8 sub.i, ret,		\ ( a -- )		Returns RPC for the calling word
 								\			If SELF is the first compiled word, it returns caller's XT
 								\\ Stack, continued
-: depth,   #0 r0 store, r0 rstack mov, r0 neg, on, ;		\ ( -- # )		Stack depth 
+: depth,   #_0 r0 store, r0 rstack mov, r0 neg, on, ;		\ ( -- # )		Stack depth 
 :: depth   code depth, ret,
 								\\ States									_states
 :: MAX_STATE	 0 var
