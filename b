@@ -29,14 +29,14 @@ ld mur.o -N -o mur
 mv mur moorsd
 
 rm mur.o
-as mur.asm --defsym ORG=0 --defsym DEBUG=1 --defsym BOOT_SOURCE=1 -n -g -O0 --64 -am -amhls=mur.lst -o mur.o
-ld mur.o -N -o mur
-mv mur moorsd
-
-rm mur.o
 as mur.asm --defsym ORG=0 --defsym TRACE=1 --defsym BOOT_SOURCE=1 -n -g -O0 --64 -am -amhls=mur.lst -o mur.o
 ld mur.o -N -o mur
 mv mur moorst
+
+rm mur.o
+as mur.asm --defsym ORG=0 --defsym DEBUG=1 --defsym TRACE=1 --defsym BOOT_SOURCE=1 -n -g -O0 --64 -am -amhls=mur.lst -o mur.o
+ld mur.o -N -o mur
+mv mur moorsdt
 
 # ld -r -b binary -o source.o q.moor
 # https://www.burtonini.com/blog/2007/07/13/embedding-binary-blobs-with-gcc/

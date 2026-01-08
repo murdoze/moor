@@ -249,8 +249,8 @@ $ assm     $;
 % >>|      1+ { >>| ∧ } %;				 	\ ( r1 r2 r3 # -- r1 r2 r3 r1 #+1 )
 % >|>|     1+ 1+ { >|>| ∧ >< ∧ >< } %;
 
-% >r       1- { >ret } %;
-% r>       1+ { ret> } %;
+% (>r)       1- { >ret } %;
+% (r>)       1+ { ret> } %;
 
 
 % lit      @skip | opt-lit ! opt-index 1+! .(( .. ).( _ )) 1+ { ?∧ } %;	\ ( # -- r #+1 )	Allocates new register

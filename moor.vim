@@ -123,6 +123,8 @@ syn match   forthColon      "\<\;T\>"
 syn match   forthColon      "\<\:state\>"
 syn match   forthColon      "\<\:type\>"
 syn match   forthColon      "\<state\!\>"
+syn match   forthColon      "\<state@\>"
+syn match   forthColon      "\<?comp\>"
 syn keyword forthColon      var val adr
 "syn match   forthColonDef      "\<\:\s*\w*\>"
 "syn match   forthColonDef      "\<(\:\:|\:)\s*[0-9a-zA-z\+\-\,\(\)\<\>\@\!\.\#\/\\\!\*]*\>"
@@ -147,6 +149,7 @@ syn keyword forthDefine   BUFFER: COMPILE, DEFER IS MARKER TO VALUE
 syn match   forthDefine   "\<\[COMPILE]\>"
   " Forth-79, Forth-83
 syn keyword forthDefine COMPILE
+syn keyword forthDefine COMPILATION iNTERPRETATION
   " Eror handling, debug etc
 syn keyword forthDefine DEBUG -try try
 

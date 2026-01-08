@@ -207,18 +207,18 @@
 								\ ... begin ... ? continue ... ? break ... [while] ... repeat|again ... then	
 								\ TODO: Allow for multiple BREAKs, as with CONTINUE
 
-: if       compile (if) compile ?branch >mark ; immediate
-: -if      compile (if) compile -?branch >mark ; immediate
-: else     compile (else-pre) compile branch >mark compile (else-post) >< >resolve ; immediate
-: then     compile (then) >resolve ; immediate
-: begin    compile (begin) <mark ; immediate
-: until    compile (until) compile ?branch <resolve ; immediate
-: again    compile (again) compile branch <resolve ; immediate
-: ahead    compile (ahead) compile branch >mark ; immediate
-: while    compile (while) compile ?branch >mark ; immediate
-: repeat   compile (repeat-pre) compile branch >< <resolve compile (repeat-post) >resolve ; immediate
-: continue compile (continue) compile -?branch | <resolve ; immediate
-: break    compile (break) compile -?branch >mark >< ; immediate
+: if       ?comp compile (if) compile ?branch >mark ; immediate
+: -if      ?comp compile (if) compile -?branch >mark ; immediate
+: else     ?comp compile (else-pre) compile branch >mark compile (else-post) >< >resolve ; immediate
+: then     ?comp compile (then) >resolve ; immediate
+: begin    ?comp compile (begin) <mark ; immediate
+: until    ?comp compile (until) compile ?branch <resolve ; immediate
+: again    ?comp compile (again) compile branch <resolve ; immediate
+: ahead    ?comp compile (ahead) compile branch >mark ; immediate
+: while    ?comp compile (while) compile ?branch >mark ; immediate
+: repeat   ?comp compile (repeat-pre) compile branch >< <resolve compile (repeat-post) >resolve ; immediate
+: continue ?comp compile (continue) compile -?branch | <resolve ; immediate
+: break    ?comp compile (break) compile -?branch >mark >< ; immediate
 								\\ Printing									_print
 : norm     baremetal? if 01 emit 07 emit else 1b emit 5b emit 30 emit 6d emit then ;
 : red      baremetal? if 01 emit 04 emit else 1b emit 5b emit 33 emit 31 emit 6d emit then ;
@@ -248,7 +248,7 @@
 : [']      ' [compile] literal ; immediate			\ ( "<name>" -- )	Compiles XT of the next word in the input stream as a literal
 : ?execute | if execute else _ then ;				\ ( xt | 0 -- )		Execute if not zero
 								\			Syntactic sugar
-: ."       [compile] " compile count compile type ; immediate
+: ."       ?comp [compile] " compile count compile type ; immediate
 : abort"   compile cr compile red [compile] ." compile norm compile cr compile abort ; immediate
 								\\ Debug
 : ntrace   ' trace execute notrace ;				\ ( "<name>" -- )	Runs in no-debug trace mode
@@ -463,15 +463,19 @@
 								\\ Here
 :: here!   code rhere rtop mov, _, ret,
 								\\ Return stack									_return_stack
-:: >r      code r1 pop, r0 push, _, r1 push, ret,		\ ( a -- ) ( R: -- a)	Pushes top of parameter stack onto return stack
-:: r>      code |, r1 pop, r0 pop, r1 push, ret,		\ ( -- a ) ( R: a -- )	Pops top of parameter stack off return stack
-: {        compile >r ;	immediate
-: }        compile r> ;	immediate
-: |{       compile | compile { ; immediate			\ ( a -- a ) ( R: a -- ) Duplicated parameter and pushes it onto return stack
-: ||{{     compile | compile { compile ><			\ ( a b -- a b ) ( R: a b -- ) 	Dupliacted two parameters and pushes them onto return stack
+:: (>r)      code r1 pop, r0 push, _, r1 push, ret,		\ ( a -- ) ( R: -- a)	Pushes top of parameter stack onto return stack
+:: (r>)      code |, r1 pop, r0 pop, r1 push, ret,		\ ( -- a ) ( R: a -- )	Pops top of parameter stack off return stack
+: >r       ?comp compile (>r) ; immediate
+: r>       ?comp compile (r>) ; immediate
+: {        ?comp compile (>r) ; immediate
+: }        ?comp compile (r>) ; immediate
+: |{       ?comp compile | compile { ; immediate			\ ( a -- a ) ( R: a -- ) Duplicated parameter and pushes it onto return stack
+: ||{{     ?comp compile | compile { compile ><			\ ( a b -- a b ) ( R: a b -- ) 	Dupliacted two parameters and pushes them onto return stack
            compile | compile { compile >< ; immediate
-: {{       compile >< compile { compile { ; immediate		\ ( a b -- R: a b )
-: }}       compile } compile } ; immediate			\ ( R: a b -- a b )
+: {{       ?comp compile >< compile { compile { ; immediate		\ ( a b -- R: a b )
+: }}       ?comp compile } compile } ; immediate			\ ( R: a b -- a b )
+
+: qq { } ;
 
 \ INTERPRETING ' >r behavior INTERPRETING ' { does		\ TODO: Why this does not work?
 \ INTERPRETING ' r> behavior INTERPRETING ' } does
@@ -500,12 +504,12 @@ DECOMPILING ' branch behavior DECOMPILING ' (over) does
 DECOMPILING ' branch behavior DECOMPILING ' (-leave) does
 
 
-: for      compile (for) <mark ; immediate			\ ... n for ... [ aft ] ... [ then ] ... over ...
+: for      ?comp compile (for) <mark ; immediate		\ ... n for ... [ aft ] ... [ then ] ... over ...
 								\ TODO: ?FOR would be nice to have, but it's needed to pass a flag to OVER to compile THEN
 								\       This can be implemented after there is a control stack with checks and other flags
-: aft      compile (aft) compile branch _ >mark <mark >< ; immediate
-: -leave   compile (-leave) >mark >< ; immediate		\ TODO: BUG! Incompatible with nested FORs as it is now
-: over     compile (over) <resolve compile (over-post) ; immediate
+: aft      ?comp compile (aft) compile branch _ >mark <mark >< ; immediate
+: -leave   ?comp compile (-leave) >mark >< ; immediate		\ TODO: BUG! Incompatible with nested FORs as it is now
+: over     ?comp compile (over) <resolve compile (over-post) ; immediate
 
 								\\ Stack manipulation, continued
 : #_       | if for _ over else _ then ;			\ ( a1 ... an n -- )	Drops N elelemns off stack (including count)
@@ -585,9 +589,9 @@ DECOMPILING ' branch behavior DECOMPILING ' (-leave) does
 : packed   1 context @ cell+ cell+ cell+ ! ;			\ ( -- )		Marks structure as packed
 
 : field	   >< | current ! create				\ ( a field-size -- )	Defines a field in current structure (sets context to strucuture vocabulary)
-           | cell+ cell+ | cell+ @ >< | >r @ ><
+           | cell+ cell+ | cell+ @ >< | { @ ><
 	   if else >>| >2^ #aligned then
-	   | ,  >>> | , + r> !
+	   | ,  >>> | , + } !
 	   does> | @ >< cell+ @ ;				\ ( a -- a' size )	Returns address relative to structure start and field size
 
 : ;struct  _ current @ cell+ @ context ! definitions ;		\ ( a -- ) 		Restores context to the parent vocabulary

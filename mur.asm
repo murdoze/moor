@@ -948,6 +948,8 @@ _quot__decomp:
 # " ( "ccc" -- )
 # Compiles a string
 word	quot, "\"", immediate
+	call	qcomp
+
 	lea	rwork, qword ptr [_quot_]	/* compile (") */
 	stosq
 
@@ -1252,6 +1254,30 @@ _words_:
 	mov	rtop, 0xa
 	call	_emit
 	ret
+
+# ?COMP ( --  )
+# Returns address interpreter state for the next word from the text interpreter
+word	qcomp, "?comp"
+	cmp	qword ptr [_state], COMPILING
+	je	9f
+
+	call	_dup
+	lea	rtop, qword ptr [.L_comperr1_msg]
+	call	_count
+	call	_type
+.ifdef	DEBUG
+	call	_bye
+.endif
+	jmp	_abort
+
+	9:
+	ret
+
+.ifndef BAREMETAL
+	MESSAGE	comperr1, "\r\n\x1b[31mERROR! \x1b[0m\x1b[33m Compilation context required ! \x1b[0m"
+.else
+	MESSAGE	comperr1, "\nERROR! Compilation context required ! \n "
+.endif
 
 # STATE! ( state -- )
 # Sets address interpreter state for the next word from the text interpreter
