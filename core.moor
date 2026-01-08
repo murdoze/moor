@@ -247,10 +247,10 @@
 : [compile] ' compile, ; immediate				\ ( "<name>" -- )	Compiles XT of the next word in the input stream
 : [']      ' [compile] literal ; immediate			\ ( "<name>" -- )	Compiles XT of the next word in the input stream as a literal
 : ?execute | if execute else _ then ;				\ ( xt | 0 -- )		Execute if not zero
-								\			Syntactic sugar
+
 : ."       ?comp [compile] " compile count compile type ; immediate
 : abort"   compile cr compile red [compile] ." compile norm compile cr compile abort ; immediate
-								\\ Debug
+
 : ntrace   ' trace execute notrace ;				\ ( "<name>" -- )	Runs in no-debug trace mode
 : dtrace   ' nodebug debug trace execute notrace ;		\ ( "<name>" -- )	Runs in debug trace mode
 
@@ -450,10 +450,7 @@
 :: MAX_STATE	 0 var
 : :state   MAX_STATE @ | -20 > if | val 2 - MAX_STATE !
            else .. bad57a7e 0f10 .abort then ;
-								\\ Built-in states
-:: INTERPRETING		:state
-:: COMPILING   		:state 
-:: DECOMPILING		:state
+								\\ Debug
 								\\ Dictionary structure manipulation
 : >cfa     cells + cell - cell - ;				\ ( xt state -- cfa )	Returns CFA for given state for XT
 : cfa@     | @ >< cell + @ >< ;					\ ( cfa -- param code )	Returns param and code for CFA
@@ -475,7 +472,34 @@
 : {{       ?comp compile >< compile { compile { ; immediate		\ ( a b -- R: a b )
 : }}       ?comp compile } compile } ; immediate			\ ( R: a b -- a b )
 
-: qq { } ;
+								\\ Built-in states
+:: INTERPRETING		:state
+:: COMPILING   		:state 
+:: DECOMPILING		:state
+
+: interpretation	INTERPRETING ;
+: compilation		COMPILING ;
+: decompilation		DECOMPILING ;
+
+: interp	['] (does) interpretation ; immediate
+: decomp	['] (does) decompilation ; immediate
+								\\ Does
+: <does								\ ( code state -- )
+	  here 9 cells + 
+	  \ compile lit >mark 
+	  [compile] literal
+	  >< compile,
+	  [compile] literal  
+	  compile latest
+	  compile does 
+	  compile branch >mark ; immediate
+: >does   compile xexit >resolve ; immediate
+
+: qval	,
+	interp <does @ >does
+	decomp <does .S >does ;
+
+99 :: qq qval
 
 \ INTERPRETING ' >r behavior INTERPRETING ' { does		\ TODO: Why this does not work?
 \ INTERPRETING ' r> behavior INTERPRETING ' } does

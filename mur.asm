@@ -723,6 +723,12 @@ word	exit,,, exit, exit, _decomp_exit, 0, _exit_regalloc, 0
 _exit_regalloc:
 	jmp	_exit
 
+# XEXIT
+# Exit current Forth word and return the the caller, but w/o decompilation semantics
+word	xexit,,, xexit, xexit,,, _exit_regalloc, 0
+_xexit:
+	jmp	_exit
+
 # SUMMON
 # Summons Forth word from assembly
 word	summon
@@ -1093,6 +1099,12 @@ _read_baremetal:
 	call	_key_baremetal
 	#call	_dup
 	#call	_emit
+	ret
+
+# STOP ( -- )
+# Stops source interpretation
+word	stop
+	mov	qword ptr [_source_completed], 1
 	ret
 
 # KEY ( -- c )
@@ -1693,22 +1705,6 @@ _interpreting__:
 	mov	rstate, INTERPRETING
 	ret
 
-# DOES ( param code state xt -- )
-# Sets semantics for a word defined by XT for given state to a given code:param pair
-word	does
-_does1:
-	mov	rwork, rtop
-	call	_drop
-	mov	rtmp, rtop
-	call	_drop
-
-	mov	qword ptr [rwork + rtmp * 8 - 16], rtop
-	call	_drop
-	mov	qword ptr [rwork + rtmp * 8 - 16 + 8], rtop
-	call	_drop
-
-	ret
-
 # IMMEDIATE ( -- )
 # Sets latest word's compilation semantics to execution semantics
 word	immediate
@@ -1819,16 +1815,27 @@ __does_xt_:
 	add	rtop, 3 * 8
 	ret
 
-# (DOES) ( -- _does )
+# (does) ( -- _does )
 # Returns address of the _does primitive entry point
 word	_does_, "(does)",, forth
 	.quad	lit, _does
 	.quad	exit
 
+# (comp) ( -- _comp )
+# Returns address of the _comp primitive entry point
+word	_comp_, "(comp)",, forth
+	.quad	lit, _comp
+	.quad	exit
+
+# (decomp) ( -- _decomp )
+# Returns address of the _comp primitive entry point
+word	_decomp_, "(decomp)",, forth
+	.quad	lit, _decomp
+	.quad	exit
+
 # (DOES>) ( xt -- )
 # Defines execution and compilation semantics for the latest word
 word	_does__, "(does>)",, forth
-__does_:
 	.quad	_does_xt_
 
 	.quad	_does_
@@ -1837,7 +1844,7 @@ __does_:
 	.quad	does
 
 	.quad	latest
-	.quad	lit, _comp
+	.quad	_comp_
 	.quad	lit, COMPILING
 	.quad	latest
 	.quad	does
@@ -1851,8 +1858,24 @@ _does1_:
 	.quad	compile, lit
 	.quad	here, comma
 	.quad	compile, _does__
-	.quad	compile, exit
+	.quad	compile, xexit
 	.quad	exit
+
+# DOES ( param code state xt -- )
+# Sets semantics for a word defined by XT for given state to a given code:param pair
+word	does
+_does1:
+	mov	rwork, rtop
+	call	_drop
+	mov	rtmp, rtop
+	call	_drop
+
+	mov	qword ptr [rwork + rtmp * 8 - 16], rtop
+	call	_drop
+	mov	qword ptr [rwork + rtmp * 8 - 16 + 8], rtop
+	call	_drop
+
+	ret
 
 # : ( "<name>" -- )
 # Creates a Forth word

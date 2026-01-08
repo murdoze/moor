@@ -149,7 +149,7 @@ syn keyword forthDefine   BUFFER: COMPILE, DEFER IS MARKER TO VALUE
 syn match   forthDefine   "\<\[COMPILE]\>"
   " Forth-79, Forth-83
 syn keyword forthDefine COMPILE
-syn keyword forthDefine COMPILATION iNTERPRETATION
+syn keyword forthDefine COMPILATION INTERPRETATION DECOMPILATION
   " Eror handling, debug etc
 syn keyword forthDefine DEBUG -try try
 
