@@ -1825,30 +1825,6 @@ word	_does_, "(does)",, forth
 	.quad	lit, _does
 	.quad	exit
 
-# (EXEC) ( -- _exec )
-# Returns address of the _exec primitive entry point
-word	_exec_, "(exec)",, forth
-	.quad	lit, _exec
-	.quad	exit
-
-# (RESTART) ( -- _restart ) 
-# Returns address of the _restart primitive entry point
-word	_restart_, "(restart)",, forth
-	.quad	lit, _restart
-	.quad	exit
-
-# (RESTART2) ( -- _restart2 ) 
-# Returns address of the _restart primitive entry point
-word	_restart2_, "(restart2)",, forth
-	.quad	lit, _restart2
-	.quad	exit
-
-# (ABORT) ( -- _abort ) 
-# Returns address of the _abort primitive entry point
-word	_abort_, "(abort)",, forth
-	.quad	lit, _abort
-	.quad	exit
-
 # (DOES>) ( xt -- )
 # Defines execution and compilation semantics for the latest word
 word	_does__, "(does>)",, forth
@@ -1893,6 +1869,30 @@ word	semicolon, "\x3b", immediate, forth
 _semicolon:
 	.quad	compile, exit
 	.quad	bracket_open
+	.quad	exit
+
+# (EXEC) ( -- _exec )
+# Returns address of the _exec primitive entry point
+word	_exec_, "(exec)",, forth
+	.quad	lit, _exec
+	.quad	exit
+
+# (RESTART) ( -- _restart ) 
+# Returns address of the _restart primitive entry point
+word	_restart_, "(restart)",, forth
+	.quad	lit, _restart
+	.quad	exit
+
+# (RESTART2) ( -- _restart2 ) 
+# Returns address of the _restart primitive entry point
+word	_restart2_, "(restart2)",, forth
+	.quad	lit, _restart2
+	.quad	exit
+
+# (ABORT) ( -- _abort ) 
+# Returns address of the _abort primitive entry point
+word	_abort_, "(abort)",, forth
+	.quad	lit, _abort
 	.quad	exit
 
 # FIND ( -- xt | 0 )
