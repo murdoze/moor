@@ -1,4 +1,4 @@
-: \ 0 word drop ; immediate
+: \ 0 word drop ; immediat
 : \\ 0 word drop ; immediate
 \
 \\ Moor Forth System
@@ -485,14 +485,12 @@
 : decomp	['] (does) decompilation ; immediate
 								\\ Does
 : <does								\ ( code state -- )
-	  here 9 cells + 
-	  \ compile lit >mark 
-	  [compile] literal
+	  compile lit >mark {
 	  >< compile,
 	  [compile] literal  
 	  compile latest
 	  compile does 
-	  compile branch >mark ; immediate
+	  compile branch >mark } here >< ! ; immediate
 : >does   compile xexit >resolve ; immediate
 
 : qval	,
