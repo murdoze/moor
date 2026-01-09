@@ -77,8 +77,8 @@ _restart2:
 _abort:
 	lea	rpc, [_warm0]
 _abort2:	
-	#mov	byte ptr [_trace], 0
-	#mov	byte ptr [_debug], 0
+	mov	byte ptr [_trace], 0
+	mov	byte ptr [_debug], 0
 	xor	rtop, rtop
 	xor	rstate, rstate
 	mov	[_state], rstate
@@ -958,7 +958,22 @@ _quot__decomp:
 	call	_emit
 
 	jmp	rnext
-	
+
+# (")-skip
+# Skips counted string, needed for other states
+word	_quot_skip, "(\")-skip"
+	call	_dup
+	pop	rtmp
+	pop	rtop
+	movzx	rax, byte ptr [rtop]
+	inc	rtop
+	add	rtop, rax
+	add	rtop, 0xf
+	and	rtop, -16
+	push	rtop
+	push	rtmp
+	call	_drop
+	ret
 
 # " ( "ccc" -- )
 # Compiles a string
@@ -2594,6 +2609,7 @@ _source:
 
 .ifdef BOOT_SOURCE
 	.incbin "core.moor"
+	.incbin "type.moor"
 	.ifdef	BAREMETAL
 		.incbin	"vamp.moor"
 	.endif
