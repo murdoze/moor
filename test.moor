@@ -343,7 +343,11 @@ cs3
 see repeat
 see while
 see else
+
+1 see-does!
 see val
+0 see-does!
+
 see cs1
 see cs2
 see cs3

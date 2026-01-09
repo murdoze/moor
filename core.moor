@@ -483,7 +483,7 @@
 
 : interp	['] (does) interpretation ; immediate
 : decomp	['] (does) decompilation ; immediate
-								\\ DOES
+								\\ DOES for states
 : does<								\ ( code state -- )
 	  compile lit >mark {
 	  >< compile,
@@ -501,15 +501,13 @@
           compile cr compile decompiling! [compile] >does ; immediate
 
 : (val)   val ;
-: qval    (val)
-	  decomp-does< ." ==> " | @ . tab ." val @" . >decomp-does ;
+: val     (val)
+	  decomp-does< | @ . tab ." val @" . >decomp-does ;
 
-99 :: qq qval
-: ww 10 qq 200 qq 20 ;
-: www 10 200 20 ;
+: (var)   var ;
+: var    (var)
+          decomp-does< | @ . tab ." var @" . >decomp-does ;
 
-\ INTERPRETING ' >r behavior INTERPRETING ' { does		\ TODO: Why this does not work?
-\ INTERPRETING ' r> behavior INTERPRETING ' } does
 								\\ Exit on error
 : -try	if r> then ;
 : try	-if r> then ;
