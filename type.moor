@@ -14,6 +14,7 @@ INTERPRETING ' interpreting! behavior TYPECHECKING ' interpreting! does
 								\\ Type registration
 :: ~Number
 :: ~Xt
+:: ~Adr
 
 :: ~'#Str							\ Pointer to a counted string
 :: ~#Str							\ Counted string length
@@ -42,8 +43,10 @@ INTERPRETING ' interpreting! behavior TYPECHECKING ' interpreting! does
 : ?D	
 	compile depth compile 1- latest-typecheck @ [compile] literal compile <<< compile ?depth ; immediate
 
+: T~	= ; 
+
 : ?typecheck
-	<<< || <> if >>>
+	<<< || T~ -if >>>
 		blue .name bl emit
 		yellow ." typecheck error:" 
 		blue ."  expected " yellow .name 
@@ -52,7 +55,7 @@ INTERPRETING ' interpreting! behavior TYPECHECKING ' interpreting! does
 : assert-type							\ ( t1 t2 -- | ABORT)
 	latest-typecheck @ [compile] literal
 	compile ?typecheck ; immediate
-: ?T [compile] assert-type ; immediate
+: ?T	[compile] assert-type ; immediate
 								\\ Typechecking tests
 .( Typechecking ) cr
 
@@ -68,7 +71,14 @@ T: xexit	;T
 T: allot	1 ?D ~Number ?T ;T
 T: ,		1 ?D _ ;T
 T: |		1 ?D | ;T
+T: >|		2 ?D >| ;T
+T: >|>|		2 ?D >|>| ;T
 T: shl		2 ?D ~Number ?T ~Number ?T ~Number ;T
+T: @		1 ?D ~Adr ?T ~Number ;T
+T: +		2 ?D .S cr
+		| ~Number T~ if | .name _ | ~Number T~ if | .name _ exit then | ~Adr T~ if | .name _ exit then else 
+		| ~Adr    T~ if | .name _ | ~Number T~ if | .name _ exit then then
+		then .S abort" '+' accepts numbers or address and number" ;
 
 : qq ." AAA" ;
 : qq1 >name count type ;
@@ -81,7 +91,7 @@ T: shl		2 ?D ~Number ?T ~Number ?T ~Number ;T
 \\ Stack
 \\ \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 : stack    0 , | , cells allot does> ;				\ ( n -- ) ( -- stack )	Stack N cells size
-: empty    0 >< ! ;						\ ( s -- )		Empty stack
+: empty    0 >< ! ;						\ ( stack -- )		Empty stack
 : stack@   | @ >| cell+ @ ;					\ ( stack -- stack pointer limit )	Extracts stack parameters onto data stack
 : .stack   | @ | if >< cell+ cell+ >< for | @ . cell+ over _	\ ( stack -- )
            else _ _ then ;
@@ -100,7 +110,9 @@ T: shl		2 ?D ~Number ?T ~Number ?T ~Number ;T
 	   05bb bad57ac .abort then ;				\			Stack underflow
 \\ \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
-\ T: stack	1 ?D ~Number ?T ;T
+T: stack	1 ?D ~Number ?T ;T
+
+
 
 : s1	stack ;
 : s2	10 stack ;
@@ -108,6 +120,17 @@ T: shl		2 ?D ~Number ?T ~Number ?T ~Number ;T
 : ts1	['] s1 typecheck ;
 : ts2	['] s2 typecheck ;
 : ts3	['] ts1 ['] stack typecheck ;
-	   
+
+: ts4	~Adr ['] >s typecheck ;
+
+: zz    1 ;
+T: zz   ~Adr ;T
+
+: p1	['] p1 ['] p1 + ;
+: p2	zz zz + ;
+: p3	10 zz + ;
+: tp1	['] p1 typecheck ;
+: tp2	['] p2 typecheck ;
+: tp3	['] p3 typecheck ;
 
 
