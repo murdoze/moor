@@ -75,10 +75,10 @@ T: >|		2 ?D >| ;T
 T: >|>|		2 ?D >|>| ;T
 T: shl		2 ?D ~Number ?T ~Number ?T ~Number ;T
 T: @		1 ?D ~Adr ?T ~Number ;T
-T: +		2 ?D .S cr
-		| ~Number T~ if | .name _ | ~Number T~ if | .name _ exit then | ~Adr T~ if | .name _ exit then else 
-		| ~Adr    T~ if | .name _ | ~Number T~ if | .name _ exit then then
-		then .S abort" '+' accepts numbers or address and number" ;
+T: +		2 ?D 
+		| ~Number T~ if >< | ~Number T~ if _ _ exit then | ~Adr T~ if _ _ exit then else 
+		| ~Adr    T~ if >< | ~Number T~ if _ _ exit then then
+		then yellow ." '+' accepts numbers or address and number, got " blue .name yellow ."  and " blue .name norm cr abort ;
 
 : qq ." AAA" ;
 : qq1 >name count type ;
@@ -121,7 +121,7 @@ T: stack	1 ?D ~Number ?T ;T
 : ts2	['] s2 typecheck ;
 : ts3	['] ts1 ['] stack typecheck ;
 
-: ts4	~Adr ['] >s typecheck ;
+: ts4	~Adr ['] >s typecheck ;	\\ TODO Crashes, to explore!!!
 
 : zz    1 ;
 T: zz   ~Adr ;T
