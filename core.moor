@@ -1,4 +1,4 @@
-: \ 0 word drop ; immediat
+: \ 0 word drop ; immediate
 : \\ 0 word drop ; immediate
 \
 \\ Moor Forth System
@@ -493,11 +493,17 @@
 	  compile branch >mark } here >< ! ; immediate
 : >does   compile xexit >resolve ; immediate
 
-: qval	,
+: qval0	,
 	interp <does @ >does
-	decomp <does .S >does ;
+	decomp <does interpreting! .S tab tab tab ." val @" | . @ . .S cr  decompiling! >does ;
+
+: qval	val
+	\ interp <does @ >does
+	decomp <does interpreting! .decomp tab | @ . tab ." val @" . cr  decompiling! >does ;
 
 99 :: qq qval
+: ww 10 qq 200 qq 20 ;
+: www 10 200 20 ;
 
 \ INTERPRETING ' >r behavior INTERPRETING ' { does		\ TODO: Why this does not work?
 \ INTERPRETING ' r> behavior INTERPRETING ' } does

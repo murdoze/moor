@@ -1329,6 +1329,7 @@ word	decompile
 _decomp_code:
 	cmp	qword ptr [_decompiling], 1
 	je	1f
+
 	call	_dup
 	mov	rtop, rwork
 	call	_decomp_print
@@ -1340,6 +1341,7 @@ _decomp_code:
 _decomp:
 	cmp	qword ptr [_decompiling], 1
 	je	1f
+	call	_dup
 _decomp1:
 	push	rpc
 	mov	rpc, rwork
@@ -1367,6 +1369,7 @@ _decomp_exit:
 	mov	rtop, 0xa
 	call	_emit
 	pop	rpc
+	call	_drop
 	jmp	rnext
 _decomp_print:
 	call	_dup
@@ -1385,6 +1388,12 @@ _decomp_print_name:
 	call	_type
 	ret
 _decompiling:	.quad	0
+
+# .DECOMP	( -- )
+# Prints decompiation header
+word	dot_decomp, ".decomp"
+	jmp	_decomp_print
+
 
 # BL ( -- c )
 # Returns blank character code
@@ -1697,12 +1706,28 @@ word	interpreting_, "(interpreting)", immediate,,,,, _code, _interpreting_
 _interpreting_:
 	mov	rstate, INTERPRETING
 	ret
+_interpreting_decomp:
+	#mov	rstate, INTERPRETING
+	jmp	rnext
 
 # INTERPRETING!
 # Switches address interpreter state to INTERPRETING
-word	interpreting__, "interpreting!",,,,,, _code, _interpreting__
+word	interpreting__, "interpreting!",,,, _interpreting__decomp, 0, _code, _interpreting__
 _interpreting__:
 	mov	rstate, INTERPRETING
+	ret
+_interpreting__decomp:
+	mov	rstate, INTERPRETING
+	jmp	rnext
+
+
+# DECOMPILING!
+# Switches address interpreter state to DECOMPILING
+word	decompiling__, "decompiling!",,,,,, _code, _decompiling__
+_decompiling__:
+	mov	rstate, DECOMPILING
+	pop	rtmp
+	jmp	_exit
 	ret
 
 # IMMEDIATE ( -- )
@@ -2198,7 +2223,7 @@ _quit_:
 	call	_find
 	test	rtop, rtop
 	jz	2f
-
+_quit_found:
 	mov	rwork, rtop
 	call	_drop
 
