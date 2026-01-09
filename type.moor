@@ -36,30 +36,40 @@ INTERPRETING ' interpreting! behavior TYPECHECKING ' interpreting! does
 
 : assert-depth depth < if 71bececc deb76 .abort then ;
 
-: .typecheck-error yellow ." typecheck error" norm cr ;
+: .typecheck-error 
+	blue .name bl emit
+	yellow ." typecheck error:" 
+	blue ."  expected " yellow .name 
+	blue ." , received " yellow .name norm cr abort ;
+
 : assert-type							\ ( t1 t2 -- | ABORT)
+	compile || 
 	compile <>
 	[compile] if
 		latest-typecheck @ [compile] literal
-		compile >name compile count compile blue compile type 
-		compile bl compile emit compile .typecheck-error
+		compile .typecheck-error
 	[compile] then
+	compile _ compile _
 ; immediate
 : ?T [compile] assert-type ; immediate
 								\\ Typechecking tests
 .( Typechecking ) cr
 
-T: lit	skip ~Number ;T
-T: emit ~Number ?T ;T
-T: (") (")-skip ~'#Str ;T
-T: count ~'#Str ?T ~Str ~Number ;T
-T: type ~Number ?T ~Str ?T ;T
-
+T: lit		skip ~Number ;T
+T: emit		~Number ?T ;T
+T: (")		(")-skip ~'#Str ;T
+T: count 	~'#Str ?T ~Str ~Number ;T
+T: type 	~Number ?T ~Str ?T ;T
+T: >name	~Xt ?T ~'#Str ;
 
 
 
 : qq ." AAA" ;
-: qq1 ['] qq 10 type ;
-: tqq ['] qq trace typecheck notrace ;
+: qq1 >name count type ;
+: qq2 0 >name count type ;
+
+: tqq ['] qq typecheck  ;
+: tqq1 ['] qq ['] qq1 typecheck ;
+: tqq2 ['] qq2 typecheck ;
 
 
