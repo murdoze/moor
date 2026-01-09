@@ -180,6 +180,7 @@
 : >name    23 cells - @ ; 					\ ( xt -- c-addr )	Returns address of the name counted string
 : >link    22 cells - ; 					\ ( xt -- lfa )		Returns address of the LFA
 
+: .name    >name count type ;
 								\\ Control structures								_control
 : >mark    here 0 , ;						\ ( -- a )		Address for forward branch fixup
 : >resolve | here >< - cell/ 1- >< ! ;				\ ( a -- )		Fixup forward branch
