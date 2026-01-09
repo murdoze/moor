@@ -34,18 +34,24 @@ INTERPRETING ' interpreting! behavior TYPECHECKING ' interpreting! does
 : (:)      : ;							\ 			Redefine : to enable REGALLOCING state TODO: ANALYZE
 : :        (:) INTERPRETING latest behavior TYPECHECKING latest does ;
 
-: assert-depth depth < if 71bececc deb76 .abort then ;
+: ?depth
+	>< || < if >>>
+		blue .name bl emit
+		yellow ." depth: expected " blue . bs yellow ." , got " blue . norm cr abort 
+	then _ _ _ ;
+: ?D	
+	compile depth compile 1- latest-typecheck @ [compile] literal compile <<< compile ?depth ; immediate
 
-: ?typecheck-error
+: ?typecheck
 	<<< || <> if >>>
-	blue .name bl emit
-	yellow ." typecheck error:" 
-	blue ."  expected " yellow .name 
-	blue ." , received " yellow .name norm cr abort 
-	then _ _ ;
+		blue .name bl emit
+		yellow ." typecheck error:" 
+		blue ."  expected " yellow .name 
+		blue ." , received " yellow .name norm cr abort 
+	then _ _ _ ;
 : assert-type							\ ( t1 t2 -- | ABORT)
 	latest-typecheck @ [compile] literal
-	compile ?typecheck-error ; immediate
+	compile ?typecheck ; immediate
 : ?T [compile] assert-type ; immediate
 								\\ Typechecking tests
 .( Typechecking ) cr
@@ -57,7 +63,9 @@ T: count 	~'#Str ?T ~Str ~Number ;T
 T: type 	~Number ?T ~Str ?T ;T
 T: >name	~Xt ?T ~'#Str ;
 
-
+T: ,		_ ;T
+T: |		| ;T
+T: shl		~Number ?T ~Number ?T ~Number ;T
 
 : qq ." AAA" ;
 : qq1 >name count type ;
@@ -66,5 +74,37 @@ T: >name	~Xt ?T ~'#Str ;
 : tqq ['] qq typecheck  ;
 : tqq1 ['] qq ['] qq1 typecheck ;
 : tqq2 ['] qq2 typecheck ;
+
+\\ Stack
+\\ \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+: stack    0 , | , cells allot does> ;				\ ( n -- ) ( -- stack )	Stack N cells size
+: empty    0 >< ! ;							\ ( s -- )		Empty stack
+: stack@   | @ >| cell+ @ ;					\ ( stack -- stack pointer limit )	Extracts stack parameters onto data stack
+: .stack   | @ | if >< cell+ cell+ >< for | @ . cell+ over _	\ ( stack -- )
+           else _ _ then ;
+
+: >s       | @ >| cell+ @					\ ( a stack -- | E )    Pushes element onto stack or aborts on overflow
+	   >| - if						\ ( a stack sp limit )	Check if stack about to overflow
+	   >|>| 1+ >< !						\ ( a stack sp )	Increment stack pointer
+           cells + cell+ cell+ !				\ ( a stack sp )	Store element
+	   else _ >name count type bl emit
+	   0add bad57ac .abort then ;				\ 			Stack overflow
+
+: s>       | @ | if						\ ( stack -- a | E )	Pops element off stack or aborts on underflow
+           1- >|>| >< !						\ ( stack sp )		Decrement stack pointer
+           cells + cell+ cell+ @				\ ( stack sp )		Fetch element
+	   else _ >name count type bl emit
+	   05bb bad57ac .abort then ;				\			Stack underflow
+\\ \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+T: stack	1 ?D ~Number ?T ;T
+
+: s1	stack ;
+: s2	10 stack ;
+
+: ts1	['] s1 typecheck ;
+: ts2	['] s2 typecheck ;
+: ts3	['] ts1 ['] stack typecheck ;
+	   
 
 
