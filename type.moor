@@ -36,21 +36,16 @@ INTERPRETING ' interpreting! behavior TYPECHECKING ' interpreting! does
 
 : assert-depth depth < if 71bececc deb76 .abort then ;
 
-: .typecheck-error 
+: ?typecheck-error
+	<<< || <> if >>>
 	blue .name bl emit
 	yellow ." typecheck error:" 
 	blue ."  expected " yellow .name 
-	blue ." , received " yellow .name norm cr abort ;
-
+	blue ." , received " yellow .name norm cr abort 
+	then _ _ ;
 : assert-type							\ ( t1 t2 -- | ABORT)
-	compile || 
-	compile <>
-	[compile] if
-		latest-typecheck @ [compile] literal
-		compile .typecheck-error
-	[compile] then
-	compile _ compile _
-; immediate
+	latest-typecheck @ [compile] literal
+	compile ?typecheck-error ; immediate
 : ?T [compile] assert-type ; immediate
 								\\ Typechecking tests
 .( Typechecking ) cr
