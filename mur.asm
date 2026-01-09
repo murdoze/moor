@@ -711,6 +711,15 @@ word	execute
 
 	jmp	_doxt
 
+# SEXECUTE ( xt -- )
+# Executes word, specified by XT, w/o changing state
+word	sexecute
+	mov	rwork, rtop
+	call	_drop
+	pop	rtmp	# Skip return address (=NEXT)
+
+	jmp	_doxt
+
 # THREAD ( pc -- )
 # Executes Forth word thread, specified by thread address. EXIT returns
 word	thread,,, thread, thread
@@ -1350,6 +1359,7 @@ _decomp1:
 	1:
 	call	_dup
 	mov	rtop, rwork
+
 __decompile:
 	call	_decomp_print
 	call	_dup
@@ -1706,27 +1716,36 @@ word	interpreting_, "(interpreting)", immediate,,,,, _code, _interpreting_
 _interpreting_:
 	mov	rstate, INTERPRETING
 	ret
-_interpreting_decomp:
-	#mov	rstate, INTERPRETING
-	jmp	rnext
+
+# SEE-DOES!
+# Allows seeing DOES> words that use INTERPRETING! A dirty hack, but...
+word	see_does_, "see-does!"
+	mov	_see_does, rtop
+	call	_drop
+	ret
+
+_see_does:
+	.quad	0
 
 # INTERPRETING!
 # Switches address interpreter state to INTERPRETING
-word	interpreting__, "interpreting!",,,, _interpreting__decomp, 0, _code, _interpreting__
+word	interpreting__, "interpreting!",,,,_interpreting__decomp, 0, _code, _interpreting__
 _interpreting__:
 	mov	rstate, INTERPRETING
 	ret
 _interpreting__decomp:
-	mov	rstate, INTERPRETING
-	jmp	rnext
-
+	cmp	qword ptr [_see_does], 0
+	jnz	9f
+	mov     rstate, INTERPRETING
+	9:
+	jmp     rnext
 
 # DECOMPILING!
 # Switches address interpreter state to DECOMPILING
 word	decompiling__, "decompiling!",,,,,, _code, _decompiling__
 _decompiling__:
 	mov	rstate, DECOMPILING
-	pop	rtmp
+	pop	rpc
 	jmp	_exit
 	ret
 

@@ -483,8 +483,8 @@
 
 : interp	['] (does) interpretation ; immediate
 : decomp	['] (does) decompilation ; immediate
-								\\ Does
-: <does								\ ( code state -- )
+								\\ DOES
+: does<								\ ( code state -- )
 	  compile lit >mark {
 	  >< compile,
 	  [compile] literal  
@@ -492,14 +492,17 @@
 	  compile does 
 	  compile branch >mark } here >< ! ; immediate
 : >does   compile xexit >resolve ; immediate
+								\\ Decompilation DOES
+: decomp-does<
+          [compile] decomp [compile] does< compile interpreting! 
+          compile .decomp compile tab ; immediate
 
-: qval0	,
-	interp <does @ >does
-	decomp <does interpreting! .S tab tab tab ." val @" | . @ . .S cr  decompiling! >does ;
+: >decomp-does
+          compile cr compile decompiling! [compile] >does ; immediate
 
-: qval	val
-	\ interp <does @ >does
-	decomp <does interpreting! .decomp tab | @ . tab ." val @" . cr  decompiling! >does ;
+: (val)   val ;
+: qval    (val)
+	  decomp-does< ." ==> " | @ . tab ." val @" . >decomp-does ;
 
 99 :: qq qval
 : ww 10 qq 200 qq 20 ;
