@@ -57,15 +57,18 @@ INTERPRETING ' interpreting! behavior TYPECHECKING ' interpreting! does
 .( Typechecking ) cr
 
 T: lit		skip ~Number ;T
-T: emit		~Number ?T ;T
+T: emit		1 ?D ~Number ?T ;T
 T: (")		(")-skip ~'#Str ;T
-T: count 	~'#Str ?T ~Str ~Number ;T
-T: type 	~Number ?T ~Str ?T ;T
+T: count 	1 ?D ~'#Str ?T ~Str ~Number ;T
+T: type 	2 ?D ~Number ?T ~Str ?T ;T
 T: >name	~Xt ?T ~'#Str ;
 
-T: ,		_ ;T
-T: |		| ;T
-T: shl		~Number ?T ~Number ?T ~Number ;T
+T: (does>)	1 ?D ~Number ?T ;T	\\ TODO ~Xt xtlit/xtliteral ?
+T: xexit	;T
+T: allot	1 ?D ~Number ?T ;T
+T: ,		1 ?D _ ;T
+T: |		1 ?D | ;T
+T: shl		2 ?D ~Number ?T ~Number ?T ~Number ;T
 
 : qq ." AAA" ;
 : qq1 >name count type ;
@@ -78,7 +81,7 @@ T: shl		~Number ?T ~Number ?T ~Number ;T
 \\ Stack
 \\ \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 : stack    0 , | , cells allot does> ;				\ ( n -- ) ( -- stack )	Stack N cells size
-: empty    0 >< ! ;							\ ( s -- )		Empty stack
+: empty    0 >< ! ;						\ ( s -- )		Empty stack
 : stack@   | @ >| cell+ @ ;					\ ( stack -- stack pointer limit )	Extracts stack parameters onto data stack
 : .stack   | @ | if >< cell+ cell+ >< for | @ . cell+ over _	\ ( stack -- )
            else _ _ then ;
@@ -97,7 +100,7 @@ T: shl		~Number ?T ~Number ?T ~Number ;T
 	   05bb bad57ac .abort then ;				\			Stack underflow
 \\ \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
-T: stack	1 ?D ~Number ?T ;T
+\ T: stack	1 ?D ~Number ?T ;T
 
 : s1	stack ;
 : s2	10 stack ;
