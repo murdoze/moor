@@ -14,8 +14,10 @@ INTERPRETING ' interpreting! behavior TYPECHECKING ' interpreting! does
 								\\ Type registration
 :: ~Number
 :: ~Xt
-:: ~'#Str
-:: ~Str
+
+:: ~'#Str							\ Pointer to a counted string
+:: ~#Str							\ Counted string length
+:: ~Str								\ String slice
 
 : T:								\ ( "<name>" -- )	Defines static typecheck behavior for a word
 	here exec TYPECHECKING ' | latest-typecheck ! does
@@ -32,34 +34,32 @@ INTERPRETING ' interpreting! behavior TYPECHECKING ' interpreting! does
 : (:)      : ;							\ 			Redefine : to enable REGALLOCING state TODO: ANALYZE
 : :        (:) INTERPRETING latest behavior TYPECHECKING latest does ;
 
-: assert-depth depth < if 71b0cecc deb76 .abort then ;
+: assert-depth depth < if 71bececc deb76 .abort then ;
 
+: .typecheck-error yellow ." typecheck error" norm cr ;
 : assert-type							\ ( t1 t2 -- | ABORT)
 	compile <>
 	[compile] if
-		71b0cecc [compile] literal
-		a55e47 [compile] literal 
 		latest-typecheck @ [compile] literal
 		compile >name compile count compile blue compile type 
-		compile bl compile emit compile .abort 
+		compile bl compile emit compile .typecheck-error
 	[compile] then
 ; immediate
-
+: ?T [compile] assert-type ; immediate
 								\\ Typechecking tests
-.( Typechecking tests... )
+.( Typechecking ) cr
 
 T: lit	skip ~Number ;T
-: _emit ~Number [ trace ] assert-type [ notrace ] ;
-: __emit _emit ;
-T: emit ~Number assert-type ;T
-T: count ~'#Str assert-type ;T
+T: emit ~Number ?T ;T
+T: (") (")-skip ~'#Str ;T
+T: count ~'#Str ?T ~Str ~Number ;T
+T: type ~Number ?T ~Str ?T ;T
 
-see assert-type
-see _emit
-~Number _emit
-\\ 11 __emit
 
-INTERPRETING ' (") behavior TYPECHECKING ' (") does
 
-\\ 71b0ccec 7e57 .abort
+
+: qq ." AAA" ;
+: qq1 ['] qq 10 type ;
+: tqq ['] qq trace typecheck notrace ;
+
 
