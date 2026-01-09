@@ -568,7 +568,6 @@ _sigsegv_restorer:
 	.quad	latest_word	/* LFA */
 	.quad	CANARY	
 
-
 	reserve_cfa
 
 	# DECOMPILING
@@ -613,7 +612,6 @@ _sigsegv_restorer:
 .else
 	.quad	\param
 .endif
-	# TODO: Add a "canary"/hash to make sure an XT is actually an XT
 .func	name
 \name\():
 	latest_word = .
@@ -1821,6 +1819,19 @@ _forthword:
 	.quad	lit, 0
 	.quad	lit, _decomp
 	.quad	lit, DECOMPILING
+	.quad	latest
+	.quad	does
+
+	# Unimplemented states are the same as interpretation for Forth words
+	.quad	here
+	.quad	lit, _exec
+	.quad	lit, -6
+	.quad	latest
+	.quad	does
+
+	.quad	here
+	.quad	lit, _exec
+	.quad	lit, -8
 	.quad	latest
 	.quad	does
 
