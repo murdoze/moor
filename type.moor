@@ -8,9 +8,9 @@
 
 INTERPRETING ' exit 	     behavior TYPECHECKING ' exit          does
 INTERPRETING ' interpreting! behavior TYPECHECKING ' interpreting! does
+INTERPRETING ' (interpreting) behavior TYPECHECKING ' (interpreting) does
 
-:: TYPECHECKING!!  code rstate TYPECHECKING  mov.i, ret,		\ ( -- )	Sets state to TYPECHECKING without address interpreter involvement
-\\	INTERPRETING latest behavior REGALLOCING latest does
+:: TYPECHECKING!!  code rstate TYPECHECKING  mov.i, ret,	\ ( -- )	Sets state to TYPECHECKING without address interpreter involvement
 								\\ Type registration
 :: TMASK	88_00_00_00 val
 :: XTMASK	01 val
@@ -40,9 +40,14 @@ INTERPRETING ' interpreting! behavior TYPECHECKING ' interpreting! does
 : ;T	compile TYPECHECKING!! compile exit [compile] [ ; immediate
 
 : typecheck							\ ( xt -- )		Run XT in static type checking mode
+	|{
 	TYPECHECKING state!
 	execute
-	interpreting! INTERPRETING state! ;
+	interpreting! INTERPRETING state! 
+	} \ xt
+
+	
+;
 
 : (:)      : ;							\ 			Redefine : to enable REGALLOCING state TODO: ANALYZE
 : :        (:) INTERPRETING latest behavior TYPECHECKING latest does ;
@@ -66,7 +71,7 @@ INTERPRETING ' interpreting! behavior TYPECHECKING ' interpreting! does
 ; 
 : .type	T>xt .name ;
 
-: ?typecheck
+: ?typecheck 
 	<<< || T~ -if >>>
 		blue .type bl emit
 		yellow ." typecheck error:"
@@ -101,14 +106,6 @@ T: +		2 ?D
 		| ~Adr    T~ if >< | ~Number T~ if _ _ exit then then
 		then yellow .S ." '+' accepts numbers or address and number, got " blue .type yellow ."  and " blue .type norm cr abort ;
 
-: qq ." AAA" ;
-: qq1 >name count type ;
-: qq2 0 >name count type ;
-
-: tqq ['] qq typecheck  ;
-: tqq1 ['] qq ['] qq1 typecheck ;
-: tqq2 ['] qq2 typecheck ;
-
 \\ Stack
 \\ \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 : stack    0 , | , cells allot does> ;				\ ( n -- ) ( -- stack )	Stack N cells size
@@ -131,12 +128,20 @@ T: +		2 ?D
 	   05bb bad57ac .abort then ;				\			Stack underflow
 \\ \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
+: qq ." AAA" ;
+: qq1 >name count type ;
+: qq2 0 >name count type ;
+
+: tqq ['] qq typecheck  ;
+: tqq1 ['] qq ['] qq1 typecheck ;
+: tqq2 ['] qq2 typecheck ;
+
+
 T: stack	1 ?D ~Number ?T ;T
-
-
 
 : s1	stack ;
 : s2	10 stack ;
+:: ss	s2
 
 : ts1	['] s1 typecheck ;
 : ts2	['] s2 typecheck ;
@@ -160,4 +165,13 @@ T: zz   ~Adr ;T
 	~Any ~Number	T~ .. .S cr
 	~Adr ~Number	T~ .. .S cr
 ;
+
+: w1	41 emit ;
+: w2	emit ;			\ ['] <...> generates LIT, which is of type ~Number
+: w3	ss emit ;
+: tw1	['] w1 typecheck ;
+: tw2	['] s2 ['] w2 typecheck ;
+: tw3	['] w3 typecheck ;	\ Need <DOES for types
+
+
 
