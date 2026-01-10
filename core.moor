@@ -177,8 +177,8 @@
 : val      , does> @ ;						\ :: b 98765 val
 
 
-: >name    23 cells - @ ; 					\ ( xt -- c-addr )	Returns address of the name counted string
-: >link    22 cells - ; 					\ ( xt -- lfa )		Returns address of the LFA
+: >name    22 cells - @ ; 					\ ( xt -- c-addr )	Returns address of the name counted string
+: >link    21 cells - ; 					\ ( xt -- lfa )		Returns address of the LFA
 
 : .name    >name count type ;
 								\\ Control structures								_control

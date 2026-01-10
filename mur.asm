@@ -8,9 +8,6 @@
 	.equ	INTERPRETING, 0
 	.equ	COMPILING, -2
 	.equ	DECOMPILING, -4
-
-	.equ	CANARY, 0x610eb14d500dbeef
-
 				/* Before changing register assignment check usage of low 8-bit parts of these registers: al, bl, cl, dl, rXl etc. */
 				/* TODO: define low byte aliases for needed address interpreter regsters */
 	.equ	rwork, rax	/* Points to XT in code words. Needs not be preserved */
@@ -105,10 +102,6 @@ _exit:
 	pop	rpc
 _next:
 	lodsq
-	# Canary does not save from GPF, so let's think...
-	#movabs	r11, CANARY
-	#cmp	qword ptr [rwork - STATES * 16 - 8], r11
-	#jne	_canary_fail
 _doxt:
 .ifdef TRACE
 	jmp	_do_trace
@@ -326,7 +319,7 @@ _state_notimpl:
 	pop	rwork
 	
 	call	_dup
-	mov	rwork, [rwork - STATES * 16 - 24]	/* XT > NFA */
+	mov	rwork, [rwork - STATES * 16 - 16]	/* XT > NFA */
 	mov	rtop, rwork
 	call	_count
 	call	_type
@@ -566,7 +559,6 @@ _sigsegv_restorer:
 	.p2align	4, 0x00
 	.quad	.L\name\()_str0	/* NFA */
 	.quad	latest_word	/* LFA */
-	.quad	CANARY	
 
 	reserve_cfa
 
@@ -1257,7 +1249,7 @@ _words_:
 
 	push	rtmp					# current word
 
-	mov	rwork, [rtmp - STATES * 16 - 24]	# NFA
+	mov	rwork, [rtmp - STATES * 16 - 16]	# NFA
 
 	call	_dup
 	mov	rtop, rwork
@@ -1276,7 +1268,7 @@ _words_:
 	call	_emit
 
 	pop	rtmp
-	mov	rtmp, [rtmp - STATES * 16 - 16]		# LFA
+	mov	rtmp, [rtmp - STATES * 16 - 8]		# LFA
 	jmp	7b
 
 	9:
@@ -1406,7 +1398,7 @@ _decomp_print:
 	call	_emit
 _decomp_print_name:
 	call	_dup
-	mov	rtop, [rtop - STATES * 16 - 24]	# NFA
+	mov	rtop, [rtop - STATES * 16 - 16]	# NFA
 	call	_count
 	call	_type
 	ret
@@ -1666,9 +1658,6 @@ _header:
 	mov	qword ptr [rhere], rwork	# NFA
 	add	rhere, 8
 	mov	qword ptr [rhere], rtmp		# LFA
-	add	rhere, 8
-	movabs	rtmp, CANARY
-	mov	qword ptr [rhere], rtmp		# canary
 	add	rhere, 8
 
 	call	_cfa_allot
@@ -2036,7 +2025,7 @@ _find_:
 
 	mov	rsi, rbx
 
-	mov	rwork, [rtmp - STATES * 16 - 24]	# NFA
+	mov	rwork, [rtmp - STATES * 16 - 16]	# NFA
 	movzx	rcx, byte ptr [rwork]
 	inc	rcx
 	mov	rdi, rwork
@@ -2044,7 +2033,7 @@ _find_:
 	mov	rtop, rtmp
 	je	9f
 
-	mov	rtmp, [rtmp - STATES * 16 - 16]		# LFA
+	mov	rtmp, [rtmp - STATES * 16 - 8]		# LFA
 	
 	jmp	5b
 
