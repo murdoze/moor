@@ -2,7 +2,7 @@
 \\ Optimizer
 \
 								\\ Optimizer states
-:: REGALLOCING		:state
+\ :: REGALLOCING		:state				\ TODO: Dirty hack, see comment in core.moor
 :: ASSEMBLING		:state
 :: DEALLOCING		:state
 								\\ Regallocing and assembling states
