@@ -12,22 +12,24 @@ INTERPRETING ' interpreting! behavior TYPECHECKING ' interpreting! does
 :: TYPECHECKING!!  code rstate TYPECHECKING  mov.i, ret,		\ ( -- )	Sets state to TYPECHECKING without address interpreter involvement
 \\	INTERPRETING latest behavior REGALLOCING latest does
 								\\ Type registration
-:: Tmask	88_00_00_00 Type
+:: TMASK	88_00_00_00 val
+:: XTMASK	01 val
+:: -XTMASK	-2 val
 
-: Type		, does> 01 or ;
+: Type		TMASK or , does> XTMASK or ;
 
-:: ~Any		88_00_00_00 Type
+:: ~Any		00_00_00 Type
 
-:: ~Number	88_00_00_01 Type
-:: ~#Str	88_00_01_01 Type					\ Counted string length
-:: ~Integer	88_00_02_01 Type
+:: ~Number	00_00_01 Type
+:: ~#Str	00_01_01 Type					\ Counted string length
+:: ~Integer	00_02_01 Type
 
-:: ~Adr		88_00_00_02 Type
-:: ~'#Str	88_00_02_02 Type					\ Pointer to a counted string
+:: ~Adr		00_00_02 Type
+:: ~'#Str	00_02_02 Type					\ Pointer to a counted string
 
-:: ~Str		88_00_00_03 Type					\ String slice
+:: ~Str		00_00_03 Type					\ String slice
 
-:: ~Xt		88_00_00_04 Type
+:: ~Xt		00_00_04 Type
 
 
 : T:								\ ( "<name>" -- )	Defines static typecheck behavior for a word
@@ -56,8 +58,8 @@ INTERPRETING ' interpreting! behavior TYPECHECKING ' interpreting! does
 : T>xt	-2 and ;
 : T~
 	|| = if _ _ 1 exit then
-	| 01 and if T>xt @ else _ _ 0 exit then ><
-	| 01 and if T>xt @ else _ _ 0 exit then
+	| XTMASK and if T>xt @ else _ _ 0 exit then ><
+	| XTMASK and if T>xt @ else _ _ 0 exit then
 	>< || and >| = if _ _ 1 exit then
 	>< || and >| = if _ _ 1 exit then
 	_ _ 0
@@ -152,10 +154,10 @@ T: zz   ~Adr ;T
 : tp2	['] p2 typecheck ;
 : tp3	['] p3 typecheck ;
 
-~Number ~Number	T~ .. .S cr
-~Number ~Any	T~ .. .S cr
-~Any ~Number	T~ .. .S cr
-~Adr ~Number	T~ .. .S cr
-
-
+: tpr1
+	~Number ~Number	T~ .. .S cr
+	~Number ~Any	T~ .. .S cr
+	~Any ~Number	T~ .. .S cr
+	~Adr ~Number	T~ .. .S cr
+;
 
