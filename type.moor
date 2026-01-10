@@ -12,13 +12,23 @@ INTERPRETING ' interpreting! behavior TYPECHECKING ' interpreting! does
 :: TYPECHECKING!!  code rstate TYPECHECKING  mov.i, ret,		\ ( -- )	Sets state to TYPECHECKING without address interpreter involvement
 \\	INTERPRETING latest behavior REGALLOCING latest does
 								\\ Type registration
-:: ~Number
-:: ~Xt
-:: ~Adr
+:: Tmask	88_00_00_00 Type
 
-:: ~'#Str							\ Pointer to a counted string
-:: ~#Str							\ Counted string length
-:: ~Str								\ String slice
+: Type		, does> 01 or ;
+
+:: ~Any		88_00_00_00 Type
+
+:: ~Number	88_00_00_01 Type
+:: ~#Str	88_00_01_01 Type					\ Counted string length
+:: ~Integer	88_00_02_01 Type
+
+:: ~Adr		88_00_00_02 Type
+:: ~'#Str	88_00_02_02 Type					\ Pointer to a counted string
+
+:: ~Str		88_00_00_03 Type					\ String slice
+
+:: ~Xt		88_00_00_04 Type
+
 
 : T:								\ ( "<name>" -- )	Defines static typecheck behavior for a word
 	here exec TYPECHECKING ' | latest-typecheck ! does
@@ -43,14 +53,23 @@ INTERPRETING ' interpreting! behavior TYPECHECKING ' interpreting! does
 : ?D	
 	compile depth compile 1- latest-typecheck @ [compile] literal compile <<< compile ?depth ; immediate
 
-: T~	= ; 
+: T>xt	-2 and ;
+: T~
+	|| = if _ _ 1 exit then
+	| 01 and if T>xt @ else _ _ 0 exit then ><
+	| 01 and if T>xt @ else _ _ 0 exit then
+	>< || and >| = if _ _ 1 exit then
+	>< || and >| = if _ _ 1 exit then
+	_ _ 0
+; 
+: .type	T>xt .name ;
 
 : ?typecheck
 	<<< || T~ -if >>>
-		blue .name bl emit
-		yellow ." typecheck error:" 
-		blue ."  expected " yellow .name 
-		blue ." , received " yellow .name norm cr abort 
+		blue .type bl emit
+		yellow ." typecheck error:"
+		blue ."  expected " yellow .type
+		blue ." , received " yellow .type norm cr abort
 	then _ _ _ ;
 : assert-type							\ ( t1 t2 -- | ABORT)
 	latest-typecheck @ [compile] literal
@@ -78,7 +97,7 @@ T: @		1 ?D ~Adr ?T ~Number ;T
 T: +		2 ?D 
 		| ~Number T~ if >< | ~Number T~ if _ _ exit then | ~Adr T~ if _ _ exit then else 
 		| ~Adr    T~ if >< | ~Number T~ if _ _ exit then then
-		then yellow ." '+' accepts numbers or address and number, got " blue .name yellow ."  and " blue .name norm cr abort ;
+		then yellow .S ." '+' accepts numbers or address and number, got " blue .type yellow ."  and " blue .type norm cr abort ;
 
 : qq ." AAA" ;
 : qq1 >name count type ;
@@ -132,5 +151,11 @@ T: zz   ~Adr ;T
 : tp1	['] p1 typecheck ;
 : tp2	['] p2 typecheck ;
 : tp3	['] p3 typecheck ;
+
+~Number ~Number	T~ .. .S cr
+~Number ~Any	T~ .. .S cr
+~Any ~Number	T~ .. .S cr
+~Adr ~Number	T~ .. .S cr
+
 
 
