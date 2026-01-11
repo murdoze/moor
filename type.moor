@@ -45,10 +45,9 @@ interpretation ' typechecking!!  behavior typechecking ' typechecking!!  does
 : ;T	[compile] Texit [compile] [ ; immediate
 
 : typecheck-inside \\ TODO !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-	typechecking interpretation [ latest-typecheck @ ] literal behavior execcfa interpreting! ;T
-: ;T...	
-	compile typecheck-inside
-
+	typechecking interpretation >>> behavior execcfa interpreting! ;
+: ...;T
+	latest-typecheck @ [compile] literal compile typecheck-inside
 	[compile] ;T ; immediate	\ 			Continue typechecking of the inside of the definition
 
 : typecheck							\ ( xt -- )		Run XT in static type checking mode
@@ -187,13 +186,12 @@ T: stack	1 ?D ~Number ?T ;T
 : s5	| @ >| cell+ @ 
 	>| - if
 	>|>| 1+ >< !
-	cells + cell+ cell+ !
+	cells + cell+ cell+ >< !
 	else \ _ >name
 	then 
 	1 | _ ;
 
-T: s5	1 ?D ['] stack ?T  ~Adr 
-	typechecking interpretation [ latest-typecheck @ ] literal behavior execcfa interpreting! ;T
+T: s5	1 ?D ['] stack ?T  ~Adr ...;T
 
 \ φ-junction needed to handle else
 : ts41	~Number ~Adr ['] >s typecheck ;
