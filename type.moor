@@ -1,16 +1,20 @@
-\
-\\ Type check
+ \
+\\Type check
 \
 								\\ Static type check
 :: TYPECHECKING		:state
 
 :: latest-typecheck	latest var
 
+:: TYPECHECKING!!	code rstate TYPECHECKING  mov.i, ret,	\ ( -- )	Sets state to TYPECHECKING without address interpreter involvement
+:: Texit		code	rpc pop,  rpc pop,
+				rstate TYPECHECKING  mov.i,
+				rnext jmp,
+
 INTERPRETING ' exit 	     behavior TYPECHECKING ' exit          does
 INTERPRETING ' interpreting! behavior TYPECHECKING ' interpreting! does
 INTERPRETING ' (interpreting) behavior TYPECHECKING ' (interpreting) does
 
-:: TYPECHECKING!!  code rstate TYPECHECKING  mov.i, ret,	\ ( -- )	Sets state to TYPECHECKING without address interpreter involvement
 								\\ Type registration
 :: TMASK	88_00_00_00 val
 :: XTMASK	01 val
@@ -57,7 +61,7 @@ INTERPRETING ' (interpreting) behavior TYPECHECKING ' (interpreting) does
 		blue .name bl emit
 		yellow ." depth: expected " blue . bs yellow ." , got " blue . norm cr abort 
 	then _ _ _ ;
-: ?D	
+: ?D
 	compile depth compile 1- latest-typecheck @ [compile] literal compile <<< compile ?depth ; immediate
 
 : T>xt	-2 and ;
@@ -71,13 +75,14 @@ INTERPRETING ' (interpreting) behavior TYPECHECKING ' (interpreting) does
 ; 
 : .type	T>xt .name ;
 
-: ?typecheck 
+: ?typecheck
 	<<< || T~ -if >>>
 		blue .type bl emit
 		yellow ." typecheck error:"
 		blue ."  expected " yellow .type
 		blue ." , received " yellow .type norm cr abort
 	then _ _ _ ;
+
 : assert-type							\ ( t1 t2 -- | ABORT)
 	latest-typecheck @ [compile] literal
 	compile ?typecheck ; immediate
@@ -85,7 +90,12 @@ INTERPRETING ' (interpreting) behavior TYPECHECKING ' (interpreting) does
 								\\ Typechecking tests
 .( Typechecking ) cr
 
+: xtlit		@skip ;
+: xtliteral	compile xtlit , ; immediate
+: [']      ' [compile] xtliteral ; immediate
+
 T: lit		skip ~Number ;T
+T: xtlit	skip ~Xt ;T
 T: emit		1 ?D ~Number ?T ;T
 T: (")		(")-skip ~'#Str ;T
 T: count 	1 ?D ~'#Str ?T ~Str ~Number ;T
@@ -102,9 +112,9 @@ T: >|>|		2 ?D >|>| ;T
 T: shl		2 ?D ~Number ?T ~Number ?T ~Number ;T
 T: @		1 ?D ~Adr ?T ~Number ;T
 T: +		2 ?D 
-		| ~Number T~ if >< | ~Number T~ if _ _ exit then | ~Adr T~ if _ _ exit then else 
-		| ~Adr    T~ if >< | ~Number T~ if _ _ exit then then
-		then yellow .S ." '+' accepts numbers or address and number, got " blue .type yellow ."  and " blue .type norm cr abort ;
+		| ~Number T~ if >< | ~Number T~ if _ _ ~Number Texit then | ~Adr T~ if _ _ ~Adr Texit then else 
+		| ~Adr    T~ if >< | ~Number T~ if _ _ ~Adr Texit then then
+		then yellow .S ." '+' accepts numbers or address and number, got " blue .type yellow ."  and " blue .type norm cr abort ;T
 
 \\ Stack
 \\ \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
@@ -137,6 +147,9 @@ T: +		2 ?D
 : tqq2 ['] qq2 typecheck ;
 
 
+: mm ;
+T: mm ." mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm " ;T
+
 T: stack	1 ?D ~Number ?T ;T
 
 : s1	stack ;
@@ -147,7 +160,19 @@ T: stack	1 ?D ~Number ?T ;T
 : ts2	['] s2 typecheck ;
 : ts3	['] ts1 ['] stack typecheck ;
 
-: ts4	~Adr ['] >s typecheck ;	\\ TODO Crashes, to explore!!!
+: >s2      | @ >| cell+ @
+	   >| - if	
+	   >|>| 1+ >< !
+           cells + cell+ cell+ !
+	   else _ >name count type bl emit
+	   0add bad57ac .abort then ;
+: s5       | @ >| mm 8 mm @ 
+	   >| -
+;
+
+
+: ts4	~Adr ['] >s2 typecheck ;	\\ TODO Crashes, to explore!!!
+: ts5	~Adr ['] s5 typecheck ;		\\ TODO Crashes, to explore!!!
 
 : zz    1 ;
 T: zz   ~Adr ;T
@@ -155,9 +180,14 @@ T: zz   ~Adr ;T
 : p1	['] p1 ['] p1 + ;
 : p2	zz zz + ;
 : p3	10 zz + ;
+: pp4	10 20 + ;
+: p4	pp4 30 + ;
+: p5	10 20 30 + + ;
 : tp1	['] p1 typecheck ;
 : tp2	['] p2 typecheck ;
 : tp3	['] p3 typecheck ;
+: tp4	['] p4 typecheck ;
+: tp5	['] p5 typecheck ;
 
 : tpr1
 	~Number ~Number	T~ .. .S cr
@@ -172,6 +202,4 @@ T: zz   ~Adr ;T
 : tw1	['] w1 typecheck ;
 : tw2	['] s2 ['] w2 typecheck ;
 : tw3	['] w3 typecheck ;	\ Need <DOES for types
-
-
 
