@@ -14,6 +14,7 @@
 interpretation ' exit 	        behavior typechecking ' exit           does
 interpretation ' interpreting!  behavior typechecking ' interpreting!  does
 interpretation ' (interpreting) behavior typechecking ' (interpreting) does
+interpretation ' typechecking!!  behavior typechecking ' typechecking!!  does
 
 								\\ Type registration
 :: TMASK	88_00_00_00 val
@@ -42,11 +43,15 @@ interpretation ' (interpreting) behavior typechecking ' (interpreting) does
 	] 
 ;
 : ;T	[compile] Texit [compile] [ ; immediate
-: typecheck-inside
+
+: typecheck-inside 
 	typechecking 
 	interpretation latest-typecheck @ behavior 
 	execcfa ;
-: ;T...	compile typecheck-inside [compile] ;T ; immediate	\ 			Continue typechecking of the inside of the definition
+: ;T...	
+	compile typecheck-inside
+
+	[compile] ;T ; immediate	\ 			Continue typechecking of the inside of the definition
 
 : typecheck							\ ( xt -- )		Run XT in static type checking mode
 	|{
@@ -70,8 +75,8 @@ interpretation ' (interpreting) behavior typechecking ' (interpreting) does
 : T>xt	-2 and ;
 : T~
 	|| = if _ _ 1 exit then
-	| XTMASK and -if _ ~Adr then T>xt @ ><
-	| XTMASK and -if _ ~Adr then T>xt @
+	| XTMASK and if else _ _ 0 exit then T>xt @ ><
+	| XTMASK and if else _ _ 0 exit then T>xt @
 	>< || and >| = if _ _ 1 exit then
 	>< || and >| = if _ _ 1 exit then
 	_ _ 0
@@ -112,7 +117,7 @@ T: branch	skip ;T
 
 T: allot	1 ?D ~Number ?T ;T
 T: ,		1 ?D _ ;T
-T: |		1 ?D | ;T
+T: |		." |" 1 ?D | ;T
 T: _		1 ?D _ ;T
 T: ><		2 ?D >< ;T
 T: >|		2 ?D >| ;T
@@ -164,10 +169,6 @@ T: -		2 ?D
 : tqq1 ['] qq ['] qq1 typecheck ;
 : tqq2 ['] qq2 typecheck ;
 
-
-: mm ;
-T: mm ." mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm " ;T
-
 T: stack	1 ?D ~Number ?T ;T
 
 : s1	stack ;
@@ -188,27 +189,21 @@ T: stack	1 ?D ~Number ?T ;T
 : s5	| @ >| cell+ @ 
 	>| - if
 	>|>| 1+ >< !
-	cells + cell+ cell+ >< !
-	else _ >name
-	then ;
+	cells + cell+ cell+ !
+	else \ _ >name
+	then 
+	1 | _ ;
 
-: s51	| @ >| cell+ @ 
-	>| - if
-	>|>| 1+ >< !
-	cells + cell+ cell+ >< !
-	else _ >name
-	then ;
-T: s51	1 ?D ['] stack ?T ;T...
-\	typechecking interpretation latest-typecheck @ behavior execcfa
-\ ;T
-
+T: s5	." mmmmmmmmmmmmmmmmmmmmmmmmmmm" 1 ?D ['] stack ?T  ~Adr ." uuuuuuuuuuuuuuuuuuuuuu" \ ;T...
+	\ typechecking interpretation ['] s5             behavior execcfa interpreting! ." wwwwwwwwwwwwwwwwwww" ;T
+	typechecking interpretation [ latest-typecheck @ ] literal behavior execcfa interpreting! ." wwwwwwwwwwwwwwwwwww" ;T
 
 \ φ-junction needed to handle else
 : ts41	~Number ~Adr ['] >s typecheck ;
 : ts42	~Adr ['] s> typecheck ;
 : ts5	~Number ~Adr ['] s5 typecheck ;	
 : ts51	~Number ['] stack ['] s5 typecheck ;	
-: ts52	~Adr ['] stack ['] s5 typecheck ;	
+: ts52	~Adr    ['] stack ['] s5 typecheck ;	
 
 : zz    1 ;
 T: zz   ~Adr ;T

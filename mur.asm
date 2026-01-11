@@ -112,8 +112,6 @@ _code:
 _call:
 	push	rnext
 	jmp	[rwork + rstate * 8 - 16 + 8]	
-_docfa:
-	jmp	rtmp
 _run:
 	mov	rstate, INTERPRETING
 _forth:
@@ -710,6 +708,8 @@ word	execute
 # EXECCFA ( state param code -- )
 # Executes word, specified by CODE and PARAM (=BEHAVIOR)
 word	execcfa
+	pop	rtmp
+
 	mov	rtmp, rtop # code
 	call	_drop
 	mov	rwork, rtop  # param
@@ -717,7 +717,9 @@ word	execcfa
 	mov	rstate, rtop
 	call	_drop
 
-	jmp	_docfa
+	push	rpc
+	mov	rpc, rwork
+	jmp	rnext
 
 # SEXECUTE ( xt -- )
 # Executes word, specified by XT, w/o changing state
