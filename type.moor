@@ -29,11 +29,11 @@ interpretation ' (interpreting) behavior typechecking ' (interpreting) does
 :: ~Integer	00_02_01 Type
 
 :: ~Adr		00_00_02 Type
-:: ~'#Str	00_02_02 Type					\ Pointer to a counted string
+:: ~'#Str	00_01_02 Type					\ Pointer to a counted string
+:: ~Xt		00_02_02 Type
 
 :: ~Str		00_00_03 Type					\ String slice
 
-:: ~Xt		00_00_04 Type
 
 								\\ Type checking definitions
 : T:								\ ( "<name>" -- )	Defines static typecheck behavior for a word
@@ -70,8 +70,8 @@ interpretation ' (interpreting) behavior typechecking ' (interpreting) does
 : T>xt	-2 and ;
 : T~
 	|| = if _ _ 1 exit then
-	| XTMASK and if T>xt @ else _ _ 0 exit then ><
-	| XTMASK and if T>xt @ else _ _ 0 exit then
+	| XTMASK and -if _ ~Adr then T>xt @ ><
+	| XTMASK and -if _ ~Adr then T>xt @
 	>< || and >| = if _ _ 1 exit then
 	>< || and >| = if _ _ 1 exit then
 	_ _ 0
@@ -208,6 +208,7 @@ T: s51	1 ?D ['] stack ?T ;T...
 : ts42	~Adr ['] s> typecheck ;
 : ts5	~Number ~Adr ['] s5 typecheck ;	
 : ts51	~Number ['] stack ['] s5 typecheck ;	
+: ts52	~Adr ['] stack ['] s5 typecheck ;	
 
 : zz    1 ;
 T: zz   ~Adr ;T
