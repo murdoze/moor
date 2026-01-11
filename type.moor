@@ -104,17 +104,29 @@ T: >name	~Xt ?T ~'#Str ;
 
 T: (does>)	1 ?D ~Number ?T ;T	\\ TODO ~Xt xtlit/xtliteral ?
 T: xexit	;T
+
+T: ?branch	1 ?D ~Any ?T skip ;T
+
 T: allot	1 ?D ~Number ?T ;T
 T: ,		1 ?D _ ;T
 T: |		1 ?D | ;T
+T: ><		2 ?D >< ;T
 T: >|		2 ?D >| ;T
 T: >|>|		2 ?D >|>| ;T
 T: shl		2 ?D ~Number ?T ~Number ?T ~Number ;T
 T: @		1 ?D ~Adr ?T ~Number ;T
+T: !		2 ?D ~Adr ?T _ ;T
+T: 1+		1 ?D ;T
 T: +		2 ?D 
 		| ~Number T~ if >< | ~Number T~ if _ _ ~Number Texit then | ~Adr T~ if _ _ ~Adr Texit then else 
 		| ~Adr    T~ if >< | ~Number T~ if _ _ ~Adr Texit then then
-		then yellow .S ." '+' accepts numbers or address and number, got " blue .type yellow ."  and " blue .type norm cr abort ;T
+		then yellow .S ." '+' accepts two numbers, number and address or address and number, got " 
+		blue .type yellow ."  and " blue .type norm cr abort ;T
+T: -		2 ?D 
+		| ~Number T~ if >< | ~Number T~ if _ _ ~Number Texit then else 
+		| ~Adr    T~ if >< | ~Number T~ if _ _ ~Adr Texit then then
+		then yellow .S ." '-' accepts numbers or address and number, got " 
+		blue .type yellow ."  and " blue .type norm cr abort ;T
 
 \\ Stack
 \\ \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
@@ -166,13 +178,16 @@ T: stack	1 ?D ~Number ?T ;T
            cells + cell+ cell+ !
 	   else _ >name count type bl emit
 	   0add bad57ac .abort then ;
-: s5       | @ >| mm 8 mm @ 
-	   >| -
+: s5       | @ >| cell+ @ 
+	   >| - if
+	   >|>| 1+ >< !
+           cells + cell+ cell+ !
+	   then
 ;
 
 
 : ts4	~Adr ['] >s2 typecheck ;	\\ TODO Crashes, to explore!!!
-: ts5	~Adr ['] s5 typecheck ;		\\ TODO Crashes, to explore!!!
+: ts5	~Number ~Adr ['] s5 typecheck ;		\\ TODO Crashes, to explore!!!
 
 : zz    1 ;
 T: zz   ~Adr ;T
