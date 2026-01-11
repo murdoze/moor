@@ -120,6 +120,7 @@ syn match   forthColon      "\<\:\>"
 syn match   forthColon      "\<\:\:\>"
 syn match   forthColon      "\<T\:\>"
 syn match   forthColon      "\<\;T\>"
+syn match   forthColon      "\<\;T\.\.\.\>"
 syn match   forthColon      "\<?T\>"
 syn match   forthColon      "\<T\~\>"
 syn match   forthColon      "\<?D\>"
@@ -141,7 +142,9 @@ syn keyword forthEndOfColonDef ret,
 "syn match   forthDefine "\<_\>"
 "syn match   forthDefine "\<>|\>"
 syn match   forthOperators  "\<\~[a-zA-z0-9'#]*\>"
-syn keyword forthDefine ' , C, CONSTANT CREATE DOES> EXECUTE IMMEDIATE LITERAL
+syn keyword forthOperators  typecheck
+
+syn keyword forthDefine ' , C, CONSTANT CREATE DOES> EXECUTE EXECCFA IMMEDIATE LITERAL
 syn keyword forthDefine POSTPONE STATE VARIABLE ]
 syn keyword forthDefine DOES BEHAVIOR
 syn keyword forthDefine ABORT .ABORT
@@ -153,7 +156,7 @@ syn keyword forthDefine   BUFFER: COMPILE, DEFER IS MARKER TO VALUE
 syn match   forthDefine   "\<\[COMPILE]\>"
   " Forth-79, Forth-83
 syn keyword forthDefine COMPILE
-syn keyword forthDefine COMPILATION INTERPRETATION DECOMPILATION
+syn keyword forthDefine COMPILATION INTERPRETATION DECOMPILATION TYPECHECKING 
   " Eror handling, debug etc
 syn keyword forthDefine DEBUG -try try
 
