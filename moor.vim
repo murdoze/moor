@@ -140,6 +140,7 @@ syn keyword forthEndOfColonDef ret,
 "syn match   forthDefine "\<|\>"
 "syn match   forthDefine "\<_\>"
 "syn match   forthDefine "\<>|\>"
+syn match   forthOperators  "\<\~[a-zA-z0-9'#]*\>"
 syn keyword forthDefine ' , C, CONSTANT CREATE DOES> EXECUTE IMMEDIATE LITERAL
 syn keyword forthDefine POSTPONE STATE VARIABLE ]
 syn keyword forthDefine DOES BEHAVIOR
