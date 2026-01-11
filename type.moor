@@ -1,19 +1,19 @@
- \
-\\Type check
+								\\ TODO
+\ 1) <DOES for STACK so that stacks have stack type
+\ 3) Control structures: save-restore stack, φ-junctions
 \
 								\\ Static type check
-:: TYPECHECKING		:state
+:: typechecking		:state
 
 :: latest-typecheck	latest var
 
-:: TYPECHECKING!!	code rstate TYPECHECKING  mov.i, ret,	\ ( -- )	Sets state to TYPECHECKING without address interpreter involvement
-:: Texit		code	rpc pop,  rpc pop,
-				rstate TYPECHECKING  mov.i,
-				rnext jmp,
+:: typechecking!!	code rstate typechecking  mov.i, ret,	\ ( -- )	Sets state to typechecking without address interpreter involvement
 
-INTERPRETING ' exit 	     behavior TYPECHECKING ' exit          does
-INTERPRETING ' interpreting! behavior TYPECHECKING ' interpreting! does
-INTERPRETING ' (interpreting) behavior TYPECHECKING ' (interpreting) does
+: Texit		compile typechecking!! compile exit ; immediate
+
+interpretation ' exit 	        behavior typechecking ' exit           does
+interpretation ' interpreting!  behavior typechecking ' interpreting!  does
+interpretation ' (interpreting) behavior typechecking ' (interpreting) does
 
 								\\ Type registration
 :: TMASK	88_00_00_00 val
@@ -35,26 +35,29 @@ INTERPRETING ' (interpreting) behavior TYPECHECKING ' (interpreting) does
 
 :: ~Xt		00_00_04 Type
 
-
+								\\ Type checking definitions
 : T:								\ ( "<name>" -- )	Defines static typecheck behavior for a word
-	here exec TYPECHECKING ' | latest-typecheck ! does
+	here exec typechecking ' | latest-typecheck ! does
         compile interpreting!
 	] 
 ;
-: ;T	compile TYPECHECKING!! compile exit [compile] [ ; immediate
+: ;T	[compile] Texit [compile] [ ; immediate
+: typecheck-inside
+	typechecking 
+	interpretation latest-typecheck @ behavior 
+	execcfa ;
+: ;T...	compile typecheck-inside [compile] ;T ; immediate	\ 			Continue typechecking of the inside of the definition
 
 : typecheck							\ ( xt -- )		Run XT in static type checking mode
 	|{
-	TYPECHECKING state!
+	typechecking state!
 	execute
-	interpreting! INTERPRETING state! 
+	interpreting! interpretation state! 
 	} \ xt
-
-	
 ;
 
-: (:)      : ;							\ 			Redefine : to enable REGALLOCING state TODO: ANALYZE
-: :        (:) INTERPRETING latest behavior TYPECHECKING latest does ;
+: (:)      : ;							\ 			Redefine : to enable typechecking state TODO: ANALYZE
+: :        (:) interpretation latest behavior typechecking latest does ;
 
 : ?depth
 	>< || < if >>>
@@ -79,16 +82,15 @@ INTERPRETING ' (interpreting) behavior TYPECHECKING ' (interpreting) does
 	<<< || T~ -if >>>
 		blue .type bl emit
 		yellow ." typecheck error:"
-		blue ."  expected " | .. yellow .type
-		blue ." , received " | .. yellow .type norm cr abort
+		blue ."  expected " yellow .type
+		blue ." , received " yellow .type norm cr abort
 	then _ _ _ ;
 
 : assert-type							\ ( t1 t2 -- | ABORT)
 	latest-typecheck @ [compile] literal
 	compile ?typecheck ; immediate
 : ?T	[compile] assert-type ; immediate
-								\\ Typechecking tests
-.( Typechecking ) cr
+								\\ Typecheck implementation
 
 : xtlit		@skip ;
 : xtliteral	compile xtlit , ; immediate
@@ -123,14 +125,15 @@ T: 1-		1 ?D ;T
 T: +		2 ?D 
 		| ~Number T~ if >< | ~Number T~ if _ _ ~Number Texit then | ~Adr T~ if _ _ ~Adr Texit then else 
 		| ~Adr    T~ if >< | ~Number T~ if _ _ ~Adr Texit then then
-		then yellow .S ." '+' accepts two numbers, number and address or address and number, got " 
+		then yellow ." '+' accepts two numbers, number and address or address and number, got " 
 		blue .type yellow ."  and " blue .type norm cr abort ;T
 T: -		2 ?D 
 		| ~Number T~ if >< | ~Number T~ if _ _ ~Number Texit then else 
 		| ~Adr    T~ if >< | ~Number T~ if _ _ ~Adr Texit then then
-		then yellow .S ." '-' accepts numbers or address and number, got " 
+		then yellow ." '-' accepts numbers or address and number, got " 
 		blue .type yellow ."  and " blue .type norm cr abort ;T
 
+								\\ Typechecking implementation
 \\ Stack
 \\ \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 : stack    0 , | , cells allot does> ;				\ ( n -- ) ( -- stack )	Stack N cells size
@@ -175,24 +178,36 @@ T: stack	1 ?D ~Number ?T ;T
 : ts2	['] s2 typecheck ;
 : ts3	['] ts1 ['] stack typecheck ;
 
-: >s2      | @ >| cell+ @
-	   >| - if	
-	   >|>| 1+ >< !
-           cells + cell+ cell+ !
-	   else _ >name count type bl emit
-	   0add bad57ac .abort then ;
-: s5       | @ >| cell+ @ 
-	   >| - if
-	   >|>| 1+ >< !
-           cells + cell+ cell+ !
-	   else _ >name
-	   then
-;
+: >s2	| @ >| cell+ @
+	>| - if	
+	>|>| 1+ >< !
+	cells + cell+ cell+ !
+	else _ >name count type bl emit
+	0add bad57ac .abort then ;
+
+: s5	| @ >| cell+ @ 
+	>| - if
+	>|>| 1+ >< !
+	cells + cell+ cell+ >< !
+	else _ >name
+	then ;
+
+: s51	| @ >| cell+ @ 
+	>| - if
+	>|>| 1+ >< !
+	cells + cell+ cell+ >< !
+	else _ >name
+	then ;
+T: s51	1 ?D ['] stack ?T ;T...
+\	typechecking interpretation latest-typecheck @ behavior execcfa
+\ ;T
+
 
 \ φ-junction needed to handle else
 : ts41	~Number ~Adr ['] >s typecheck ;
 : ts42	~Adr ['] s> typecheck ;
 : ts5	~Number ~Adr ['] s5 typecheck ;	
+: ts51	~Number ['] stack ['] s5 typecheck ;	
 
 : zz    1 ;
 T: zz   ~Adr ;T
