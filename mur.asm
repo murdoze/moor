@@ -148,6 +148,9 @@ _do_trace:
 	cmp	byte ptr [_trace], 0
 	jz	99f
 
+	#cmp	rstate, 0
+	#jz	99f
+
 	lea	rtmp, [_quit]
 	cmp	rpc, rtmp
 	jb	3f
@@ -1992,7 +1995,7 @@ word	_abort_, "(abort)",, forth
 	.quad	lit, _abort
 	.quad	exit
 
-# FIND ( -- xt | 0 )
+# FIND ( '#str -- xt | 0 )
 # Searches for word name, placed at TIB, in the vocabularies CONTEXT, CURRENT and FORTH
 word	find
 _find:
@@ -2025,7 +2028,8 @@ _find:
 	3:
 	ret
 
-_find_:
+# (FIND) ( #'str vocabulary -- xt | 0 )
+word	_find_, "(find)"
 	push	rsi
 	push	rdi
 	push	rbx
