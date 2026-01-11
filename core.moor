@@ -549,7 +549,7 @@ DECOMPILING ' branch behavior DECOMPILING ' (-leave) does
 								\\ Arithmetic and logic, continued
 :: not     code r0 not, ret,
 :: negate  code r0 neg, ret,
-								\\ Min nd max
+								\\ Min and max
 : min      >|>| - 0 > if >< then _ ;				\ ( a b -- min(a,b) ) Minimum
 : max      >|>| - 0 < if >< then _ ;				\ ( a b -- min(a,b) ) Minimum
 								\\ Memory									_memory
