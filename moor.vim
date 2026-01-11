@@ -120,7 +120,7 @@ syn match   forthColon      "\<\:\>"
 syn match   forthColon      "\<\:\:\>"
 syn match   forthColon      "\<T\:\>"
 syn match   forthColon      "\<\;T\>"
-syn match   forthColon      "\<\.\.\.\;T\>"
+syn match   forthColon      "\<\;T\.\.\.\>"
 syn match   forthColon      "\<?T\>"
 syn match   forthColon      "\<T\~\>"
 syn match   forthColon      "\<?D\>"
@@ -451,9 +451,9 @@ syn keyword forthString     -TRAILING-GARBAGE
 hi def forthCommentNorm ctermfg=14
 hi def forthCommentBold ctermfg=Red cterm=bold
 hi def forthCommentTodo ctermfg=Yellow cterm=bold
+hi def forthConditionalBold ctermfg=LightCyan cterm=bold
 hi def forthDefine ctermfg=Red cterm=bold
-hi def forthConditionalBold ctermfg=13 cterm=bold
-hi def forthColonDef ctermfg=14 cterm=bold
+hi def forthColonDef ctermfg=Red cterm=bold
 hi def forthColon ctermfg=LightCyan cterm=bold
 hi def forthEndOfColonDef ctermfg=LightCyan cterm=bold
 hi def forthInteger ctermfg=Green cterm=bold
@@ -472,9 +472,9 @@ hi def link forthSP Special
 hi def link forthMemory Function
 hi def link forthAdrArith Function
 hi def link forthMemBlks Function
-hi def link forthCond Include "forthConditionalBold
-hi def link forthLoop Include "forthConditionalBold
-"hi def link forthColonDef Include
+hi def link forthCond forthConditionalBold
+hi def link forthLoop forthConditionalBold
+"hi def link forthColonDef Function
 "hi def link forthEndOfColonDef Function
 "hi def link forthDefine Function
 hi def link forthDebug Debug
