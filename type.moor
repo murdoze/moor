@@ -44,10 +44,8 @@ interpretation ' typechecking!!  behavior typechecking ' typechecking!!  does
 ;
 : ;T	[compile] Texit [compile] [ ; immediate
 
-: typecheck-inside 
-	typechecking 
-	interpretation latest-typecheck @ behavior 
-	execcfa ;
+: typecheck-inside \\ TODO !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	typechecking interpretation [ latest-typecheck @ ] literal behavior execcfa interpreting! ;T
 : ;T...	
 	compile typecheck-inside
 
@@ -117,7 +115,7 @@ T: branch	skip ;T
 
 T: allot	1 ?D ~Number ?T ;T
 T: ,		1 ?D _ ;T
-T: |		." |" 1 ?D | ;T
+T: |		1 ?D | ;T
 T: _		1 ?D _ ;T
 T: ><		2 ?D >< ;T
 T: >|		2 ?D >| ;T
@@ -194,9 +192,8 @@ T: stack	1 ?D ~Number ?T ;T
 	then 
 	1 | _ ;
 
-T: s5	." mmmmmmmmmmmmmmmmmmmmmmmmmmm" 1 ?D ['] stack ?T  ~Adr ." uuuuuuuuuuuuuuuuuuuuuu" \ ;T...
-	\ typechecking interpretation ['] s5             behavior execcfa interpreting! ." wwwwwwwwwwwwwwwwwww" ;T
-	typechecking interpretation [ latest-typecheck @ ] literal behavior execcfa interpreting! ." wwwwwwwwwwwwwwwwwww" ;T
+T: s5	1 ?D ['] stack ?T  ~Adr 
+	typechecking interpretation [ latest-typecheck @ ] literal behavior execcfa interpreting! ;T
 
 \ φ-junction needed to handle else
 : ts41	~Number ~Adr ['] >s typecheck ;
