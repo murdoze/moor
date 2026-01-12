@@ -257,6 +257,7 @@ $ assm     $;
 % -?branch @skip 1+ | opt-branch ! opt-index 1+! .(( .. ).( _ )) ⊻ %;		\ ( r # -- #-1 )
 
 % (if)     >< { 1- phi-stack revupload } >< 1+ %;		\			Upload stack as if after ?BRANCH
+% (if-post) %;
 % (else-pre) 
            tmp-stack diroffload %;
 % (else-post)
@@ -497,6 +498,7 @@ $ (if)     { | |
            .(( " test" .inst .rr
 	   ).( ¦ test, ))
 	   } $;
+$ (if-post) $;
 
 $ ?branch  opt-branch @ opt-index @ +
            .(( " jz " .inst .label

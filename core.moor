@@ -190,6 +190,7 @@
 
 								\ These words do the job during register allocation and do nothing during execution
 : (if) ;
+: (if-post) ;
 : (else-pre) ;
 : (else-post) ;
 : (then) ;
@@ -208,7 +209,7 @@
 								\ ... begin ... ? continue ... ? break ... [while] ... repeat|again ... then	
 								\ TODO: Allow for multiple BREAKs, as with CONTINUE
 
-: if       ?comp compile (if) compile ?branch >mark ; immediate
+: if       ?comp compile (if) compile ?branch >mark compile (if-post) ; immediate
 : -if      ?comp compile (if) compile -?branch >mark ; immediate
 : else     ?comp compile (else-pre) compile branch >mark compile (else-post) >< >resolve ; immediate
 : then     ?comp compile (then) >resolve ; immediate
