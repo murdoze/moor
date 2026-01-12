@@ -3,6 +3,7 @@
 \\ 1
 : AAA ... NONEXISTENT-WORD ... ;
 : BBB
+: AAAA ... : BBB ... ;
 \ Compilation of AAA fails
 \ AAA is invalid and crashes on execution
 \ TODO: `:` should be immediate and in compilation state should err
