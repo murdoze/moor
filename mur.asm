@@ -146,8 +146,18 @@ _do_trace:
 	cmp	byte ptr [_trace], 0
 	jz	99f
 
-	#cmp	rstate, 0
-	#jz	99f
+	cmp	byte ptr [_trace], 2
+	jne	21f
+	cmp	rstate, 0
+	jz	99f
+
+	21:
+	lea	rtmp, [_interpreting__]
+	cmp	rwork, rtmp
+	je	99f
+	lea	rtmp, [exit]
+	cmp	rwork, rtmp
+	je	99f
 
 	lea	rtmp, [_quit]
 	cmp	rpc, rtmp
@@ -664,6 +674,12 @@ word	trace
 # NOTRACE
 word	notrace
 	mov	byte ptr [_trace], 0
+	ret
+
+# STRACE
+# Turn tracing on for non-INTERPRETING states 
+word	strace
+	mov	byte ptr [_trace], 2
 	ret
 
 # DEBUG
