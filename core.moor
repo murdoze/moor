@@ -610,6 +610,14 @@ DECOMPILING ' branch behavior DECOMPILING ' (-leave) does
 	   else _ >name count type bl emit
 	   05bb bad57ac .abort then ;				\			Stack underflow
 
+: #|>>s     >< | { | | if for | { I - 1+ #| >| >s } over _	\ ( an ... a1 n s -- a1 ... an n ) ( s: an ... a1 n )
+           else _ _ then } | <<< >< >s  ;			\ Direct upload of N elements from data stack onto the specified stack
+
+: #->>s >< | { | if for | I 1+ #| >< >s over			\ ( an ... a1 n s -- an ... a1 n )
+           else _ then } | <<< >< >s  ;				\ Reverse upload of N elements from data stack onto the specified stack
+
+: s#>>     | s> | { | if for | s> >< over _ else _ _ then } ;	\ ( s -- a1 ... an n ) (s: a1 ... an n -- ) Download N elements off the specified stack onto the data stack
+
 								\\ Structures
 
 : struct   create 				                \ ( "<name>" -- xt )	Structure is a vocabulary, also holding previous context and size

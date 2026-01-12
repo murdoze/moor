@@ -50,17 +50,14 @@
 : .used-regs used-regs #regs for | c@ . 1+ over _ ;
 
 								\\ Stacks for control structures
-: dirupload >< | { | | if for | { I - 1+ #| >| >s } over _	\ ( an ... a1 n s -- a1 ... an n )	Copy N elements from data stack onto the specified stack
-            else _ _ then } | <<< >< >s  ;
-: revupload >< | { | if for | I 1+ #| >< >s over		\ ( an ... a1 n s -- an ... a1 n )	Copy N elements from data stack onto the specified stack
-            else _ then } | <<< >< >s  ;
-
+: dirupload #|>>s ; 
+: revupload #->>s ; 	
 : offload   | if for ∨ over else _ then ;
 : diroffload dirupload offload ;				\ ( an ... a1 n -- an ... a1 n )	Decrease reference count for registers in sequence
 : revoffload revupload offload ;
 
 : download | s> | { | if for | s> ∧ >< over _ else _ _ then } ; \ ( s -- a1 ... an n ) (s: a1 ... an n -- ) Pop N elements off the specified stack onto the data stack
-: onload  | s> | { | if for | s> >< over _ else _ _ then } ;	\ ( s -- a1 ... an n ) (s: a1 ... an n -- ) Pop N elements w/o changing references
+: onload   s#>> ;						\ ( s -- a1 ... an n ) (s: a1 ... an n -- ) Pop N elements w/o changing references
 
 :: tmp-stack 100 stack						\ Temporary stack, for transfers between other stacks
 : >tmp    tmp-stack >s ;
