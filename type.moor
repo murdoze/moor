@@ -2,6 +2,11 @@
 \ 1) <DOES for STACK so that stacks have stack type
 \ 3) Control structures: save-restore stack, φ-junctions
 \
+								\\ Xtlit TODO: consider moving to CORE
+: xtlit		@skip ;
+: xtliteral	compile xtlit , ; immediate
+: [']      	' [compile] xtliteral ; immediate
+
 								\\ Static type check
 :: typechecking		:state
 
@@ -28,6 +33,7 @@ interpretation ' typechecking!!  behavior typechecking ' typechecking!!  does
 :: ~Number	00_00_01 Type
 :: ~#Str	00_01_01 Type					\ Counted string length
 :: ~Integer	00_02_01 Type
+:: ~Bool	01_02_01 Type
 
 :: ~Adr		00_00_02 Type
 :: ~'#Str	00_01_02 Type					\ Pointer to a counted string
@@ -95,11 +101,11 @@ interpretation ' typechecking!!  behavior typechecking ' typechecking!!  does
 	latest-typecheck @ [compile] literal
 	compile ?typecheck ; immediate
 : ?T	[compile] assert-type ; immediate
+								\\ Control structure stack
+:: tcs-stack	100 stack
+: >>tcs	tcs-stack #|>>s ;
+: tcs>>	tcs-stack s#>> ;
 								\\ Typecheck implementation
-
-: xtlit		@skip ;
-: xtliteral	compile xtlit , ; immediate
-: [']      	' [compile] xtliteral ; immediate
 
 T: lit		skip ~Number ;T
 T: xtlit	skip ~Xt ;T
@@ -123,6 +129,8 @@ T: _		1 ?D _ ;T
 T: ><		2 ?D >< ;T
 T: >|		2 ?D >| ;T
 T: >|>|		2 ?D >|>| ;T
+
+T: =		2 ?D ?T ~Bool ;T
 
 T: shl		2 ?D ~Number ?T ~Number ?T ~Number ;T
 T: and		2 ?D ~Number ?T ~Number ?T ~Number ;T
@@ -240,11 +248,13 @@ T: zz   ~Adr ;T
 
 : cs1	\ ( n1 n2 -- )
 	| _ 1 and | _ if
-		2/ 1 and if
-			41 emit cr
+		| 2/ 1 and if
+			1-
 		else
-			42 emit cr
+			1+ 
 		then
+		30 + emit
+
 	else
 		|
 		3 and 3 = if
@@ -252,9 +262,9 @@ T: zz   ~Adr ;T
 		else
 			44
 		then
-		>< _
-		emit cr
+		>< _ emit
 	then
+	cr
 ;
 
 : tcs13	0 3		['] cs1 typecheck ;
