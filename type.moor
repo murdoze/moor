@@ -69,11 +69,14 @@ interpretation ' typechecking!!  behavior typechecking ' typechecking!!  does
 : ?D
 	compile depth compile 1- latest-typecheck @ [compile] literal compile <<< compile ?depth ; immediate
 
-: T>xt	-2 and ;
+: T>xt	-2 and 
+	| 0f and if red ." Xt expected, received " . norm abort then 
+	| -1000 and -if red ." Xt expected, received " . norm abort then 
+;
 : T~
 	|| = if _ _ 1 exit then
-	| XTMASK and if else _ _ 0 exit then T>xt @ ><
-	| XTMASK and if else _ _ 0 exit then T>xt @
+	| XTMASK and if else _ _ 0 exit then T>xt  @ ><
+	| XTMASK and if else _ _ 0 exit then T>xt  @
 	>< || and >| = if _ _ 1 exit then
 	>< || and >| = if _ _ 1 exit then
 	_ _ 0
@@ -113,17 +116,23 @@ T: ?branch	1 ?D ~Any ?T skip ;T
 T: branch	skip ;T
 
 T: allot	1 ?D ~Number ?T ;T
+
 T: ,		1 ?D _ ;T
 T: |		1 ?D | ;T
 T: _		1 ?D _ ;T
 T: ><		2 ?D >< ;T
 T: >|		2 ?D >| ;T
 T: >|>|		2 ?D >|>| ;T
+
 T: shl		2 ?D ~Number ?T ~Number ?T ~Number ;T
+T: and		2 ?D ~Number ?T ~Number ?T ~Number ;T
+
 T: @		1 ?D ~Adr ?T ~Number ;T
 T: !		2 ?D ~Adr ?T _ ;T
 T: 1+		1 ?D ;T
 T: 1-		1 ?D ;T
+T: 2/		1 ?D ~Number ?T ~Number ;T
+
 T: +		2 ?D 
 		| ~Number T~ if >< | ~Number T~ if _ _ ~Number Texit then | ~Adr T~ if _ _ ~Adr Texit then else 
 		| ~Adr    T~ if >< | ~Number T~ if _ _ ~Adr Texit then then
@@ -228,4 +237,27 @@ T: zz   ~Adr ;T
 : tw1	['] w1 typecheck ;
 : tw2	['] s2 ['] w2 typecheck ;
 : tw3	['] w3 typecheck ;	\ Need <DOES for types
+
+: cs1	\ ( n1 n2 -- )
+	| _ 1 and | _ if
+		2/ 1 and if
+			41 emit cr
+		else
+			42 emit cr
+		then
+	else
+		|
+		3 and 3 = if
+			43
+		else
+			44
+		then
+		>< _
+		emit cr
+	then
+;
+
+: tcs13	0 3		['] cs1 typecheck ;
+: tcs12	0 ~Number 	['] cs1 typecheck ;
+: tcs11	~Number ~Number	['] cs1 typecheck ;
 
