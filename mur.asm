@@ -422,9 +422,20 @@ _sigsegv_handler:
 	lea	rtop, qword ptr [.L_gpf_errm1]
 	call	_count
 	call	_type
+
+	pop	rdx
+	push	rdx
+	call	_dup
+	mov	rtop, qword ptr [rdx + 40 + 8 * 16]	# RIP
+	call	_dot
+
+	call	_dup
+	lea	rtop, qword ptr [.L_gpf_errm2]
+	call	_count
+	call	_type
+
 	pop	rdx
 	jmp	5f	
-
 
 	#	mmap()
 	# 	rdi = unsigned long addr, rsi = unsigned long len, rdx = unsigned long prot, r10 = unsigned long flags, r8 = unsigned long fd, r9 = unsigned long off
@@ -491,7 +502,7 @@ _sigsegv_handler_needalloc:
 	mov	rax, qword ptr [rdx + 40 + 8 * 16]	# RIP
 	push	rax
 
-	lea	rax, [_cold]
+	lea	rax, [_abort]
 	mov	qword ptr [rdx + 40 + 8 * 16], rax # continue execution from _cold
 
 .if	0
@@ -535,8 +546,12 @@ _sigsegv_restorer:
 
 .L_gpf_errm1:
 	.byte .L_gpf_errm1$ - .L_gpf_errm1 - 1
-	.ascii	"\r\n\x1b[41;30m\x1b[1m\x1b[7m GENERAL PROTECTION FAULT \x1b[0m\r\n"
+	.ascii	"\r\n\x1b[41;30m\x1b[1m\x1b[7m GENERAL PROTECTION FAULT \x1b[0m at "
 .L_gpf_errm1$:
+.L_gpf_errm2:
+	.byte .L_gpf_errm2$ - .L_gpf_errm2 - 1
+	.ascii	", \x1b[42;30m\x1b[7m restarting \x1b[0m\r\n"
+.L_gpf_errm2$:
 
 .L_sigsegv_errm1:
 	.byte .L_sigsegv_errm1$ - .L_sigsegv_errm1 - 1
@@ -2561,6 +2576,18 @@ word	baremetalq, "baremetal?"
 	1:
 	ret
 
+# SOURCE ( -- ) 
+# Marks embedded source as not loaded
+# Needed after warm restart
+word	source
+
+	lea	rax, [_source]
+	mov	[_source_in], rax
+
+	mov	byte ptr [_source_completed], 0
+
+	ret	
+
 #
 # Baremetal words
 #
@@ -2576,18 +2603,6 @@ word	color
 	call	_drop
 
 	ret
-
-# SOURCE ( -- ) 
-# Marks embedded source as not loaded
-# Needed after warm restart
-word	source
-
-	lea	rax, [_source]
-	mov	[_source_in], rax
-
-	mov	byte ptr [_source_completed], 0
-
-	ret	
 
 # EOI ( -- )
 # Send end-of-interrupt
