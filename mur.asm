@@ -414,11 +414,22 @@ _sigsegv_handler:
 
 	mov	rax, qword ptr [rdx + 40 + 8 * 8]	# RDI, see <sys/ucontext.h>
 	cmp	rax, [_mem_reserved]
-	jb	5f					# cause of fault is not ALLOT
+	jnb	11f					# cause of fault is not ALLOT
+
+
+	push	rdx
+	call	_dup
+	lea	rtop, qword ptr [.L_gpf_errm1]
+	call	_count
+	call	_type
+	pop	rdx
+	jmp	5f	
+
 
 	#	mmap()
 	# 	rdi = unsigned long addr, rsi = unsigned long len, rdx = unsigned long prot, r10 = unsigned long flags, r8 = unsigned long fd, r9 = unsigned long off
 
+	11:
 _sigsegv_handler_needalloc:
 	mov	rdi, rax
 	push	rdi
@@ -501,7 +512,9 @@ _sigsegv_handler_needalloc:
 	call	_dup
 	mov	rtop, [_mem_reserved]
 	call	_dot
+	jmp	9f
 .endif
+	pop	rtop
 
 	9:
 	ret
@@ -519,6 +532,11 @@ _sigsegv_restorer:
 .endif
 	mov	rax, 15	# rt_sigreturn
 	syscall
+
+.L_gpf_errm1:
+	.byte .L_gpf_errm1$ - .L_gpf_errm1 - 1
+	.ascii	"\r\n\x1b[41;30m\x1b[1m\x1b[7m GENERAL PROTECTION FAULT \x1b[0m\r\n"
+.L_gpf_errm1$:
 
 .L_sigsegv_errm1:
 	.byte .L_sigsegv_errm1$ - .L_sigsegv_errm1 - 1
