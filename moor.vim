@@ -107,7 +107,7 @@ syn keyword forthCond ?DUP-0=-IF ?DUP-IF ENDIF
 " iterations {{{2
 syn keyword forthLoop +LOOP BEGIN DO EXIT I J LEAVE -LEAVE LOOP RECURSE REPEAT UNLOOP
 syn keyword forthLoop UNTIL WHILE
-syn keyword forthLoop FOR AFT OVER CONTINUE BREAK -CONTINUE -BREAK
+syn keyword forthLoop FOR AFT OVER CONTINUE BREAK -CONTINUE -BREAK RETURN
   " extension words
 syn keyword forthLoop ?DO AGAIN
 
@@ -115,7 +115,7 @@ syn keyword forthLoop ?DO AGAIN
 syn keyword forthLoop +DO -DO -LOOP ?LEAVE DONE FOR K NEXT U+DO U-DO
 
 " new words {{{2
-"syn match   forthColonDef      "\<:*[^ \t]\+\>"
+syn match   forthForth      "\<\:[0-9a-zA-z\+\-\,\(\)\<\>\@\!\.\#\/\\\!\*]*\>"
 syn match   forthColon      "\<\:\>"
 syn match   forthColon      "\<\:\:\>"
 syn match   forthColon      "\<T\:\>"
