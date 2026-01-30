@@ -139,7 +139,7 @@
 : ><,      #_1 r1 load, #_1 r0 store, r0 r1 mov, ;		\ ( a b -- b a )	swap
 : >|,      #_1 r1 load, on, #_1 r0 store, r0 r1 mov, ;		\ ( a b -- a b a )	over
 : >|>|,    #_1 r1 load, on, #_1 r0 store, on, #_1 r1 store, ;	\ ( a b -- a b a b )	2dup = over over
-: >>>,     #_1 r1 load, #_2 r2 load,				\ ( a b c -- b c a )	rot
+: >>>,     #_1 r1 load, #_2 r2 load,				\ ( a b c -- b c a )	roT
            #_2 r1 store, #_1 r0 store, r0 r2 mov, ;
 : <<<,     #_1 r1 load, #_2 r2 load,				\ ( a b c -- c a b )	-rot
            #_2 r0 store, #_1 r2 store, r0 r1 mov, ;
@@ -468,11 +468,12 @@
 : r>       ?comp compile (r>) ; immediate
 : {        ?comp compile (>r) ; immediate
 : }        ?comp compile (r>) ; immediate
-: |{       ?comp compile | compile { ; immediate			\ ( a -- a ) ( R: a -- ) Duplicated parameter and pushes it onto return stack
+: |{       ?comp compile | compile { ; immediate		\ ( a -- a ) ( R: a -- ) Duplicated parameter and pushes it onto return stack
 : ||{{     ?comp compile | compile { compile ><			\ ( a b -- a b ) ( R: a b -- ) 	Dupliacted two parameters and pushes them onto return stack
            compile | compile { compile >< ; immediate
-: {{       ?comp compile >< compile { compile { ; immediate		\ ( a b -- R: a b )
-: }}       ?comp compile } compile } ; immediate			\ ( R: a b -- a b )
+: {{       ?comp compile >< compile { compile { ; immediate	\ ( a b -- R: a b )
+: }}       ?comp compile } compile } ; immediate		\ ( R: a b -- a b )
+:: #r@     code	48 ` 8b ` 4c ` cc ` 08 ` ret,			\ ( # -- #r )  		mov rtop, [rsp + rtop * 8]
 
 								\\ Built-in states
 :: INTERPRETING		:state
@@ -666,3 +667,60 @@ DECOMPILING ' branch behavior DECOMPILING ' (-leave) does
 	   then then then then then then then then ;
 : .@       { >| + } #@ >< ;
 : .!       { >>| + } #! ;
+
+								\\ Locals on R-stack
+
+: :local [compile] literal compile #r@ ;
+
+: local0 0 :local ; immediate
+: local1 1 :local ; immediate
+: local2 2 :local ; immediate
+: local3 3 :local ; immediate
+: local4 4 :local ; immediate
+: local5 5 :local ; immediate
+: local6 6 :local ; immediate
+: local7 7 :local ; immediate
+: local8 8 :local ; immediate
+: local9 9 :local ; immediate
+
+create locals
+	' local0 ,
+	' local1 ,
+	' local2 ,
+	' local3 ,
+	' local4 ,
+	' local5 ,
+	' local6 ,
+	' local7 ,
+	' local8 ,
+	' local9 ,
+	0 ,
+:: #local 0 var
+
+: local
+	compile >r
+	#local @ 1+ #local !
+; immediate
+: return
+	#local @ for compile r> over
+	#local @ for compile _ over
+	0 #local !
+; immediate
+
+: move		\ ( s d # -- )
+	for
+		{ | @ >< cell+ >< } 	\ s+1 v d
+		| { ! } cell+		\ s+1 d+1
+	over _
+;
+: (	\ )
+	begin bl word count | 0 = break
+		>< | c@ [char] ) = break
+		1- ><
+		locals #local @ cells + @ >name
+		>< cell/ 1+ move
+		#local @ 1+ #local !
+	again then then _ _ _
+	#local @ for compile >r over
+; immediate
+
