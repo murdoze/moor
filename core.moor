@@ -714,13 +714,13 @@ create locals!
 	#local @ for compile r> compile _ over
 ; immediate
 
-: move		\ ( s d # -- )
+: move		\ ( s d # -- )	Move cells
 	for
 		{ | @ >< cell+ >< } 	\ s+1 v d
 		| { ! } cell+		\ s+1 d+1
 	over _
 ;
-: (	\ )
+: (	\ ( "name"... ) Define locals
 	0 #local !
 	begin bl word count | 0 = break
 		>< | c@ [char] ) = break
@@ -738,8 +738,23 @@ create locals!
 
 		#local @ 1+ #local !
 	again then then _ _ 
-	#local @ for compile >r over
+	\ Zap old local names to avoid surprises (don't ask)
+	#local @
+	begin
+		locals@ #local @ cells + @
+		| 0 = break
+		>name 0 >< c!
+		locals! #local @ cells + @
+		>name 0 >< c!
+		#local @ 1+ #local !
+	again
+	then
+	_
+	| #local !
+	| if for compile >r over else _ then 
 ; immediate
+\ Zap locals names so that they are not used as is
+( )
 
 : swap2 ( :a :b ) :b 10 + :b! :a 100 + :a! :b :a return ; 
 : swap1 ( :a :b ) :b 10 + :b! :a 100 + :a! :b :a return ; 
