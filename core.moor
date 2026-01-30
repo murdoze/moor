@@ -473,7 +473,6 @@
            compile | compile { compile >< ; immediate
 : {{       ?comp compile >< compile { compile { ; immediate	\ ( a b -- R: a b )
 : }}       ?comp compile } compile } ; immediate		\ ( R: a b -- a b )
-:: #r@     code	48 ` 8b ` 4c ` cc ` 08 ` ret,			\ ( # -- #r )  		mov rtop, [rsp + rtop * 8]
 
 								\\ Built-in states
 :: INTERPRETING		:state
@@ -670,41 +669,49 @@ DECOMPILING ' branch behavior DECOMPILING ' (-leave) does
 
 								\\ Locals on R-stack
 
-: :local [compile] literal compile #r@ ;
+:: #r@     code	48 ` 8b ` 4c ` cc ` 08 ` ret,			\ ( # -- #r )  		mov rtop, [rsp + rtop * 8 + 8]
+:: #r!     code							\ ( v # --  )  		mov [rsp + rtop * 8 + 8], rwork
+		rwork rtop mov, _,
+		48 ` 89 ` 4c ` c4 ` 08 ` _, ret,
 
-: local0 0 :local ; immediate
-: local1 1 :local ; immediate
-: local2 2 :local ; immediate
-: local3 3 :local ; immediate
-: local4 4 :local ; immediate
-: local5 5 :local ; immediate
-: local6 6 :local ; immediate
-: local7 7 :local ; immediate
-: local8 8 :local ; immediate
-: local9 9 :local ; immediate
+: :local@ [compile] literal compile #r@ ;
+: :local! [compile] literal compile #r! ;
 
-create locals
-	' local0 ,
-	' local1 ,
-	' local2 ,
-	' local3 ,
-	' local4 ,
-	' local5 ,
-	' local6 ,
-	' local7 ,
-	' local8 ,
-	' local9 ,
-	0 ,
+: local0@ 0 :local@ ; immediate
+: local1@ 1 :local@ ; immediate
+: local2@ 2 :local@ ; immediate
+: local3@ 3 :local@ ; immediate
+: local4@ 4 :local@ ; immediate
+: local5@ 5 :local@ ; immediate
+: local6@ 6 :local@ ; immediate
+: local7@ 7 :local@ ; immediate
+: local8@ 8 :local@ ; immediate
+: local9@ 9 :local@ ; immediate
+
+: local0! 0 :local! ; immediate
+: local1! 1 :local! ; immediate
+: local2! 2 :local! ; immediate
+: local3! 3 :local! ; immediate
+: local4! 4 :local! ; immediate
+: local5! 5 :local! ; immediate
+: local6! 6 :local! ; immediate
+: local7! 7 :local! ; immediate
+: local8! 8 :local! ; immediate
+: local9! 9 :local! ; immediate
+
+create locals@ 
+	' local0@ , ' local1@ , ' local2@ , ' local3@ , ' local4@ ,
+	' local5@ , ' local6@ , ' local7@ , ' local8@ , ' local9@ , 0 ,
+
+create locals! 
+	' local0! , ' local1! , ' local2! , ' local3! , ' local4! ,
+	' local5! , ' local6! , ' local7! , ' local8! , ' local9! , 0 ,
+
+
 :: #local 0 var
 
-: local
-	compile >r
-	#local @ 1+ #local !
-; immediate
 : return
-	#local @ for compile r> over
-	#local @ for compile _ over
-	0 #local !
+	#local @ for compile r> compile _ over
 ; immediate
 
 : move		\ ( s d # -- )
@@ -714,15 +721,26 @@ create locals
 	over _
 ;
 : (	\ )
+	0 #local !
 	begin bl word count | 0 = break
 		>< | c@ [char] ) = break
-		1- ><
-		locals #local @ cells + @
+		1- >< ||{{
+		locals@ #local @ cells + @
 		| 0 = if abort" Out of locals" then
 		>name
-		>< cell/ 1+ move
+		>< cell/ 1+ move _
+		}}
+		|| >< | c@ 1+ >< c! _ ||
+		+ 1+ [char] ! >< c! 
+		1+ cell/ 1+
+		locals! #local @ cells + @
+		>name >< move _
+
 		#local @ 1+ #local !
-	again then then _ _ _
+	again then then _ _ 
 	#local @ for compile >r over
 ; immediate
+
+: swap2 ( :a :b ) :b 10 + :b! :a 100 + :a! :b :a return ; 
+: swap1 ( :a :b ) :b 10 + :b! :a 100 + :a! :b :a return ; 
 
