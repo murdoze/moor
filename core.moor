@@ -756,6 +756,3 @@ create locals!
 \ Zap locals names so that they are not used as is
 ( )
 
-: swap2 ( :a :b ) :b 10 + :b! :a 100 + :a! :b :a return ; 
-: swap1 ( :a :b ) :b 10 + :b! :a 100 + :a! :b :a return ; 
-
