@@ -717,7 +717,9 @@ create locals
 	begin bl word count | 0 = break
 		>< | c@ [char] ) = break
 		1- ><
-		locals #local @ cells + @ >name
+		locals #local @ cells + @
+		| 0 = if abort" Out of locals" then
+		>name
 		>< cell/ 1+ move
 		#local @ 1+ #local !
 	again then then _ _ _
