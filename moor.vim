@@ -107,7 +107,7 @@ syn keyword forthCond ?DUP-0=-IF ?DUP-IF ENDIF
 " iterations {{{2
 syn keyword forthLoop +LOOP BEGIN DO EXIT I J LEAVE -LEAVE LOOP RECURSE REPEAT UNLOOP
 syn keyword forthLoop UNTIL WHILE
-syn keyword forthLoop FOR AFT OVER CONTINUE BREAK -CONTINUE -BREAK RETURN
+syn keyword forthLoop FOR AFT OVER CONTINUE BREAK -CONTINUE -BREAK RETURN GUARD RAISE
   " extension words
 syn keyword forthLoop ?DO AGAIN
 
@@ -120,7 +120,7 @@ syn match   forthColon      "\<\:\>"
 syn match   forthColon      "\<\:\:\>"
 syn match   forthColon      "\<T\:\>"
 syn match   forthColon      "\<\;T\>"
-syn match   forthColon      "\<\;T\.\.\.\>"
+syn match   forthColon      "\<\.\.\.\;T\>"
 syn match   forthColon      "\<?T\>"
 syn match   forthColon      "\<T\~\>"
 syn match   forthColon      "\<?D\>"
@@ -130,6 +130,8 @@ syn match   forthColon      "\<state\!\>"
 syn match   forthColon      "\<state@\>"
 syn match   forthColon      "\<?comp\>"
 syn keyword forthColon      var val adr
+syn keyword forthCharOps    ?SUCCEEDED ?FAILED
+
 "syn match   forthColonDef      "\<\:\s*\w*\>"
 "syn match   forthColonDef      "\<(\:\:|\:)\s*[0-9a-zA-z\+\-\,\(\)\<\>\@\!\.\#\/\\\!\*]*\>"
 "syn match   forthColonDef      "\<\:\:\s*[0-9a-zA-z\+\-\,\(\)\<\>\@\!\.]*\>"
@@ -266,7 +268,7 @@ if get(g:, "forth_no_comment_fold", 0)
     syn match  forthComment3 '\<\\\\\sTODO:\>.*$' contains=@Spell,forthTodo,forthSpaceError
     syn match  forthComment2 '\<\.\\\>.*$' contains=@Spell,forthTodo,forthSpaceError
 else
-    syn region forthComment start='\<(\>' end=')' contains=@Spell,forthTodo,forthSpaceError fold
+    syn region forthForth start='\<(\>' end=')' contains=@Spell,forthTodo,forthSpaceError fold
       " extension words
     syn match  forthComment '\<\\\>.*$' contains=@Spell,forthTodo,forthSpaceError
     syn match  forthComment2 '\<\\\\\>.*$' contains=@Spell,forthTodo,forthSpaceError
@@ -276,7 +278,7 @@ else
 endif
 
   " extension words
-syn region forthComment start='\<\.(\>' end=')' end='$' contains=@Spell,forthTodo,forthSpaceError
+syn region forthCharOps start='\<\.(\>' end=')' end='$' contains=@Spell,forthTodo,forthSpaceError
 
 " ABORT {{{2
 "syn keyword forthForth ABORT .ABORT
