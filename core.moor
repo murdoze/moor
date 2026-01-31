@@ -714,16 +714,11 @@ create locals!
 
 
 								\\ Testing framework
-: (TEST)
-		1 testing !  
-		1 test-result !
-		empty-stack
-		guard
-;
+: (TEST)	1 testing !  1 test-result ! empty-stack
+		guard ;
 : (.TEST)	norm 1b emit 5b emit 35 emit 30 emit 47 emit ;
 : TEST"		compile cr compile blue [compile] ." compile (.TEST)
-		compile (TEST)
-; immediate
+		compile (TEST) ; immediate
 : test-expected ( :expected )
 		1b emit 5b emit 35 emit 30 emit 47 emit
 		0 testing !
@@ -733,21 +728,9 @@ create locals!
 			red	if ." SUCCEEDED unexpectedly " else ." FAILED    unexpectedly " then
 		then	norm cr
 		empty-stack
-		return
-;
+		return ;
 : ?SUCCEEDED	1 test-expected ;
 : ?FAILED	0 test-expected ;
-
-
-: test-1+	10 20 ;
-: test-1-	500 abort ;
-
-: test-test
-	TEST" 📝 TEST 1+" test-1+ ?SUCCEEDED
-	TEST" 📝 TEST 1+" test-1+ ?FAILED
-	TEST" 📝 TEST 1-" test-1- ?FAILED
-	TEST" 📝 TEST 1-" test-1- ?SUCCEEDED
-;
 
 								\\ Stack									_stack
 								\ Structure: pointer limit data...
