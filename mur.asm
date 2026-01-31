@@ -2496,6 +2496,24 @@ _abort1:
 	jmp	_abort
 .endif
 
+_guard:
+	.quad	0
+# GUARD
+word	guard
+	mov	rax, rsp
+	add	rax, 8
+	mov	[_guard], rax
+	ret
+
+# RAISE
+word	raise
+	mov	rax, [_guard]
+	mov	rsp, rax
+	mov	rstate, INTERPRETING
+	mov	[_state], rstate
+	jmp	rnext
+
+
 # DARK LORD
 # Dark Lord to be summoned
 word	darklord,,, forth
@@ -2679,9 +2697,15 @@ _source:
 
 .ifdef BOOT_SOURCE
 	.incbin "core.moor"
+	.incbin "test.moor"
 	.incbin "type.moor"
 	.ifdef	BAREMETAL
 		.incbin	"vamp.moor"
+	.endif
+	.ifdef SCORCH
+		.incbin "font.moor"
+		.incbin "xwin.moor"
+		.incbin "scorch.moor"
 	.endif
 .else
 	.byte	0
