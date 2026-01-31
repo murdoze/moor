@@ -1,2 +1,2 @@
 tabs -8
-cat core.moor font.moor xwin.moor scorch.moor | ./moord
+cat core.moor font.moor xwin.moor scorch.moor | ./moordt
