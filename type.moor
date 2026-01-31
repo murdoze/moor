@@ -204,12 +204,14 @@ T: >s		1 ?D ['] stack ?T ~Adr ...;T
 : test-stack-withsize	10 stack ;
 
 
-: ts41	~Any ['] stack ['] >s typecheck ;
-
 : test-stack
-	TEST" 📝 Stack no size"		['] test-stack-nosize 	typecheck ?FAILED
+	TEST" 📝 >S any with stack"		~Any ['] stack ['] >s	typecheck ?SUCCEEDED
+
+	TEST" 📝 Stack no size"			['] test-stack-nosize 	typecheck ?FAILED
 	TEST" 📝 Stack with size"		['] test-stack-withsize typecheck ?SUCCEEDED
 	TEST" 📝 Stack size non-number 1"	['] dummy ['] stack	typecheck ?FAILED
+
+	TEST" 📝 >S any with non-stack"		~Any ['] ~Number ['] >s	typecheck ?FAILED
 
 
 ;
