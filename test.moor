@@ -501,8 +501,14 @@ see swap2
 : swap2 ( :a :b ) :b 10 + :b! :a 100 + :a! :b :a return ; 
 see swap2
 
+: q11 11 22 33 ( :a :b :c ) :a . :b . :c .  return ;
+: q22 11 22 33 ( :a :b :c ) :a . :b . { :c . }  return ;
+: q33 11 22 33 ( :a :b :c ) :a . :b . q11 { :c . }  return ;
+
+
 10 rrr2 cr
-10 20 swap2 . .
+10 20 swap2 . . cr
+q33
 
 : qqq4 ( q1 q2 q3 q4 q5 q6 q7 q8 q9 q10  ) ;
 
