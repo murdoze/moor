@@ -1,0 +1,42 @@
+
+								\\ Testing framework
+:: testing 		0 var					\ In testing mode?
+:: test-result		0 var
+
+: (abort)	abort ;
+: abort		testing @ if 0 test-result ! else (abort) then ;
+
+: (TEST)
+		1 testing !  
+		1 test-result !
+		empty-stack
+;
+: TEST"		compile blue [compile] ." compile norm compile tab
+		compile (TEST)
+; immediate
+: test-expected ( :expected )
+		0 testing !
+		test-result @ | :expected = if
+			green	if ." SUCCEEDED expectedly " else ." FAILED expectedly " then
+		else
+			red	if ." SUCCEEDED unexpectedly " else ." FAILED unexpectedly " then
+		then	norm cr
+		empty-stack
+		return
+;
+: ?SUCCEEDED	1 test-expected ;
+: ?FAILED	0 test-expected ;
+
+
+: test-1+	10 20 ;
+: test-1-	500 abort ;
+
+: test-test
+	TEST" TEST 1+" test-1+ ?SUCCEEDED
+	TEST" TEST 1+" test-1+ ?FAILED
+	TEST" TEST 1-" test-1- ?FAILED
+	TEST" TEST 1-" test-1- ?SUCCEEDED
+	.S
+;
+
+
