@@ -62,14 +62,17 @@ interpretation ' typechecking!!  behavior typechecking ' typechecking!!  does
 	execute
 	interpreting! interpretation state! 
 	} \ xt
+	_
 ;
 
 : (:)      : ;							\ 			Redefine : to enable typechecking state TODO: ANALYZE
 : :        (:) interpretation latest behavior typechecking latest does ;
 
+: ..name .name ;
+
 : ?depth
 	>< || < if >>>
-		blue .name bl emit
+		blue ..name bl emit
 		yellow ." depth: expected " blue . bs yellow ." , got " blue . norm cr abort 
 	then _ _ _ ;
 : ?D
@@ -87,7 +90,7 @@ interpretation ' typechecking!!  behavior typechecking ' typechecking!!  does
 	>< || and >| = if _ _ 1 exit then
 	_ _ 0
 ; 
-: .type	T>xt .name ;
+: .type	T>xt ..name ;
 
 : ?typecheck
 	<<< || T~ -if >>>
@@ -103,8 +106,8 @@ interpretation ' typechecking!!  behavior typechecking ' typechecking!!  does
 : ?T	[compile] assert-type ; immediate
 								\\ Control structure stack
 :: tcs-stack	100 stack
-: >>tcs	tcs-stack #|>>s ;
-: tcs>>	tcs-stack s#>> ;
+: >>tcs	depth tcs-stack #|>>s _ ;
+: tcs>>	tcs-stack s#>> _ ;
 								\\ Typecheck implementation
 
 T: lit		skip ~Number ;T
@@ -120,6 +123,8 @@ T: xexit	;T
 
 T: ?branch	1 ?D ~Any ?T skip ;T
 T: branch	skip ;T
+T: (if-post)	>>tcs ;T
+T: (else-post)	depth #_ tcs>> ;T
 
 T: allot	1 ?D ~Number ?T ;T
 
@@ -134,6 +139,7 @@ T: =		2 ?D ?T ~Bool ;T
 
 T: shl		2 ?D ~Number ?T ~Number ?T ~Number ;T
 T: and		2 ?D ~Number ?T ~Number ?T ~Number ;T
+T: not		1 ?D ~Number ?T ~Number ;T
 
 T: @		1 ?D ~Adr ?T ~Number ;T
 T: !		2 ?D ~Adr ?T _ ;T
@@ -267,7 +273,16 @@ T: zz   ~Adr ;T
 	cr
 ;
 
-: tcs13	0 3		['] cs1 typecheck ;
+: cs2
+	if 41 43 else 42 then 42 = if 30 emit else emit then cr
+;
+: cs3
+	if 41 else if 42 else 43 then then emit cr ;
+;
+		
+: tcs13	0 4		['] cs1 typecheck ;
 : tcs12	0 ~Number 	['] cs1 typecheck ;
 : tcs11	~Number ~Number	['] cs1 typecheck ;
 
+: tcs21 ~Any	 	['] cs2 typecheck ;
+: tcs31 ~Number ~Number	['] cs3 typecheck ;
