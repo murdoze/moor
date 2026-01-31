@@ -108,15 +108,23 @@ interpretation ' typechecking!!  behavior typechecking ' typechecking!!  does
 :: tcs-stack	100 stack
 : >>tcs	depth tcs-stack #|>>s _ ;
 : tcs>>	tcs-stack s#>> _ ;
-								\\ Typecheck implementation
+
+\\ \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\								
+\\ Typecheck implementation
+\\ \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\								
 
 T: lit		skip ~Number ;T
 T: xtlit	skip ~Xt ;T
+T: >name	1 ?D ~Xt ?T ~'#Str ;T
+T: baremetal?	~Bool ;T
+T: abort	;T
+
+T: bl		~Number ;T
 T: emit		1 ?D ~Number ?T ;T
+T: .		1 ?D ~Number ?T ;T
 T: (")		(")-skip ~'#Str ;T
 T: count 	1 ?D ~'#Str ?T ~Str ~Number ;T
 T: type 	2 ?D ~Number ?T ~Str ?T ;T
-T: >name	1 ?D ~Xt ?T ~'#Str ;
 
 T: (does>)	1 ?D ~Number ?T ;T	\\ TODO ~Xt xtlit/xtliteral ?
 T: xexit	;T
@@ -273,16 +281,14 @@ T: zz   ~Adr ;T
 	cr
 ;
 
-: cs2
-	if 41 43 else 42 then 42 = if 30 emit else emit then cr
-;
-: cs3
-	if 41 else if 42 else 43 then then emit cr ;
-;
-		
+: cs2	if 41 43 else 42 then 42 = if 30 emit else emit then cr ;
+: cs3	if 41 else if 42 else 43 then then emit cr ;
+
 : tcs13	0 4		['] cs1 typecheck ;
 : tcs12	0 ~Number 	['] cs1 typecheck ;
 : tcs11	~Number ~Number	['] cs1 typecheck ;
 
 : tcs21 ~Any	 	['] cs2 typecheck ;
 : tcs31 ~Number ~Number	['] cs3 typecheck ;
+
+
