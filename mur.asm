@@ -2697,7 +2697,6 @@ _source:
 
 .ifdef BOOT_SOURCE
 	.incbin "core.moor"
-	.incbin "test.moor"
 	.incbin "type.moor"
 	.ifdef	BAREMETAL
 		.incbin	"vamp.moor"

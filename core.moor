@@ -221,7 +221,7 @@
 : repeat   ?comp compile (repeat-pre) compile branch >< <resolve compile (repeat-post) >resolve ; immediate
 : continue ?comp compile (continue) compile -?branch | <resolve ; immediate
 : break    ?comp compile (break) compile -?branch >mark >< ; immediate
-								\\ Printing									_print
+
 : norm     baremetal? if 01 emit 07 emit else 1b emit 5b emit 30 emit 6d emit then ;
 : red      baremetal? if 01 emit 04 emit else 1b emit 5b emit 33 emit 31 emit 6d emit then ;
 : green    baremetal? if 01 emit 02 emit else 1b emit 5b emit 33 emit 32 emit 6d emit then ;
@@ -234,15 +234,25 @@
 : cr       0a emit ;
 : tab      09 emit ;
 : bs       08 emit ;
-: .abort   red . . norm cr abort ;				\ ( code message -- )	Prints code and message as hexadecimal numbers and aborts
 : ..       blue . norm ;
 : ??       dup .. ;
 								\\ Debug output
 : ..S .S ;
-: .S blue ..S bl emit norm ;						\ Blue stack
+: .S blue ..S bl emit norm ;					\ Blue stack
 
+								\\ Abort
+:: testing 		0 var					\ In testing mode?
+:: test-result		0 var
+: test-failed	0 test-result ! ;
+
+: (abort)	abort ;
+: abort		testing @ if 0 test-result ! raise else (abort) then ;
+
+: .abort   red . . norm cr abort ;				\ ( code message -- )	Prints code and message as hexadecimal numbers and aborts
+								
 
 								\\ Search									_search
+
 : '        bl word _ find					\ ( "<name>" -- xt | E )
            | if else badd1c 071cf10d .abort then ;
 : compile, , ;							\ ( xt -- )		Compiles XT on the top of the stack into current definition
@@ -253,6 +263,9 @@
 : ."       ?comp [compile] " compile count compile type ; immediate
 : abort"   compile cr compile red [compile] ." compile norm compile cr compile abort ; immediate
 
+
+
+								\\ Debugging / tracing
 : ntrace   ' trace execute notrace ;				\ ( "<name>" -- )	Runs in no-debug trace mode
 : dtrace   ' nodebug debug trace execute notrace ;		\ ( "<name>" -- )	Runs in debug trace mode
 
@@ -592,84 +605,6 @@ DECOMPILING ' branch behavior DECOMPILING ' (-leave) does
     | randseed ! ;
 : random random32 * 20 sar ;					\ ( n -- )		Returns a random number in range 0..N-1
 : randomize timestamp ffffffff and randseed ! ;
-
-								\\ Stack									_stack
-								\ Structure: pointer limit data...
-: stack    0 , | , cells allot does> ;				\ ( n -- ) ( -- stack )	Stack N cells size
-: empty    0 >< ! ;						\ ( stack -- )		Empty stack
-: stack@   | @ >| cell+ @ ;					\ ( stack -- stack pointer limit )	Extracts stack parameters onto data stack
-: .stack   | @ | if >< cell+ cell+ >< for | @ . cell+ over _	\ ( stack -- )
-           else _ _ then ;
-
-: >s       | @ >| cell+ @					\ ( a stack -- | E )    Pushes element onto stack or aborts on overflow
-	   >| - if						\ ( a stack sp limit )	Check if stack about to overflow
-	   >|>| 1+ >< !						\ ( a stack sp )	Increment stack pointer
-           cells + cell+ cell+ !				\ ( a stack sp )	Store element
-	   else _ >name count type bl emit
-	   0add bad57ac .abort then ;				\ 			Stack overflow
-
-: s>       | @ | if						\ ( stack -- a | E )	Pops element off stack or aborts on underflow
-           1- >|>| >< !						\ ( stack sp )		Decrement stack pointer
-           cells + cell+ cell+ @				\ ( stack sp )		Fetch element
-	   else _ >name count type bl emit
-	   05bb bad57ac .abort then ;				\			Stack underflow
-
-: #|>>s     >< | { | | if for | { I - 1+ #| >| >s } over _	\ ( an ... a1 n s -- a1 ... an n ) ( s: an ... a1 n )
-           else _ _ then } | <<< >< >s  ;			\ Direct upload of N elements from data stack onto the specified stack
-
-: #->>s >< | { | if for | I 1+ #| >< >s over			\ ( an ... a1 n s -- an ... a1 n )
-           else _ then } | <<< >< >s  ;				\ Reverse upload of N elements from data stack onto the specified stack
-
-: s#>>     | s> | { | if for | s> >< over _ else _ _ then } ;	\ ( s -- a1 ... an n ) (s: a1 ... an n -- ) Download N elements off the specified stack onto the data stack
-
-								\\ Structures
-
-: struct   create 				                \ ( "<name>" -- xt )	Structure is a vocabulary, also holding previous context and size
-           here current @ | , , 0 , 0 ,				\ 			latest, parent, size, packed,
-	   latest context !
-           does> context ! ;
-
-: packed   1 context @ cell+ cell+ cell+ ! ;			\ ( -- )		Marks structure as packed
-
-: field	   >< | current ! create				\ ( a field-size -- )	Defines a field in current structure (sets context to strucuture vocabulary)
-           | cell+ cell+ | cell+ @ >< | { @ ><
-	   if else >>| >2^ #aligned then
-	   | ,  >>> | , + } !
-	   does> | @ >< cell+ @ ;				\ ( a -- a' size )	Returns address relative to structure start and field size
-
-: ;struct  _ current @ cell+ @ context ! definitions ;		\ ( a -- ) 		Restores context to the parent vocabulary
-
-: #struct  context @ cell+ cell+ @ ;				\ ( a -- # )		Returns structure size
-
-: struct:  create context @ , here context @ cell+ cell+ @ 
-           | allot
-           0 fill
-           does> | @ context ! cell+ ;
-
-: #@       \ ( a # -- v )
-	   | 1 = if _ c@ else
-	   | 2 = if _ 2@ else
-	   | 3 = if _ | 2@ >< 2 + c@ 10 shl + else
-	   | 4 = if _ 4@ else
-	   | 5 = if _ | 4@ >< 4 + c@ 20 shl + else
-	   | 6 = if _ | 4@ >< 4 + 2@ 20 shl + else
-	   | 7 = if _ | 4@ >< 4 + | { 2@ 20 shl + } 1+ c@ 30 shl + else
-	   | 8 = if _ @ else bad515e01 574c7 .abort
-	   then then then then then then then then ;
-         
-: #!       \ ( v a # -- )
-	   | 1 = if _ c! else
-	   | 2 = if _ 2! else
-	   | 3 = if _ >|>| 2! >< 10 sar >< 2 + c! else
-	   | 4 = if _ 4! else
-	   | 5 = if _ >|>| 4! >< 20 sar >< 4 + c! else
-	   | 6 = if _ >|>| 4! >< 20 sar >< 4 + 2! else
-	   | 7 = if _ >|>| 4! >< 20 sar >< 4 + >|>| 2! >< 30 sar >< 1+ c! else
-	   | 8 = if _ ! else .. bad515e01 574c7 .abort
-	   then then then then then then then then ;
-: .@       { >| + } #@ >< ;
-: .!       { >>| + } #! ;
-
 								\\ Locals on R-stack
 
 :: #r@     code	48 ` 8b ` 4c ` cc ` 08 ` ret,			\ ( # -- #r )  		mov rtop, [rsp + rtop * 8 + 8]
@@ -776,4 +711,118 @@ create locals!
 ; immediate
 \ Zap all locals names so that they are not used as is
 ( )
+
+
+								\\ Testing framework
+: (TEST)
+		1 testing !  
+		1 test-result !
+		empty-stack
+		guard
+;
+: (.TEST)	norm 1b emit 5b emit 35 emit 30 emit 47 emit ;
+: TEST"		compile cr compile blue [compile] ." compile (.TEST)
+		compile (TEST)
+; immediate
+: test-expected ( :expected )
+		1b emit 5b emit 35 emit 30 emit 47 emit
+		0 testing !
+		test-result @ | :expected = if
+			green	if ." SUCCEEDED expectedly " else ." FAILED    expectedly " then
+		else
+			red	if ." SUCCEEDED unexpectedly " else ." FAILED    unexpectedly " then
+		then	norm cr
+		empty-stack
+		return
+;
+: ?SUCCEEDED	1 test-expected ;
+: ?FAILED	0 test-expected ;
+
+
+: test-1+	10 20 ;
+: test-1-	500 abort ;
+
+: test-test
+	TEST" 📝 TEST 1+" test-1+ ?SUCCEEDED
+	TEST" 📝 TEST 1+" test-1+ ?FAILED
+	TEST" 📝 TEST 1-" test-1- ?FAILED
+	TEST" 📝 TEST 1-" test-1- ?SUCCEEDED
+;
+
+								\\ Stack									_stack
+								\ Structure: pointer limit data...
+: stack    0 , | , cells allot does> ;				\ ( n -- ) ( -- stack )	Stack N cells size
+: empty    0 >< ! ;						\ ( stack -- )		Empty stack
+: stack@   | @ >| cell+ @ ;					\ ( stack -- stack pointer limit )	Extracts stack parameters onto data stack
+: .stack   | @ | if >< cell+ cell+ >< for | @ . cell+ over _	\ ( stack -- )
+           else _ _ then ;
+
+: >s       | @ >| cell+ @					\ ( a stack -- | E )    Pushes element onto stack or aborts on overflow
+	   >| - if						\ ( a stack sp limit )	Check if stack about to overflow
+	   >|>| 1+ >< !						\ ( a stack sp )	Increment stack pointer
+           cells + cell+ cell+ !				\ ( a stack sp )	Store element
+	   else _ >name count type bl emit
+	   0add bad57ac .abort then ;				\ 			Stack overflow
+
+: s>       | @ | if						\ ( stack -- a | E )	Pops element off stack or aborts on underflow
+           1- >|>| >< !						\ ( stack sp )		Decrement stack pointer
+           cells + cell+ cell+ @				\ ( stack sp )		Fetch element
+	   else _ >name count type bl emit
+	   05bb bad57ac .abort then ;				\			Stack underflow
+
+: #|>>s     >< | { | | if for | { I - 1+ #| >| >s } over _	\ ( an ... a1 n s -- a1 ... an n ) ( s: an ... a1 n )
+           else _ _ then } | <<< >< >s  ;			\ Direct upload of N elements from data stack onto the specified stack
+
+: #->>s >< | { | if for | I 1+ #| >< >s over			\ ( an ... a1 n s -- an ... a1 n )
+           else _ then } | <<< >< >s  ;				\ Reverse upload of N elements from data stack onto the specified stack
+
+: s#>>     | s> | { | if for | s> >< over _ else _ _ then } ;	\ ( s -- a1 ... an n ) (s: a1 ... an n -- ) Download N elements off the specified stack onto the data stack
+
+								\\ Structures
+
+: struct   create 				                \ ( "<name>" -- xt )	Structure is a vocabulary, also holding previous context and size
+           here current @ | , , 0 , 0 ,				\ 			latest, parent, size, packed,
+	   latest context !
+           does> context ! ;
+
+: packed   1 context @ cell+ cell+ cell+ ! ;			\ ( -- )		Marks structure as packed
+
+: field	   >< | current ! create				\ ( a field-size -- )	Defines a field in current structure (sets context to strucuture vocabulary)
+           | cell+ cell+ | cell+ @ >< | { @ ><
+	   if else >>| >2^ #aligned then
+	   | ,  >>> | , + } !
+	   does> | @ >< cell+ @ ;				\ ( a -- a' size )	Returns address relative to structure start and field size
+
+: ;struct  _ current @ cell+ @ context ! definitions ;		\ ( a -- ) 		Restores context to the parent vocabulary
+
+: #struct  context @ cell+ cell+ @ ;				\ ( a -- # )		Returns structure size
+
+: struct:  create context @ , here context @ cell+ cell+ @ 
+           | allot
+           0 fill
+           does> | @ context ! cell+ ;
+
+: #@       \ ( a # -- v )
+	   | 1 = if _ c@ else
+	   | 2 = if _ 2@ else
+	   | 3 = if _ | 2@ >< 2 + c@ 10 shl + else
+	   | 4 = if _ 4@ else
+	   | 5 = if _ | 4@ >< 4 + c@ 20 shl + else
+	   | 6 = if _ | 4@ >< 4 + 2@ 20 shl + else
+	   | 7 = if _ | 4@ >< 4 + | { 2@ 20 shl + } 1+ c@ 30 shl + else
+	   | 8 = if _ @ else bad515e01 574c7 .abort
+	   then then then then then then then then ;
+         
+: #!       \ ( v a # -- )
+	   | 1 = if _ c! else
+	   | 2 = if _ 2! else
+	   | 3 = if _ >|>| 2! >< 10 sar >< 2 + c! else
+	   | 4 = if _ 4! else
+	   | 5 = if _ >|>| 4! >< 20 sar >< 4 + c! else
+	   | 6 = if _ >|>| 4! >< 20 sar >< 4 + 2! else
+	   | 7 = if _ >|>| 4! >< 20 sar >< 4 + >|>| 2! >< 30 sar >< 1+ c! else
+	   | 8 = if _ ! else .. bad515e01 574c7 .abort
+	   then then then then then then then then ;
+: .@       { >| + } #@ >< ;
+: .!       { >>| + } #! ;
 
