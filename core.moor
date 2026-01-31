@@ -670,12 +670,26 @@ DECOMPILING ' branch behavior DECOMPILING ' (-leave) does
 								\\ Locals on R-stack
 
 :: #r@     code	48 ` 8b ` 4c ` cc ` 08 ` ret,			\ ( # -- #r )  		mov rtop, [rsp + rtop * 8 + 8]
-:: #r!     code							\ ( v # --  )  		mov [rsp + rtop * 8 + 8], rwork
+:: #r!     code							\ ( v # --  )  		mov [rsp + rwork * 8 + 8], rtop
 		rwork rtop mov, _,
 		48 ` 89 ` 4c ` c4 ` 08 ` _, ret,
 
-: :local@ [compile] literal compile #r@ ;
-: :local! [compile] literal compile #r! ;
+
+:: #l@     code 49 ` 8b ` 4c ` c8 ` f8 ` ret,			\ ( # -- #r )		mov rtop, [r8 + rcx * 8 - 8]
+:: #l!     code							\ ( v # --  )  		mov [r8 + rwork * 8 - 8], rtop
+		rwork rtop mov, _,
+		49 ` 89 ` 4c ` c0 ` f8 ` _, ret,
+
+:: locals( code 						\ 			pop rwork; push r8; pop rwork; lea r8, [rsp + 8]
+		rwork pop, r8 push, rwork push, ret,
+:: -locals code							\ ( # -- )		lea        r8, [rsp + 0x10]
+		4c ` 8d ` 44 ` 24 ` 10 ` ret,
+		
+:: )locals code
+		rwork pop, r8 pop, rwork push, ret,
+
+: :local@ [compile] literal compile #l@ ;
+: :local! [compile] literal compile #l! ;
 
 : local0@ 0 :local@ ; immediate
 : local1@ 1 :local@ ; immediate
@@ -712,6 +726,7 @@ create locals!
 
 : return
 	#local @ for compile r> compile _ over
+	compile )locals
 ; immediate
 
 : move		\ ( s d # -- )	Move cells
@@ -751,8 +766,20 @@ create locals!
 	then
 	_
 	| #local !
-	| if for compile >r over else _ then 
+	| if
+		compile locals(
+		for compile >r over 
+		compile -locals
+	else _ then
 ; immediate
-\ Zap locals names so that they are not used as is
+\ Zap all locals names so that they are not used as is
 ( )
+
+: q11 11 22 33 ( :a :b :c ) :a . :b . :c .  return ;
+: q22 11 22 33 ( :a :b :c ) :a . :b . { :c . }  return ;
+: q33 11 22 33 ( :a :b :c ) :a . :b . q11 { :c . }  return ;
+
+
+: swap1 ( :a ) :a 10 + :a! :a . return ; 
+: swap2 ( :a :b ) :b 10 + :b! :a 100 + :a! :b :a return ; 
 
