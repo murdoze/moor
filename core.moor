@@ -446,7 +446,7 @@
 :: self    code |, rtop rpc mov, rtop 8 sub.i, ret,		\ ( a -- )		Returns RPC for the calling word
 								\			If SELF is the first compiled word, it returns caller's XT
 								\\ Stack, continued
-: depth,   #_0 r0 store, r0 rstack mov, r0 neg, on, ;		\ ( -- # )		Stack depth 
+: depth,   #_0 rtop store, rtop rstack mov, rtop neg, on, ;	\ ( -- # )		Stack depth 
 :: depth   code depth, ret,
 								\\ States									_states
 :: MAX_STATE	 0 var
@@ -462,8 +462,8 @@
 								\\ Here
 :: here!   code rhere rtop mov, _, ret,
 								\\ Return stack									_return_stack
-:: (>r)      code r1 pop, r0 push, _, r1 push, ret,		\ ( a -- ) ( R: -- a)	Pushes top of parameter stack onto return stack
-:: (r>)      code |, r1 pop, r0 pop, r1 push, ret,		\ ( -- a ) ( R: a -- )	Pops top of parameter stack off return stack
+:: (>r)    code r1 pop, r0 push, _, r1 push, ret,		\ ( a -- ) ( R: -- a)	Pushes top of parameter stack onto return stack
+:: (r>)    code |, r1 pop, r0 pop, r1 push, ret,		\ ( -- a ) ( R: a -- )	Pops top of parameter stack off return stack
 : >r       ?comp compile (>r) ; immediate
 : r>       ?comp compile (r>) ; immediate
 : {        ?comp compile (>r) ; immediate
