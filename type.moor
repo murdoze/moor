@@ -1,6 +1,5 @@
 								\\ TODO
 \ 1) <DOES for STACK so that stacks have stack type
-\ 3) Control structures: save-restore stack, φ-junctions
 \
 								\\ Xtlit TODO: consider moving to CORE
 : xtlit		@skip ;
@@ -188,7 +187,6 @@ T: -		2 ?D
 	   else _ >name count type bl emit
 	   05bb bad57ac .abort then ;				\			Stack underflow
 \\ \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-
 : qq ." AAA" ;
 : qq1 >name count type ;
 : qq2 0 >name count type ;
@@ -197,39 +195,26 @@ T: -		2 ?D
 : tqq1 ['] qq ['] qq1 typecheck ;
 : tqq2 ['] qq2 typecheck ;
 
-T: stack	1 ?D ~Number ?T ;T
+\\ \\\ Stack \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
-: s1	stack ;
-: s2	10 stack ;
-:: ss	s2
+T: empty	1 ?D ['] stack ?T ~Adr ...;T
+T: >s		1 ?D ['] stack ?T ~Adr ...;T
 
-: ts1	['] s1 typecheck ;
-: ts2	['] s2 typecheck ;
-: ts3	['] ts1 ['] stack typecheck ;
+: test-stack-nosize	stack ;
+: test-stack-withsize	10 stack ;
 
-: >s2	| @ >| cell+ @
-	>| - if	
-	>|>| 1+ >< !
-	cells + cell+ cell+ !
-	else _ >name count type bl emit
-	0add bad57ac .abort then ;
 
-: s5	| @ >| cell+ @ 
-	>| - if
-	>|>| 1+ >< !
-	cells + cell+ cell+ >< !
-	else \ _ >name
-	then 
-	1 | _ ;
+: ts41	~Any ['] stack ['] >s typecheck ;
 
-T: s5	1 ?D ['] stack ?T  ~Adr ...;T
+: test-stack
+	TEST" 📝 Stack no size"		['] test-stack-nosize 	typecheck ?FAILED
+	TEST" 📝 Stack with size"		['] test-stack-withsize typecheck ?SUCCEEDED
+	TEST" 📝 Stack size non-number 1"	['] dummy ['] stack	typecheck ?FAILED
 
-\ φ-junction needed to handle else
-: ts41	~Number ~Adr ['] >s typecheck ;
-: ts42	~Adr ['] s> typecheck ;
-: ts5	~Number ~Adr ['] s5 typecheck ;	
-: ts51	~Number ['] stack ['] s5 typecheck ;	
-: ts52	~Adr    ['] stack ['] s5 typecheck ;	
+
+;
+
+\\ \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
 : zz    1 ;
 T: zz   ~Adr ;T
@@ -255,10 +240,7 @@ T: zz   ~Adr ;T
 
 : w1	41 emit ;
 : w2	emit ;			\ ['] <...> generates LIT, which is of type ~Number
-: w3	ss emit ;
 : tw1	['] w1 typecheck ;
-: tw2	['] s2 ['] w2 typecheck ;
-: tw3	['] w3 typecheck ;	\ Need <DOES for types
 
 : cs1	\ ( n1 n2 -- )
 	| _ 1 and | _ if
