@@ -545,11 +545,14 @@ DECOMPILING ' branch behavior DECOMPILING ' (-leave) does
 
 								\\ Stack manipulation, continued
 : #_       | if for _ over else _ then ;			\ ( a1 ... an n -- )	Drops N elelemns off stack (including count)
+: empty-stack	
+           depth #_ ;
+
 : >|>|>|   { >|>| } | { <<< } ; 				\ ( a b c -- a b c a b c ) 3OVER
 
 								\\ Arithmetic and logic, continued
-:: not     code r0 not, ret,
-:: negate  code r0 neg, ret,
+:: not     code rtop not, ret,
+:: negate  code rtop neg, ret,
 								\\ Min and max
 : min      >|>| - 0 > if >< then _ ;				\ ( a b -- min(a,b) ) Minimum
 : max      >|>| - 0 < if >< then _ ;				\ ( a b -- min(a,b) ) Minimum
@@ -720,7 +723,6 @@ create locals@
 create locals! 
 	' local0! , ' local1! , ' local2! , ' local3! , ' local4! ,
 	' local5! , ' local6! , ' local7! , ' local8! , ' local9! , 0 ,
-
 
 :: #local 0 var
 
