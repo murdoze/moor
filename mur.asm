@@ -1817,8 +1817,8 @@ word	decompiling__, "decompiling!",,,,,, _code, _decompiling__
 _decompiling__:
 	mov	rstate, DECOMPILING
 	pop	rpc
-	jmp	_exit
-	ret
+	pop	rpc
+	jmp	rnext
 
 # IMMEDIATE ( -- )
 # Sets latest word's compilation semantics to execution semantics
@@ -2697,6 +2697,7 @@ _source:
 
 .ifdef BOOT_SOURCE
 	.incbin "core.moor"
+	.incbin "core.test.moor"
 	.incbin "type.moor"
 	.ifdef	BAREMETAL
 		.incbin	"vamp.moor"

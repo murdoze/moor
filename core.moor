@@ -496,35 +496,30 @@
 : interpretation	INTERPRETING ;
 : compilation		COMPILING ;
 : decompilation		DECOMPILING ;
-
-: interp	['] (does) interpretation ; immediate
-: decomp	['] (does) decompilation ; immediate
 								\\ DOES for states
 : does<								\ ( code state -- )
+          ['] (does) ><
 	  compile lit >mark {
 	  >< compile,
 	  [compile] literal  
 	  compile latest
 	  compile does 
-	  compile branch >mark } here >< ! ; immediate
-: >does   compile xexit >resolve ; immediate
+	  compile branch >mark } here >< ! 
+	  compile interpreting!
+;
+: >does   compile xexit >resolve ;
 								\\ Decompilation DOES
-: decomp-does<
-          [compile] decomp [compile] does< compile interpreting! 
-          compile .decomp compile tab ; immediate
-
-: >decomp-does
-          compile cr compile decompiling! [compile] >does ; immediate
+: decomp-does<	decompilation does< ; immediate
+: >decomp-does	compile decompiling! >does ; immediate
 
 : (val)   val ;
 : val     (val)
-	  decomp-does< | @ . tab ." val @" . >decomp-does ;
+	  decomp-does< .decomp tab | @ . tab ." val @" . cr >decomp-does ;
 
 : (var)   var ;
 : var    (var)
-          decomp-does< | @ . tab ." var @" . >decomp-does ;
+          decomp-does< .decomp tab | @ . tab ." var @" . cr >decomp-does ;
 
-								\\ Exit on error
 : -try	if r> then ;
 : try	-if r> then ;
 								\\ Control structures: loops							_loops
