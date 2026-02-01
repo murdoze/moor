@@ -159,6 +159,9 @@ syn match   forthDefine   "\<\[COMPILE]\>"
   " Forth-79, Forth-83
 syn keyword forthDefine COMPILE
 syn keyword forthDefine COMPILATION INTERPRETATION DECOMPILATION TYPECHECKING 
+syn keyword forthDefine DECOMP-DOES< >DECOMP-DOES
+syn keyword forthDefine TYPECHECK-DOES< >TYPECHECK-DOES
+
   " Eror handling, debug etc
 syn keyword forthDefine DEBUG -try try
 
