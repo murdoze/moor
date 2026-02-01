@@ -1,0 +1,19 @@
+\\ Unicode characters
+
+: 6lsb | 3f and >< 2/ 2/ 2/ 2/ 2/ 2/ ;
+
+: u2emit c0 or emit 80 or emit ;
+: u3emit e0 or emit 80 or emit 80 or emit ;
+: u4emit f0 or emit 80 or emit 80 or emit 80 or emit ;
+
+: uemit
+  | 80 < if emit else
+  | 800 < if 6lsb u2emit else
+  | 10000 < if 6lsb 6lsb u3emit else
+  | 110000 < if 6lsb 6lsb 6lsb u4emit else
+  _ 20 emit then then then then ;
+
+: .uchars ( :from :count )
+	:count for :count I - :from + | bl emit . uemit bl emit bl emit over cr
+	return ;
+
