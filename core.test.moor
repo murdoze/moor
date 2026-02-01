@@ -1,0 +1,22 @@
+\\ Core tests
+
+vocabulary test
+test definitions
+vocabulary internal
+internal definitions
+
+\\ VAR/VAL decompilation
+
+:: test-var1 111 var
+:: test-val1 222 val
+
+test definitions internal
+
+: test-var-decomp1
+	test-var1 @ .
+	test-val1 .
+;
+
+\\ Forth
+forth definitions
+
