@@ -11,7 +11,7 @@
 
 :: latest-typecheck	latest var
 
-:: typechecking!!	code rstate typechecking  mov.i, ret,	\ ( -- )	Sets state to typechecking without address interpreter involvement
+: typechecking!!	typechecking state!! ;
 
 : Texit		compile typechecking!! compile exit ; immediate
 

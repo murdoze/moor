@@ -7,18 +7,20 @@
 :: DEALLOCING		:state
 								\\ Regallocing and assembling states
 : (:)      : ;							\ 			Redefine : to enable REGALLOCING state TODO: ANALYZE
-: :        (:) INTERPRETING latest behavior REGALLOCING latest does ;
+: :        (:) interpretation latest behavior REGALLOCING latest does ;
 
-:: REGALLOCING!! code rstate REGALLOCING mov.i, ret,		\ ( -- )		Sets state to REGALLOCING without address interpreter involvement
-	INTERPRETING latest behavior REGALLOCING latest does
-	INTERPRETING latest behavior ASSEMBLING  latest does
-:: ASSEMBLING!!  code rstate ASSEMBLING  mov.i, ret,		\ ( -- )		Sets state to ASSEMBLING without address interpreter involvement
-	INTERPRETING latest behavior REGALLOCING latest does
-:: DEALLOCING!!  code rstate DEALLOCING  mov.i, ret,		\ ( -- )		Sets state to DEALLOCING without address interpreter involvement
-	INTERPRETING latest behavior REGALLOCING latest does
+: REGALLOCING!! REGALLOCING state!! ;
+interpretation latest behavior REGALLOCING latest does
+interpretation latest behavior ASSEMBLING  latest does
+
+: ASSEMBLING!! ASSEMBLING state!! ;
+interpretation latest behavior REGALLOCING latest does
+
+: DEALLOCING!! DEALLOCING state!! ;
+interpretation latest behavior REGALLOCING latest does
 
 : regalloc 							\ ( xt -- )		Run XT in REGALLOCING state
-	REGALLOCING state! execute interpreting! INTERPRETING state! ;
+	REGALLOCING state! execute interpreting! interpretation state! ;
 
 : :%       : compile interpreting! ;
 								\\ Register allocation
@@ -178,20 +180,20 @@
 	   ] ;
 : $;       compile ASSEMBLING!! compile exit [compile] [ ; immediate
 
-INTERPRETING ' exit behavior REGALLOCING ' exit does
-INTERPRETING ' exit behavior ASSEMBLING ' exit does
-INTERPRETING ' exit behavior DEALLOCING ' exit does
+interpretation ' exit behavior REGALLOCING ' exit does
+interpretation ' exit behavior ASSEMBLING ' exit does
+interpretation ' exit behavior DEALLOCING ' exit does
 
-INTERPRETING ' interpreting! behavior REGALLOCING ' interpreting! does
-INTERPRETING ' interpreting! behavior ASSEMBLING ' interpreting! does
-INTERPRETING ' interpreting! behavior DEALLOCING ' interpreting! does
+interpretation ' interpreting! behavior REGALLOCING ' interpreting! does
+interpretation ' interpreting! behavior ASSEMBLING ' interpreting! does
+interpretation ' interpreting! behavior DEALLOCING ' interpreting! does
 
 : assm     ;
 $ assm     $;
 
 : %        here exec REGALLOCING ' | >r does 			\ ( "<name>" --  )	Creates new semantics for register allocation state,
-           ASSEMBLING   ['] assm behavior ASSEMBLING r> | >r does
-           INTERPRETING ['] assm behavior DEALLOCING r> | >r does r>
+           ASSEMBLING     ['] assm behavior ASSEMBLING r> | >r does
+           interpretation ['] assm behavior DEALLOCING r> | >r does r>
            compile interpreting! 				\			which equals to execution semantics of its constituents
 	   | opt-xt !
 
