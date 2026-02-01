@@ -1816,8 +1816,6 @@ _interpreting__decomp:
 word	decompiling__, "decompiling!",,,,,, _code, _decompiling__
 _decompiling__:
 	mov	rstate, DECOMPILING
-	ret
-
 	pop	rpc
 	pop	rpc
 	jmp	rnext
