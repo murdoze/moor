@@ -519,23 +519,31 @@
 : try	-if r> then ;
 								\\ Control structures: loops							_loops
 								\ DOC: https://github.com/TG9541/stm8ef/wiki/eForth-FOR-..-NEXT
-:: (for)   code rtmp pop, rwork pop, rindex push,  		\ ( n -- )		push rindex; mov rindex, rtop ; drop
+:: (for)   code 						\ ( n -- )		push rindex; mov rindex, rtop ; drop
+		rwork pop,
+		rindex push,
                 rindex r0 mov,
-                rwork push, rtmp push, _, ret,
+                rwork push,
+		_, 
+		ret,
 : (aft) ;
 :: I       code |, r0 rindex mov, ret,				\ ( -- I )		Returns FOR loop index
 :: (over)  code rindex dec, lodsq, 4 .z j, skip, ret,		\ ( -- )		dec rindex ; lodsq ; jz ret ; rpc+=ofs ; ret
 :: (over-post) code
-                rtmp pop, rwork pop, rindex pop, 
-		rwork push, rtmp push, ret,
+		rwork pop,
+		rindex pop,
+		rwork push,
+		ret,
 DECOMPILING ' branch behavior DECOMPILING ' (over) does
 
 :: (-leave) code 						\ ( f -- )		Leave FOR loop if the flag is false
            rtmp rtop mov,
 	   _, lodsq, rtmp rtmp test, 1 .z j, ret,
 	   skip,
-	   rtmp pop, rwork pop, rindex pop,
-	   rwork push, rtmp push, ret,
+	   rtmp pop,
+	   rindex pop,
+	   rtmp push,
+	   ret,
 DECOMPILING ' branch behavior DECOMPILING ' (-leave) does
 
 
@@ -603,14 +611,14 @@ DECOMPILING ' branch behavior DECOMPILING ' (-leave) does
 		48 ` 89 ` 4c ` c4 ` 08 ` _, ret,
 
 
-:: #l@     code 49 ` 8b ` 4c ` c8 ` 08 ` ret,			\ ( # -- #r )		mov rtop, [r8 + rcx * 8 - 8]
-:: #l!     code							\ ( v # --  )  		mov [r8 + rwork * 8 - 8], rtop
+:: #l@     code 49 ` 8b ` 4c ` c8 ` 08 ` ret,			\ ( # -- #r )		mov rtop, [r8 + rcx * 8 + 8]
+:: #l!     code							\ ( v # --  )  		mov [r8 + rwork * 8 + 8], rtop
 		rwork rtop mov, _,
 		49 ` 89 ` 4c ` c0 ` 08 ` _, ret,
 
-:: locals( code 						\ 			pop rwork; push r8; pop rwork; lea r8, [rsp + 8]
+:: locals( code 						\ 			pop rwork; push r8; pop rwork
 		rwork pop, r8 push, rwork push, ret,
-:: -locals- code						\ ( # -- )		lea        r8, [rsp + 0x10]
+:: -locals- code						\ ( # -- )		lea        r8, [rsp]
 		4c ` 8d ` 44 ` 24 ` 00 ` ret,
 		
 :: )locals code
@@ -701,7 +709,6 @@ create locals!
 ; immediate
 \ Zap all locals names so that they are not used as is
 ( )
-
 
 								\\ Testing framework
 : (TEST)	1 testing !  1 test-result ! empty-stack
