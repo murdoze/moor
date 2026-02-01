@@ -49,7 +49,7 @@ interpretation ' typechecking!!  behavior typechecking ' typechecking!!  does
 ;
 : ;T	[compile] Texit [compile] [ ; immediate
 
-: typecheck-inside \\ TODO !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+: typecheck-inside
 	typechecking interpretation >>> behavior execcfa interpreting! ;
 : ...;T
 	latest-typecheck @ [compile] literal compile typecheck-inside
@@ -165,14 +165,16 @@ T: -		2 ?D
 
 \\ Stack
 
-: ?Tstack	1 ?D ['] stack ?T ~Adr ;
-T: empty	?Tstack ...;T
-T: stack@	?Tstack ...;T
-T: .stack	?Tstack ...;T
-T: >s		?Tstack ...;T
-T: s>		?Tstack ...;T
+: ?Tstack	1 ?D ['] stack ;
+T: empty	?Tstack ?T ~Adr ...;T
+T: stack@	?Tstack ?T ~Adr ...;T
+T: .stack	?Tstack ?T ~Adr ...;T
+T: >s		?Tstack ?T ~Adr ...;T
+T: s>		?Tstack ?T ~Adr ...;T
 
 : test-stack-withsize	10 stack ;
+
+:: stack1 10 stack
 
 : test-stack
 
@@ -184,9 +186,9 @@ T: s>		?Tstack ...;T
 
 	TEST" 📝 >S any with stack"		~Any ['] stack ['] >s	typecheck ?SUCCEEDED
 	TEST" 📝 >S with stack no value"	['] stack ['] >s	typecheck ?FAILED
-	TEST" 📝 >S any with non-stack"		~Any ['] ~Number ['] >s	typecheck ?FAILED
+	TEST" 📝 >S any with non-stack"		~Any ~Number ['] >s	typecheck ?FAILED
 
-
+	TEST" 📝 >S any with stack1"		~Any ['] stack1 ['] >s	typecheck ?SUCCEEDED
 ;
 
 \\ Control structures
