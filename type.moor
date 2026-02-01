@@ -110,6 +110,10 @@ interpretation ' typechecking!!  behavior typechecking ' typechecking!!  does
 
 \\ Typecheck implementation
 
+T: (does)	;T
+T: does		;T
+T: latest	~Xt ;T
+
 T: lit		skip ~Number ;T
 T: xtlit	skip ~Xt ;T
 T: >name	1 ?D ~Xt ?T ~'#Str ;T
@@ -163,7 +167,15 @@ T: -		2 ?D
 		then yellow ." '-' accepts numbers or address and number, got " 
 		blue .type yellow ."  and " blue .type norm cr abort ;T
 
+: typecheck-does<	typechecking does< ; immediate
+: >typecheck-does	compile typechecking!! >does ; immediate
+
 \\ Stack
+
+: (stack)	stack ;
+: stack		(stack)
+		typecheck-does< ['] stack >typecheck-does
+;
 
 : ?Tstack	1 ?D ['] stack ;
 T: empty	?Tstack ?T ~Adr ...;T
@@ -172,14 +184,16 @@ T: .stack	?Tstack ?T ~Adr ...;T
 T: >s		?Tstack ?T ~Adr ...;T
 T: s>		?Tstack ?T ~Adr ...;T
 
+
 : test-stack-withsize	10 stack ;
 
 :: stack1 10 stack
+: test->s-stack1	stack1 >s ;
 
 : test-stack
 
 	TEST" 📝 Stack no size"			['] stack	 	typecheck ?FAILED
-	TEST" 📝 Stack with size 1"		10 ['] stack		typecheck ?SUCCEEDED
+	TEST" 📝 Stack with size 1"		10 ['] stack		typecheck ?FAILED
 	TEST" 📝 Stack with size 2"		['] test-stack-withsize typecheck ?SUCCEEDED
 	TEST" 📝 Stack size non-number dummy"	['] dummy ['] stack	typecheck ?FAILED
 	TEST" 📝 Stack size non-number ~Adr"	~Adr ['] stack		typecheck ?FAILED
@@ -188,7 +202,7 @@ T: s>		?Tstack ?T ~Adr ...;T
 	TEST" 📝 >S with stack no value"	['] stack ['] >s	typecheck ?FAILED
 	TEST" 📝 >S any with non-stack"		~Any ~Number ['] >s	typecheck ?FAILED
 
-	TEST" 📝 >S any with stack1"		~Any ['] stack1 ['] >s	typecheck ?SUCCEEDED
+	TEST" 📝 >S any with stack1"		~Any ['] test->s-stack1	typecheck ?SUCCEEDED
 ;
 
 \\ Control structures
