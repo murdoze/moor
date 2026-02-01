@@ -10,13 +10,23 @@ internal definitions
 :: test-var1 111 var
 :: test-val1 222 val
 
+
+\\ Locals
+
+: loc1	( :c :d ) 1 for :d :c over return ;
+: loc21	( :a :b ) :a :b || loc1 <<< = <<< = and cr if else abort then return ;
+: loc22	0 0 ( :a :b :r1 :r2 ) :a :b loc1 :r1! :r2! :r1 :a = :r2 :b = and if else abort then return ;
+
 test definitions internal
 
 : test-var-decomp1
 	test-var1 @ .
-	test-val1 .
+	test-val1 . ;
+
+: test-locals
+	TEST" Nested locals 1"		111 222 loc21 ?SUCCEEDED 
+	TEST" Nested locals 1"		111 222 loc22 ?SUCCEEDED 
 ;
 
-\\ Forth
 forth definitions
 
