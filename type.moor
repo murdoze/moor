@@ -172,7 +172,7 @@ T: -		2 ?D
 
 \\ Stack
 
-' stack : stack [ compile , ] typecheck-does< ['] stack >typecheck-does ;
+' stack : stack [ compile, ] typecheck-does< ['] stack >typecheck-does ;
 
 : ?Tstack	1 ?D ['] stack ;
 T: empty	?Tstack ?T ~Adr ...;T
@@ -189,7 +189,7 @@ T: s>		?Tstack ?T ~Adr ...;T
 
 : test-stack
 
-	TEST" 📝 Stack no size"			['] stack	 	typecheck ?FAILED
+ 	TEST" 📝 Stack no size"			['] stack	 	typecheck ?FAILED
 	TEST" 📝 Stack with size 1"		10 ['] stack		typecheck ?FAILED
 	TEST" 📝 Stack with size 2"		['] test-stack-withsize typecheck ?SUCCEEDED
 	TEST" 📝 Stack size non-number dummy"	['] dummy ['] stack	typecheck ?FAILED
