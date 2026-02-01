@@ -51,9 +51,9 @@ interpretation ' typechecking!!  behavior typechecking ' typechecking!!  does
 
 : typecheck-inside
 	typechecking interpretation >>> behavior execcfa interpreting! ;
-: ...;T
+: ...;T								\ 			Continue typechecking of the inside of the definition
 	latest-typecheck @ [compile] literal compile typecheck-inside
-	[compile] ;T ; immediate	\ 			Continue typechecking of the inside of the definition
+	[compile] ;T ; immediate
 
 : typecheck							\ ( xt -- )		Run XT in static type checking mode
 	|{
@@ -172,10 +172,7 @@ T: -		2 ?D
 
 \\ Stack
 
-: (stack)	stack ;
-: stack		(stack)
-		typecheck-does< ['] stack >typecheck-does
-;
+' stack : stack [ compile , ] typecheck-does< ['] stack >typecheck-does ;
 
 : ?Tstack	1 ?D ['] stack ;
 T: empty	?Tstack ?T ~Adr ...;T

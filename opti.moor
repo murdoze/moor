@@ -6,8 +6,8 @@
 :: ASSEMBLING		:state
 :: DEALLOCING		:state
 								\\ Regallocing and assembling states
-: (:)      : ;							\ 			Redefine : to enable REGALLOCING state TODO: ANALYZE
-: :        (:) interpretation latest behavior REGALLOCING latest does ;
+' : : :		[ compile, ] 
+		interpretation latest behavior REGALLOCING latest does ;
 
 : REGALLOCING!! REGALLOCING state!! ;
 interpretation latest behavior REGALLOCING latest does

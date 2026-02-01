@@ -512,13 +512,8 @@
 : decomp-does<	decompilation does< ; immediate
 : >decomp-does	compile decompiling! >does ; immediate
 
-: (val)   val ;
-: val     (val)
-	  decomp-does< .decomp tab | @ . tab ." val @" . cr >decomp-does ;
-
-: (var)   var ;
-: var    (var)
-          decomp-does< .decomp tab | @ . tab ." var @" . cr >decomp-does ;
+' val : val    [ compile, ] decomp-does< .decomp tab | @ . tab ." val @" . cr >decomp-does ;
+' var : var    [ compile, ] decomp-does< .decomp tab | @ . tab ." var @" . cr >decomp-does ;
 
 : -try	if r> then ;
 : try	-if r> then ;
