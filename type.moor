@@ -78,8 +78,8 @@ interpretation ' typechecking!!  behavior typechecking ' typechecking!!  does
 	compile depth compile 1- latest-typecheck @ [compile] literal compile <<< compile ?depth ; immediate
 
 : T>xt	-2 and 
-	| 0f and if red ." Xt expected, received " . norm abort then 
-	| -1000 and -if red ." Xt expected, received " . norm abort then 
+	| 0f and if red ." Xt expected, received " . norm cr abort then 
+	| -1000 and -if red ." Xt expected, received " . norm cr abort then 
 ;
 : T~
 	|| = if _ _ 1 exit then
@@ -108,9 +108,7 @@ interpretation ' typechecking!!  behavior typechecking ' typechecking!!  does
 : >>tcs	depth tcs-stack #|>>s _ ;
 : tcs>>	tcs-stack s#>> _ ;
 
-\\ \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\								
 \\ Typecheck implementation
-\\ \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\								
 
 T: lit		skip ~Number ;T
 T: xtlit	skip ~Xt ;T
@@ -165,84 +163,33 @@ T: -		2 ?D
 		then yellow ." '-' accepts numbers or address and number, got " 
 		blue .type yellow ."  and " blue .type norm cr abort ;T
 
-								\\ Typechecking implementation
 \\ Stack
-\\ \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-: stack    0 , | , cells allot does> ;				\ ( n -- ) ( -- stack )	Stack N cells size
-: empty    0 >< ! ;						\ ( stack -- )		Empty stack
-: stack@   | @ >| cell+ @ ;					\ ( stack -- stack pointer limit )	Extracts stack parameters onto data stack
-: .stack   | @ | if >< cell+ cell+ >< for | @ . cell+ over _	\ ( stack -- )
-           else _ _ then ;
 
-: >s       | @ >| cell+ @					\ ( a stack -- | E )    Pushes element onto stack or aborts on overflow
-	   >| - if						\ ( a stack sp limit )	Check if stack about to overflow
-	   >|>| 1+ >< !						\ ( a stack sp )	Increment stack pointer
-           cells + cell+ cell+ !				\ ( a stack sp )	Store element
-	   else _ >name count type bl emit
-	   0add bad57ac .abort then ;				\ 			Stack overflow
+: ?Tstack	1 ?D ['] stack ?T ~Adr ;
+T: empty	?Tstack ...;T
+T: stack@	?Tstack ...;T
+T: .stack	?Tstack ...;T
+T: >s		?Tstack ...;T
+T: s>		?Tstack ...;T
 
-: s>       | @ | if						\ ( stack -- a | E )	Pops element off stack or aborts on underflow
-           1- >|>| >< !						\ ( stack sp )		Decrement stack pointer
-           cells + cell+ cell+ @				\ ( stack sp )		Fetch element
-	   else _ >name count type bl emit
-	   05bb bad57ac .abort then ;				\			Stack underflow
-\\ \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-: qq ." AAA" ;
-: qq1 >name count type ;
-: qq2 0 >name count type ;
-
-: tqq ['] qq typecheck  ;
-: tqq1 ['] qq ['] qq1 typecheck ;
-: tqq2 ['] qq2 typecheck ;
-
-\\ \\\ Stack \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-
-T: empty	1 ?D ['] stack ?T ~Adr ...;T
-T: >s		1 ?D ['] stack ?T ~Adr ...;T
-
-: test-stack-nosize	stack ;
 : test-stack-withsize	10 stack ;
 
-
 : test-stack
+
+	TEST" 📝 Stack no size"			['] stack	 	typecheck ?FAILED
+	TEST" 📝 Stack with size 1"		10 ['] stack		typecheck ?SUCCEEDED
+	TEST" 📝 Stack with size 2"		['] test-stack-withsize typecheck ?SUCCEEDED
+	TEST" 📝 Stack size non-number dummy"	['] dummy ['] stack	typecheck ?FAILED
+	TEST" 📝 Stack size non-number ~Adr"	~Adr ['] stack		typecheck ?FAILED
+
 	TEST" 📝 >S any with stack"		~Any ['] stack ['] >s	typecheck ?SUCCEEDED
-
-	TEST" 📝 Stack no size"			['] test-stack-nosize 	typecheck ?FAILED
-	TEST" 📝 Stack with size"		['] test-stack-withsize typecheck ?SUCCEEDED
-	TEST" 📝 Stack size non-number 1"	['] dummy ['] stack	typecheck ?FAILED
-
+	TEST" 📝 >S with stack no value"	['] stack ['] >s	typecheck ?FAILED
 	TEST" 📝 >S any with non-stack"		~Any ['] ~Number ['] >s	typecheck ?FAILED
 
 
 ;
 
-\\ \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-
-: zz    1 ;
-T: zz   ~Adr ;T
-
-: p1	['] p1 ['] p1 + ;
-: p2	zz zz + ;
-: p3	10 zz + ;
-: pp4	10 20 + ;
-: p4	pp4 30 + ;
-: p5	10 20 30 + + ;
-: tp1	['] p1 typecheck ;
-: tp2	['] p2 typecheck ;
-: tp3	['] p3 typecheck ;
-: tp4	['] p4 typecheck ;
-: tp5	['] p5 typecheck ;
-
-: tpr1
-	~Number ~Number	T~ .. .S cr
-	~Number ~Any	T~ .. .S cr
-	~Any ~Number	T~ .. .S cr
-	~Adr ~Number	T~ .. .S cr
-;
-
-: w1	41 emit ;
-: w2	emit ;			\ ['] <...> generates LIT, which is of type ~Number
-: tw1	['] w1 typecheck ;
+\\ Control structures
 
 : cs1	\ ( n1 n2 -- )
 	| _ 1 and | _ if
@@ -268,11 +215,15 @@ T: zz   ~Adr ;T
 : cs2	if 41 43 else 42 then 42 = if 30 emit else emit then cr ;
 : cs3	if 41 else if 42 else 43 then then emit cr ;
 
-: tcs13	0 4		['] cs1 typecheck ;
-: tcs12	0 ~Number 	['] cs1 typecheck ;
-: tcs11	~Number ~Number	['] cs1 typecheck ;
 
-: tcs21 ~Any	 	['] cs2 typecheck ;
-: tcs31 ~Number ~Number	['] cs3 typecheck ;
+: test-cs
+	TEST" IF1 non-types"			0 4 ['] cs1 		typecheck ?FAILED
+	TEST" IF1 non-type and type"		0 ~Number ['] cs1 	typecheck ?FAILED
+	TEST" IF1 numbers"			~Number ~Number	['] cs1 typecheck ?SUCCEEDED
 
+	TEST" IF2 any"				~Any ['] cs2 		typecheck ?FAILED
+	TEST" IF2 any any"			~Any ~Any ['] cs2 	typecheck ?SUCCEEDED
+
+	TEST" IF3 numbers"			~Number ~Number	['] cs3	typecheck ?SUCCEEDED
+;
 
