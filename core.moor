@@ -603,6 +603,20 @@ DECOMPILING ' branch behavior DECOMPILING ' (-leave) does
     | randseed ! ;
 : random random32 * 20 sar ;					\ ( n -- )		Returns a random number in range 0..N-1
 : randomize timestamp ffffffff and randseed ! ;
+								\\ Decimal opeartions and printing
+: 10/mod	| 01999999A * 20 sar | a * >>> >< - >< ;
+: 10/		10/mod >< _ ;
+: dig		10/mod ;
+: digit		| 9 > if 7 + then [char] 0 + ; 
+: .3digits	dig dig dig _ digit emit digit emit digit emit ;
+: .0#		10 for dig over _ 
+		10 for digit emit over bl emit ;
+: .#		0 ( :zeros )
+		10 for dig over _ 
+		begin | 0 = while _ :zeros 1+ :zeros! repeat
+		10 :zeros - for digit emit over bl emit 
+		return ;
+
 								\\ Locals on R-stack
 
 :: #r@     code	48 ` 8b ` 4c ` cc ` 08 ` ret,			\ ( # -- #r )  		mov rtop, [rsp + rtop * 8 + 8]

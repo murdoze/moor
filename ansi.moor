@@ -22,12 +22,6 @@
 : scrsave	esc[" ?47h" ;
 : scrrestore	esc[" ?47l" ;
 
-
-: 10/mod	| 01999999A * 20 sar | a * >>> >< - >< ;
-: dig		10/mod ;
-: digit		| 9 > if 7 + then [char] 0 + ; 
-: .3digits	dig dig dig _ digit emit digit emit digit emit ;
-
 : at		1b emit [char] [ emit .3digits [char] ; emit .3digits [char] H emit ;			\ ( x y -- )	Move cursor to x,y
 : scroll	esc[ .3digits [char] ; emit .3digits [char] r emit ; 					\ (bot top -- )
 : scrollw	esc[ .3digits [char] ; emit .3digits [char] s emit ; 					\ ( r l -- )
