@@ -1190,6 +1190,10 @@ word	stop
 	mov	qword ptr [_source_completed], 1
 	ret
 
+.ifndef	BAREMETAL
+	.include "key.asm"
+.endif
+
 # KEY ( -- c )
 # Reads one character from input
 word	key
@@ -1197,8 +1201,28 @@ word	key
 	cmp	byte ptr [runmode], RUNMODE_BAREMETAL
 	je	_key_baremetal
 
-	call	_read_key
+.ifndef	BAREMETAL
+	#call	_read_key
+
+	push	rbx
+	push	rsi
+	push	rdi
+	push	r8
+
+	call	kbd_enter_raw_blocking
+
+	call	kbd_getch_blocking
+	push	rcx
+	call	kbd_leave_raw
+	pop	rcx
+
+	pop	r8
+	pop	rdi
+	pop	rsi
+	pop	rbx
+
 	ret
+.endif
 
 _key_baremetal:
 	push	rbx
@@ -2683,7 +2707,7 @@ _vmread_xxx:
 	jmp	_abort	
 	MESSAGE	vmreaderr1, "\nERROR! \x1\x4f VMREAD from USER !!!!\n "
 
-.endif
+.endif	# BAREMETAL
 
 
 
@@ -2700,6 +2724,7 @@ _source:
 	.incbin "core.test.moor"
 	.incbin "type.moor"
 	.incbin "unicode.moor"
+	.incbin "ansi.moor"
 	.incbin "opti.moor"
 	.ifdef	BAREMETAL
 		.incbin	"vamp.moor"
