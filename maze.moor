@@ -1,0 +1,200 @@
+\\
+\\ Maze generator, v 2
+\\
+
+vocabulary maze
+maze definitions
+
+:: s1 adr 10 cells allot
+: qqq s1 10 || nseq || .seq || rseq || cr .seq _ _ cr ;
+
+
+\\ Maze
+
+\ Maze entities
+:: EMPTY	3000 val
+:: WALL		1f9ee val
+
+\ Generation order
+:: LEFT		char L val
+:: RIGHT	char R val
+:: UP		char U val
+:: DOWN		char D val
+
+:: M-total-rows	1 var
+:: M-total-cols	1 var
+
+\ Cells reserved for maze, width and height notwithstanding
+:: M-cells		1000	val				
+:: M-max-row-len	100	val
+:: M-max-col-len	100	val
+
+:: M adr M-cells cells allot
+: M-init	M M-cells for | EMPTY >< ! cell+ over _ ;
+M-init
+
+\ Random row and column indices
+:: M-row-indices adr M-max-row-len cells allot
+:: M-col-indices adr M-max-col-len cells allot
+:: M-gen-order   adr M-max-row-len M-max-col-len + cells allot
+
+\ We gonna draw many small mazes within one giant maze
+:: M-left	0 var
+:: M-top	0 var
+:: M-cols	1 var
+:: M-rows	1 var
+
+: 'M	( :row :col )
+	:row M-total-cols @ * :col + cells M +
+	return ;
+
+: M-total-size!	
+	( :rows :cols )
+	:rows 1 and 0 = 		if abort" Number of rows must be odd" then 
+	:cols 1 and 0 = 		if abort" Number of cols must be odd" then 
+	:rows :cols * M-cells > 	if abort" Maze too big, increase buffer size" then
+	:cols M-total-cols !
+	:rows M-total-rows !
+	return ;
+
+: M-maze!
+	( :left :top :cols :rows )
+	:cols M-max-col-len @ >		if abort" Too many cols" then
+	:rows M-max-row-len @ >		if abort" Too many rows" then
+
+	:cols :left + M-total-cols @ >	if abort" Maze size and position exceeds total cols" then
+	:rows :top +  M-total-rows @ >	if abort" Maze size and position exceeds total rows" then
+
+	:left M-left !
+	:top  M-top  !
+	:cols M-cols !
+	:rows M-rows !
+	return ;
+
+: .M	0 0 ( :row :col )
+	M-total-rows @ | for | I - :row!
+		:row . [char] : emit bl emit
+		M-total-cols @ | for | I - :col! 
+			:row :col 'M @ uemit
+		over _
+		cr
+	over _
+	return
+;
+
+\ Maze drawing
+:: Δcol		0 var
+:: Δrow		0 var
+:: curr-col	0 var
+:: curr-row	0 var
+:: last-col	0 var
+:: last-row	0 var
+
+:: row-index	var 0
+:: col-index	var 0
+:: Δrow-index	var 0
+:: Δcol-index	var 0
+
+: left!		-1 Δcol !  0 Δrow ! 	M-left @ M-cols @ + curr-col !	M-left @ 1+ last-col ! 		-1 last-row ! ;
+: right!	 1 Δcol !  0 Δrow ! 	M-left @ curr-col !		M-left @ M-cols @ + last-col ! 	-1 last-row ! ;
+: up!		 0 Δcol ! -1 Δrow ! 	M-top  @ M-rows @ + curr-row !	M-top  @ 1+ last-row ! 		-1 last-col ! ;
+: down!		 0 Δcol !  1 Δrow ! 	M-top  @ curr-row !		M-top  @ M-rows @ + last-row !  -1 last-col ! ;
+
+: draw-direction!					\ ( dir -- )	Set draw direction
+	| LEFT	= if left!	 0 Δcol-index !	 1 Δrow-index !	else
+	| RIGHT = if right!	 0 Δcol-index !	 1 Δrow-index !	else
+	| UP	= if up!	 1 Δcol-index !	 0 Δrow-index !	else
+	| DOWN	= if down!	 1 Δcol-index !	 0 Δrow-index !	else	uemit abort" : invalid draw direction"
+	then then then then _ ; 
+
+: draw
+	begin
+		curr-row @ last-row @ = if exit then
+		curr-col @ last-col @ = if exit then
+		curr-row @ Δrow @ + curr-col @ Δcol @ + 'M @ WALL <> if
+			WALL curr-row @ curr-col @ 'M !
+		then
+		Δcol @ curr-col @ + curr-col !
+		Δrow @ curr-row @ + curr-row !
+	again
+;
+
+: draw-sequence
+	0 col-index !
+	0 row-index !
+
+	M-gen-order M-rows @ 2- 2/ 1- M-cols @ 2- 2/ 1- +
+	for
+		M-row-indices row-index @ cells + @ 2* 2+ curr-row !
+		M-col-indices col-index @ cells + @ 2* 2+ curr-col !
+
+		| @ draw-direction! draw
+
+		row-index @ Δrow-index @ + row-index !
+		col-index @ Δcol-index @ + col-index !
+
+		cell+
+	over
+	_
+;
+
+
+: uemit-seq	
+	( :adr :n )					\ Emit sequence
+	:adr :n for | @ uemit cell+ over _
+	return ;
+
+
+: M-draw-gen-wall-order
+	\ Generate indices
+	green ." Generating indices..." cr norm
+	M-row-indices M-rows @ 2- 2/ || nseq || rseq .seq cr
+	M-col-indices M-cols @ 2- 2/ || nseq || rseq .seq cr
+
+	\ Generate drawing order
+	M-gen-order
+	M-rows @ | 1 and >< 1+ 2/ 2/ >< - 	for |  LEFT >< ! cell+ over
+	M-rows @ 2- 2/ 2/ 			for | RIGHT >< ! cell+ over
+	M-cols @ | 1 and >< 1+ 2/ 2/ >< -	for |    UP >< ! cell+ over
+	M-cols @ 2- 2/ 2/			for |  DOWN >< ! cell+ over
+	_
+
+	M-gen-order M-rows @ 2- 2/ 1- M-cols @ 2- 2/ 1- + .seq cr
+	M-gen-order M-rows @ 2- 2/ 1- M-cols @ 2- 2/ 1- + rseq
+	M-gen-order M-rows @ 2- 2/ 1- M-cols @ 2- 2/ 1- + .seq cr
+	M-gen-order M-rows @ 2- 2/ 1- M-cols @ 2- 2/ 1- + uemit-seq cr
+;
+
+
+
+
+
+\\ Testing
+
+0f 11 M-total-size!
+
+M-total-cols @ M-cols !
+M-total-rows @ M-rows !
+
+0 curr-row ! right! draw
+M-total-rows @ 1- curr-row ! right! draw
+0 curr-col ! down! draw
+M-total-cols @ 1- curr-col ! up! draw
+
+
+\ 2 4 'M WALL >< !
+\ 2 curr-row ! right!	draw
+\ 2 curr-col !    up!	draw
+\ 4 curr-col !  down!	draw
+
+
+M-draw-gen-wall-order cr
+M-row-indices M-rows @ 2- 2/ .seq cr
+M-col-indices M-cols @ 2- 2/ .seq cr
+
+draw-sequence cr
+.M
+
+
+\ forth definitions
+
