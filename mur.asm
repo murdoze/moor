@@ -2726,6 +2726,9 @@ _source:
 	.incbin "unicode.moor"
 	.incbin "ansi.moor"
 	.incbin "opti.moor"
+
+	.incbin	"maze.moor"
+
 	.ifdef	BAREMETAL
 		.incbin	"vamp.moor"
 	.endif

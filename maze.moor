@@ -184,10 +184,5 @@ M-init
 	cr
 ;
 
-randomize
-
-MAZE
-
-
-\ forth definitions
+forth definitions
 
