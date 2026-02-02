@@ -5,10 +5,6 @@
 vocabulary maze
 maze definitions
 
-:: s1 adr 10 cells allot
-: qqq s1 10 || nseq || .seq || rseq || cr .seq _ _ cr ;
-
-
 \\ Maze
 
 \ Maze entities
@@ -25,7 +21,7 @@ maze definitions
 :: M-total-cols	1 var
 
 \ Cells reserved for maze, width and height notwithstanding
-:: M-cells		1000	val				
+:: M-cells		8000	val
 :: M-max-row-len	100	val
 :: M-max-col-len	100	val
 
@@ -73,7 +69,7 @@ M-init
 
 : .M	0 0 ( :row :col )
 	M-total-rows @ | for | I - :row!
-		:row . [char] : emit bl emit
+		bl emit
 		M-total-cols @ | for | I - :col! 
 			:row :col 'M @ uemit
 		over _
@@ -90,10 +86,10 @@ M-init
 :: last-col	0 var
 :: last-row	0 var
 
-:: row-index	var 0
-:: col-index	var 0
-:: Δrow-index	var 0
-:: Δcol-index	var 0
+:: row-index	0 var
+:: col-index	0 var
+:: Δrow-index	0 var
+:: Δcol-index	0 var
 
 : left!		-1 Δcol !  0 Δrow ! 	M-left @ M-cols @ + curr-col !	M-left @ 1+ last-col ! 		-1 last-row ! ;
 : right!	 1 Δcol !  0 Δrow ! 	M-left @ curr-col !		M-left @ M-cols @ + last-col ! 	-1 last-row ! ;
@@ -147,9 +143,8 @@ M-init
 
 : M-draw-gen-wall-order
 	\ Generate indices
-	green ." Generating indices..." cr norm
-	M-row-indices M-rows @ 2- 2/ || nseq || rseq .seq cr
-	M-col-indices M-cols @ 2- 2/ || nseq || rseq .seq cr
+	M-row-indices M-rows @ 2- 2/ || nseq || rseq _ _  
+	M-col-indices M-cols @ 2- 2/ || nseq || rseq _ _
 
 	\ Generate drawing order
 	M-gen-order
@@ -159,10 +154,7 @@ M-init
 	M-cols @ 2- 2/ 2/			for |  DOWN >< ! cell+ over
 	_
 
-	M-gen-order M-rows @ 2- 2/ 1- M-cols @ 2- 2/ 1- + .seq cr
 	M-gen-order M-rows @ 2- 2/ 1- M-cols @ 2- 2/ 1- + rseq
-	M-gen-order M-rows @ 2- 2/ 1- M-cols @ 2- 2/ 1- + .seq cr
-	M-gen-order M-rows @ 2- 2/ 1- M-cols @ 2- 2/ 1- + uemit-seq cr
 ;
 
 
@@ -171,29 +163,30 @@ M-init
 
 \\ Testing
 
-0f 11 M-total-size!
+0f 21 M-total-size!
 
-M-total-cols @ M-cols !
-M-total-rows @ M-rows !
+: MAZE
+	\ margins? 1- -1 and 1 or 2- >< -1 and 1 or 2/ -1 and 1 or 2- M-total-size!
+	M-total-cols @ M-cols !
+	M-total-rows @ M-rows !
 
-0 curr-row ! right! draw
-M-total-rows @ 1- curr-row ! right! draw
-0 curr-col ! down! draw
-M-total-cols @ 1- curr-col ! up! draw
+	M-init
+	0 curr-row ! right! draw
+	M-total-rows @ 1- curr-row ! right! draw
+	0 curr-col ! down! draw
+	M-total-cols @ 1- curr-col ! up! draw
 
+	M-draw-gen-wall-order
 
-\ 2 4 'M WALL >< !
-\ 2 curr-row ! right!	draw
-\ 2 curr-col !    up!	draw
-\ 4 curr-col !  down!	draw
+	draw-sequence
 
+	.M
+	cr
+;
 
-M-draw-gen-wall-order cr
-M-row-indices M-rows @ 2- 2/ .seq cr
-M-col-indices M-cols @ 2- 2/ .seq cr
+randomize
 
-draw-sequence cr
-.M
+MAZE
 
 
 \ forth definitions
