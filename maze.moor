@@ -21,7 +21,7 @@ maze definitions
 :: M-total-cols	1 var
 
 \ Cells reserved for maze, width and height notwithstanding
-:: M-cells		8000	val
+:: M-cells		18000	val
 :: M-max-row-len	100	val
 :: M-max-col-len	100	val
 
@@ -91,10 +91,10 @@ M-init
 :: Δrow-index	0 var
 :: Δcol-index	0 var
 
-: left!		-1 Δcol !  0 Δrow ! 	M-left @ M-cols @ + curr-col !	M-left @ 1+ last-col ! 		-1 last-row ! ;
-: right!	 1 Δcol !  0 Δrow ! 	M-left @ curr-col !		M-left @ M-cols @ + last-col ! 	-1 last-row ! ;
-: up!		 0 Δcol ! -1 Δrow ! 	M-top  @ M-rows @ + curr-row !	M-top  @ 1+ last-row ! 		-1 last-col ! ;
-: down!		 0 Δcol !  1 Δrow ! 	M-top  @ curr-row !		M-top  @ M-rows @ + last-row !  -1 last-col ! ;
+: left!		-1 Δcol !  0 Δrow ! 	M-cols @ 1- curr-col !	0 last-col ! 		-1 last-row ! ;
+: right!	 1 Δcol !  0 Δrow ! 	       0 curr-col !	M-cols @ last-col !	-1 last-row ! ;
+: up!		 0 Δcol ! -1 Δrow ! 	M-rows @ 1- curr-row !	0 last-row ! 		-1 last-col ! ;
+: down!		 0 Δcol !  1 Δrow ! 	       0 curr-row !	M-rows @ last-row !	-1 last-col ! ;
 
 : draw-direction!					\ ( dir -- )	Set draw direction
 	| LEFT	= if left!	 0 Δcol-index !	 1 Δrow-index !	else
@@ -107,11 +107,22 @@ M-init
 	begin
 		curr-row @ last-row @ = if exit then
 		curr-col @ last-col @ = if exit then
-		curr-row @ Δrow @ + curr-col @ Δcol @ + 'M @ WALL <> if
-			WALL curr-row @ curr-col @ 'M !
+
+		curr-row @ Δrow @ + M-top  @ +
+		curr-col @ Δcol @ + M-left @ + 
+		'M @ WALL <> if
+			WALL
+			curr-row @ M-top  @ +		| 6a 2 at ." R:" .#
+			curr-col @ M-left @ + 		| 74 2 at ." C:" .#
+			'M ! 
+			
+			curhome .M
+			key [char] q = if abort then 
+			\ curr-col @ 2* 1+ curr-row @ at WALL uemit
 		then
 		Δcol @ curr-col @ + curr-col !
 		Δrow @ curr-row @ + curr-row !
+
 	again
 ;
 
@@ -134,6 +145,12 @@ M-init
 	_
 ;
 
+: draw-borders
+	0 curr-row ! left! draw
+	M-rows @ 1- curr-row ! right! draw
+	0 curr-col ! down! draw
+	M-cols @ 1- curr-col ! up! draw
+;
 
 : uemit-seq	
 	( :adr :n )					\ Emit sequence
@@ -163,26 +180,33 @@ M-init
 
 \\ Testing
 
-0f 21 M-total-size!
+#19 #25 M-total-size!
 
 : MAZE
+	\ cursoff
+	clrscr
+	curhome
+
 	\ margins? 1- -1 and 1 or 2- >< -1 and 1 or 2/ -1 and 1 or 2- M-total-size!
-	M-total-cols @ M-cols !
-	M-total-rows @ M-rows !
-
 	M-init
-	0 curr-row ! right! draw
-	M-total-rows @ 1- curr-row ! right! draw
-	0 curr-col ! down! draw
-	M-total-cols @ 1- curr-col ! up! draw
 
+	#7 M-rows ! #8  M-top  !
+	#7 M-cols ! #10 M-left !
+	draw-borders
 	M-draw-gen-wall-order
-
 	draw-sequence
 
-	.M
+	M-total-rows @ M-rows !
+	M-total-cols @ M-cols !
+	0 M-top !
+	0 M-left !
+	draw-borders
+	M-draw-gen-wall-order
+	draw-sequence
+
 	cr
+	curson
 ;
 
-forth definitions
+\ forth definitions
 
