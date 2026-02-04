@@ -537,7 +537,7 @@
 		rindex pop,
 		rwork push,
 		ret,
-DECOMPILING ' branch behavior DECOMPILING ' (over) does
+decompilation ' branch behavior  decompilation ' (over) does
 
 :: (-leave) code 						\ ( f -- )		Leave FOR loop if the flag is false
            rtmp rtop mov,
@@ -547,7 +547,7 @@ DECOMPILING ' branch behavior DECOMPILING ' (over) does
 	   rindex pop,
 	   rtmp push,
 	   ret,
-DECOMPILING ' branch behavior DECOMPILING ' (-leave) does
+decompilation ' branch behavior  decompilation ' (-leave) does
 
 
 : for      ?comp compile (for) <mark ; immediate		\ ... n for ... [ aft ] ... [ then ] ... over ...
@@ -598,16 +598,16 @@ DECOMPILING ' branch behavior DECOMPILING ' (-leave) does
            allot cmove 0 c, ;
 								\\ Locals on R-stack
 
-:: #r@     code	48 ` 8b ` 4c ` cc ` 08 ` ret,			\ ( # -- #r )  		mov rtop, [rsp + rtop * 8 + 8]
-:: #r!     code							\ ( v # --  )  		mov [rsp + rwork * 8 + 8], rtop
-		rwork rtop mov, _,
-		48 ` 89 ` 4c ` c4 ` 08 ` _, ret,
+:: #l@   code							\ ( # -- #r )
+		|, lodsq, rtop rwork mov,
+		49 ` 8b ` 4c ` c8 ` 08 ` ret,			\			mov rtop, [r8 + rcx * 8 + 8]		
 
-
-:: #l@     code 49 ` 8b ` 4c ` c8 ` 08 ` ret,			\ ( # -- #r )		mov rtop, [r8 + rcx * 8 + 8]
 :: #l!     code							\ ( v # --  )  		mov [r8 + rwork * 8 + 8], rtop
 		rwork rtop mov, _,
 		49 ` 89 ` 4c ` c0 ` 08 ` _, ret,
+
+decompilation ' lit behavior  decompilation ' #l@ does
+
 
 :: locals( code 						\ 			pop rwork; push r8; pop rwork
 		rwork pop, r8 push, rwork push, ret,
@@ -617,7 +617,7 @@ DECOMPILING ' branch behavior DECOMPILING ' (-leave) does
 :: )locals code
 		rwork pop, r8 pop, rwork push, ret,
 
-: :local@ [compile] literal compile #l@ ;
+: :local@ compile #l@ , ;
 : :local! [compile] literal compile #l! ;
 
 : local0@ 0 :local@ ; immediate
