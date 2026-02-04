@@ -488,8 +488,6 @@ see fib
 
 .( Locals )
 
-: swap	{ { 1 #r@ 0 #r@ } } _ _ ;
-
 : rrr2	1 2 3 ( :a0 :a :b :c ) :a0 . :a . :b . :a0 :a :b + + :c * . return ;
 : swap6 ( :a :b ) :b :a return ; 
 
