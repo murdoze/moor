@@ -598,15 +598,16 @@ decompilation ' branch behavior  decompilation ' (-leave) does
            allot cmove 0 c, ;
 								\\ Locals on R-stack
 
-:: #l@   code							\ ( # -- #r )
+:: #l@   code							\ ( -- #r )
 		|, lodsq, rtop rwork mov,
 		49 ` 8b ` 4c ` c8 ` 08 ` ret,			\			mov rtop, [r8 + rcx * 8 + 8]		
 
-:: #l!     code							\ ( v # --  )  		mov [r8 + rwork * 8 + 8], rtop
-		rwork rtop mov, _,
+:: #l!     code							\ ( v --  )  		mov [r8 + rwork * 8 + 8], rtop
+		lodsq,
 		49 ` 89 ` 4c ` c0 ` 08 ` _, ret,
 
 decompilation ' lit behavior  decompilation ' #l@ does
+decompilation ' lit behavior  decompilation ' #l! does
 
 
 :: locals( code 						\ 			pop rwork; push r8; pop rwork
@@ -618,7 +619,7 @@ decompilation ' lit behavior  decompilation ' #l@ does
 		rwork pop, r8 pop, rwork push, ret,
 
 : :local@ compile #l@ , ;
-: :local! [compile] literal compile #l! ;
+: :local! compile #l! , ;
 
 : local0@ 0 :local@ ; immediate
 : local1@ 1 :local@ ; immediate
