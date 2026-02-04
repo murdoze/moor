@@ -435,6 +435,10 @@ _sigsegv_handler:
 	call	_type
 
 	pop	rdx
+
+	cmp	byte ptr [_source_completed], 0
+	jz	_bye
+
 	jmp	5f	
 
 	#	mmap()
