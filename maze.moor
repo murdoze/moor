@@ -180,9 +180,9 @@ M-init
 
 \\ Testing
 
-#19 #25 M-total-size!
-
 : MAZE
+	#19 #25 M-total-size!
+
 	\ cursoff
 	clrscr
 	curhome
@@ -206,7 +206,7 @@ M-init
 
 	cr
 	curson
-;
+; \ latest typecheck
 
 \ forth definitions
 
