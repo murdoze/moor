@@ -1384,11 +1384,8 @@ word	qcomp, "?comp"
 	lea	rtop, qword ptr [.L_comperr1_msg]
 	call	_count
 	call	_type
-.ifdef	DEBUG
-	call	_bye
-.endif
-	jmp	_abort
 
+	call	_qbye
 	9:
 	ret
 
@@ -2042,6 +2039,7 @@ _colon:
 # Finished Forth definition
 word	semicolon, "\x3b", immediate, forth
 _semicolon:
+	.quad	qcomp
 	.quad	compile, exit
 	.quad	bracket_open
 	.quad	exit
@@ -2392,11 +2390,7 @@ __number:
 	lea	rtop, qword ptr [.L_quiterr2_msg]
 	call	_count
 	call	_type
-.ifdef	DEBUG
-	call	_bye
-.endif
-	jmp	_abort
-
+	call	_qbye
 	7:
 	call	_drop
 	call	_drop
@@ -2510,6 +2504,14 @@ _bye_baremetal:
 
 	jmp	_abort
 
+# ?BYE
+# BYE is compiling source, ABORT if interactive mode
+word	qbye, "?bye"
+_qbye:
+	cmp	byte ptr [_source_completed], 0
+	jz	_bye
+	jmp	_abort
+
 # ABORT
 # Reinitializes the system, or quits to OS in debug build
 word	abort
@@ -2517,6 +2519,8 @@ _abort1:
 .ifdef	DEBUG
 	jmp	bye
 .else
+	cmp	byte ptr [_source_completed], 0
+	jz	_bye
 	jmp	_abort
 .endif
 
