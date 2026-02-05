@@ -612,7 +612,7 @@ decompilation ' lit behavior  decompilation ' #l! does
 
 :: locals( code 						\ 			pop rwork; push r8; pop rwork
 		rwork pop, r8 push, rwork push, ret,
-:: -locals- code						\ ( # -- )		lea        r8, [rsp]
+:: -locals- code						\ ( -- )		lea        r8, [rsp]
 		4c ` 8d ` 44 ` 24 ` 00 ` ret,
 		
 :: )locals code
@@ -778,14 +778,21 @@ create locals!
 	   >| - if						\ ( a stack sp limit )	Check if stack about to overflow
 	   >|>| 1+ >< !						\ ( a stack sp )	Increment stack pointer
            cells + cell+ cell+ !				\ ( a stack sp )	Store element
-	   else _ >name count type bl emit
-	   0add bad57ac .abort then ;				\ 			Stack overflow
+	   else _ .name abort" stack overflow"
+	   then ;
 
 : s>       | @ | if						\ ( stack -- a | E )	Pops element off stack or aborts on underflow
            1- >|>| >< !						\ ( stack sp )		Decrement stack pointer
            cells + cell+ cell+ @				\ ( stack sp )		Fetch element
-	   else _ >name count type bl emit
-	   05bb bad57ac .abort then ;				\			Stack underflow
+	   else _ .name abort" stack underflow"
+	   then ;
+
+: s#@      							\ ( i stack -- stack[i] )
+           | @	>< { >| >= } >< if
+           cell+ cell+ >< cells + @
+	   else >< _ .name abort" index out of stack bounds"
+	   then ;
+
 
 : #|>>s     >< | { | | if for | { I - 1+ #| >| >s } over _	\ ( an ... a1 n s -- a1 ... an n ) ( s: an ... a1 n )
            else _ _ then } | <<< >< >s  ;			\ Direct upload of N elements from data stack onto the specified stack
@@ -794,6 +801,7 @@ create locals!
            else _ then } | <<< >< >s  ;				\ Reverse upload of N elements from data stack onto the specified stack
 
 : s#>>     | s> | { | if for | s> >< over _ else _ _ then } ;	\ ( s -- a1 ... an n ) (s: a1 ... an n -- ) Download N elements off the specified stack onto the data stack
+
 
 								\\ Structures
 
