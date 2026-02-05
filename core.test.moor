@@ -26,11 +26,40 @@ internal definitions
 : loc21	( :a :b ) :a :b || loc1 <<< = <<< = and if else abort then return ;
 : loc22	0 0 ( :a :b :r1 :r2 ) :a :b loc1 :r1! :r2! :r1 :a = :r2 :b = and if else abort then return ;
 
+\\ Stacks
+
+:: test-stack	3 stack
+
+: test->s-ok
+	test-stack empty
+	1 test-stack >s
+	22 test-stack >s
+	333 test-stack >s
+;
+: test->s-overflow
+	test->s-ok
+	4444 test-stack >s
+;
+: test->s-underflow
+	test-stack empty
+	test-stack s> _
+;
+: test-stack-fetch
+;
+
+\\ Public tests
+
 test definitions internal
 
 : test-var-decomp1
 	test-var1 @ .
 	test-val1 . ;
+
+: test-stack
+	TEST" 📝 Stack >S ok"			test->s-ok		?SUCCEEDED
+	TEST" 📝 Stack >S overflow"		test->s-overflow	?FAILED
+	TEST" 📝 Stack S> underflow"		test->s-underflow	?FAILED
+;
 
 : test-locals
 	TEST" 📝 SWAP via locals"		loc-swap-test ?SUCCEEDED 
