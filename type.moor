@@ -185,7 +185,7 @@ T: (r>)		rstack-types s> ;T
 
 \ Locals
 T: locals(	;T
-T: -locals-	1 ?D ~Number ?T ;T
+T: -locals-	;T
 
 \\ TODO: 
 	\\ Locals are on R-stack
@@ -215,7 +215,7 @@ T: s>		?Tstack ?T ~Adr ...;T
 :: stack1 10 stack
 : test->s-stack1	stack1 >s ;
 
-: test-stack
+: test-stack-type
 
  	TEST" 📝 Stack no size"			['] stack	 	typecheck ?FAILED
 	TEST" 📝 Stack with size 1"		10 ['] stack		typecheck ?FAILED
@@ -257,12 +257,12 @@ T: s>		?Tstack ?T ~Adr ...;T
 : cs3	if 41 else if 42 else 43 then then emit cr ;
 
 
-: test-cs
+: test-cs-type
 	TEST" 📝 IF1 non-types"			0 4 ['] cs1 		typecheck ?FAILED
 	TEST" 📝 IF1 non-type and type"		0 ~Number ['] cs1 	typecheck ?FAILED
 	TEST" 📝 IF1 numbers"			~Number ~Number	['] cs1 typecheck ?SUCCEEDED
 
-	TEST" 📝 IF2 any"				~Any ['] cs2 		typecheck ?FAILED
+	TEST" 📝 IF2 any"			~Any ['] cs2 		typecheck ?FAILED
 	TEST" 📝 IF2 any any"			~Any ~Any ['] cs2 	typecheck ?SUCCEEDED
 
 	TEST" 📝 IF3 numbers"			~Number ~Number	['] cs3	typecheck ?SUCCEEDED
@@ -278,7 +278,7 @@ T: s>		?Tstack ?T ~Adr ...;T
 :: test-val1	0 var
 :: test-adr1	0 var
 
-: test-var
+: test-var-type
 	TEST" 📝 Var1"	['] test-var1 typecheck ?SUCCEEDED 
 	TEST" 📝 Val1"	['] test-val1 typecheck ?SUCCEEDED
 	TEST" 📝 Adr1"	['] test-adr1 typecheck ?SUCCEEDED 
