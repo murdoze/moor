@@ -1,4 +1,4 @@
-\\
+\
 \\ Maze generator, v 2
 \\
 
@@ -117,7 +117,7 @@ M-init
 			'M ! 
 			
 			curhome .M
-			key [char] q = if abort then 
+			\ key [char] q = if abort then 
 			\ curr-col @ 2* 1+ curr-row @ at WALL uemit
 		then
 		Δcol @ curr-col @ + curr-col !
@@ -183,15 +183,15 @@ M-init
 : MAZE
 	#19 #25 M-total-size!
 
-	\ cursoff
+	cursoff
 	clrscr
 	curhome
 
-	\ margins? 1- -1 and 1 or 2- >< -1 and 1 or 2/ -1 and 1 or 2- M-total-size!
+	margins? 1- -1 and 1 or 2- >< -1 and 1 or 2/ -1 and 1 or 2- M-total-size!
 	M-init
 
-	#7 M-rows ! #8  M-top  !
-	#7 M-cols ! #10 M-left !
+	#27 M-rows ! #20  M-top  !
+	#27 M-cols ! #20 M-left !
 	draw-borders
 	M-draw-gen-wall-order
 	draw-sequence
