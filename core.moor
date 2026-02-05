@@ -793,6 +793,12 @@ create locals!
 	   else >< _ .name abort" index out of stack bounds"
 	   then ;
 
+: s#!      							\ ( v i stack -- )	stack[i]=v
+           | @	>< { >| >= } >< if
+           cell+ cell+ >< cells + !
+	   else >< _ .name abort" index out of stack bounds"
+	   then ;
+
 
 : #|>>s     >< | { | | if for | { I - 1+ #| >| >s } over _	\ ( an ... a1 n s -- a1 ... an n ) ( s: an ... a1 n )
            else _ _ then } | <<< >< >s  ;			\ Direct upload of N elements from data stack onto the specified stack
