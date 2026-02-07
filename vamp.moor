@@ -511,9 +511,7 @@ KERNEL_PT_ADDR	:: kpt val
 
 
 : Pt4Ki2MiInit							\ ( pml4e -- )
-	cr ." Memory fill..."
-	|{ 10_0000 0 fill }					
-	."  Done." cr					
+	|{ 10_000 0 fill }					
 
 	| >pdpte |{ RWXuX >< ! }
 								
@@ -912,6 +910,11 @@ latest 'h-vmexit !
 \\ Logo, UI, Run
 
 : LOGO cr 1 emit 5f emit ."  HYPER OPERATION " cr ;
+EptInit
+TssInit
+VmRun
+
+LOGO
 
 : ll VmLaunch ;
 : uu UsrLgdt ;
@@ -920,12 +923,6 @@ latest 'h-vmexit !
 : qq u-enter ;
 : xx vmcall ;
 : ww EptW- ;
-
-EptInit
-TssInit
-VmRun
-
-LOGO
 
 : VV 100000 for 5f5f 0b8002 2! over ;
 : WW 100000 for 5f5f 030002 2! over ;
