@@ -147,6 +147,7 @@
 : <<<,     #_1 r1 load, #_2 r2 load,				\ ( a b c -- c a b )	-rot
            #_2 r0 store, #_1 r2 store, r0 r1 mov, ;
 
+
 :: _       code _, ret,
 :: |       code |, ret,
 :: ><      code ><, ret,
@@ -202,6 +203,7 @@
 : (again) ;
 : (ahead) ;
 : (while) ;
+: (while-post) ;
 : (repeat-pre) ;
 : (repeat-post) ;
 : (continue) ;
@@ -220,7 +222,7 @@
 : until    ?comp compile (until) compile ?branch <resolve ; immediate
 : again    ?comp compile (again) compile branch <resolve ; immediate
 : ahead    ?comp compile (ahead) compile branch >mark ; immediate
-: while    ?comp compile (while) compile ?branch >mark ; immediate
+: while    ?comp compile (while) compile ?branch >mark compile (while-post) ; immediate
 : repeat   ?comp compile (repeat-pre) compile branch >< <resolve compile (repeat-post) >resolve ; immediate
 : continue ?comp compile (continue) compile -?branch | <resolve ; immediate
 : break    ?comp compile (break) compile -?branch >mark >< ; immediate
@@ -773,6 +775,8 @@ create locals!
 : stack@   | @ >| cell+ @ ;					\ ( stack -- stack pointer limit )	Extracts stack parameters onto data stack
 : .stack   | @ | if >< cell+ cell+ >< for | @ . cell+ over _	\ ( stack -- )
            else _ _ then ;
+
+: #s       @ ;
 
 : >s       | @ >| cell+ @					\ ( a stack -- | E )    Pushes element onto stack or aborts on overflow
 	   >| - if						\ ( a stack sp limit )	Check if stack about to overflow
