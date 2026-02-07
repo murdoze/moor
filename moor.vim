@@ -233,7 +233,7 @@ syn match forthInteger '\<-\=\x\+\.\=\>'
 syn match forthInteger '\<#-\=\d\+\.\=\>'
 syn match forthInteger '\<\$-\=\x\+\.\=\>'
 syn match forthInteger '\<%-\=[01abcdef]\+\.\=\>'
-syn match forthInteger '\<-\=[0123456789abcdef'_]\+\.\=\>'
+syn match forthInteger '\<-\=[0123456789abcdef'_|\<\>]\+\.\=\>'
 
 " characters {{{2
 "syn match forthCharacter "'\k'"
