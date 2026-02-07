@@ -112,8 +112,8 @@ M-init
 		curr-col @ Δcol @ + M-left @ + 
 		'M @ WALL <> if
 			WALL
-			curr-row @ M-top  @ +		| 6a 2 at ." R:" .#
-			curr-col @ M-left @ + 		| 74 2 at ." C:" .#
+			curr-row @ M-top  @ +
+			curr-col @ M-left @ +
 			'M ! 
 			
 			curhome .M
