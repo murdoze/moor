@@ -132,13 +132,20 @@ T: (")		(")-skip ~'#Str ;T
 T: count 	1 ?D ~'#Str ?T ~Str ~Number ;T
 T: type 	2 ?D ~Number ?T ~Str ?T ;T
 
+T: key		~Number ;T
+
 T: (does>)	1 ?D ~Number ?T ;T	\\ TODO ~Xt xtlit/xtliteral ?
 T: xexit	;T
 
 T: ?branch	1 ?D ~Any ?T skip ;T
 T: branch	skip ;T
+
 T: (if-post)	>>tcs ;T
 T: (else-post)	depth #_ tcs>> ;T
+
+T: (while-post)	>>tcs ;T
+T: (repeat-post) depth #_ tcs>> ;T
+
 T: (for)	1 ?D ~Number ?T ;T
 T: (over)	skip ;T
 T: (over-post)	;T
@@ -151,12 +158,15 @@ T: _		1 ?D _ ;T
 T: ><		2 ?D >< ;T
 T: >|		2 ?D >| ;T
 T: >|>|		2 ?D >|>| ;T
+T: >>>		2 ?D >>> ;T
 
 
 T: =		2 ?D ?T ~Bool ;T
 
-T: shl		2 ?D ~Number ?T ~Number ?T ~Number ;T
+T: shl		2 ?D ~Number ?T ~Number ?T ~Number ;T	\\ TODO: ~Adr also can be shifted by number.
+T: sar		2 ?D ~Number ?T ~Number ?T ~Number ;T
 T: and		2 ?D ~Number ?T ~Number ?T ~Number ;T
+T: or		2 ?D ~Number ?T ~Number ?T ~Number ;T
 T: not		1 ?D ~Number ?T ~Number ;T
 
 T: @		1 ?D ~Adr ?T ~Number ;T
@@ -175,6 +185,26 @@ T: -		2 ?D
 		| ~Adr    T~ if >< | ~Number T~ if _ _ ~Adr Texit then then
 		then yellow ." '-' accepts numbers or address and number, got " 
 		blue .type yellow ."  and " blue .type norm cr abort ;T
+T: *		2 ?D ~Number ?T ~Number ?T ~Number ;T
+
+: 2~Number~Adr
+		2 ?D
+		| ~Number T~ if >< | ~Number T~ if _ _ 1 exit then then
+		| ~Adr    T~ if >< | ~Adr    T~ if _ _ 1 exit then then
+		_ _ 0
+;
+: .2~Number~Adr-expected
+		yellow ." '>' accepts two numbers or two addresses, got "
+		blue .type yellow ."  and " blue .type norm cr abort
+;
+T: >		2~Number~Adr if ~Bool else
+		blue ." '>' "
+		.2~Number~Adr-expected then 
+;T
+T: <>		2~Number~Adr if ~Bool else
+		blue ." '>' "
+		.2~Number~Adr-expected then 
+;T
 
 
 \ Return stack
@@ -186,12 +216,10 @@ T: (r>)		rstack-types s> ;T
 \ Locals
 T: locals(	;T
 T: -locals-	;T
+T: )locals	;T
 
-\\ TODO: 
-	\\ Locals are on R-stack
-	\\ We have stack for R-types
-	\\ So we need to take type from rstack-types
-
+T: #l@		@skip rstack-types |{ #s >< - 1- } s#@ ;T
+T: #l!		@skip rstack-types |{ #s >< - 1- } s#! ;T
 
 \\ Typechecking for DOES>
 
