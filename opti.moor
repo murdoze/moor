@@ -68,6 +68,8 @@ interpretation latest behavior REGALLOCING latest does
 :: ret-stack 100 stack						\ Return stack
 : >ret    ret-stack >s ;
 : ret>    ret-stack s> ;
+: #ret@	  ret-stack |{ #s >< - 1- } s#@ ;
+: #ret!   ret-stack |{ #s >< - 1- } s#! ;
 
 :: cyc-stack 100 stack						\ Cycle stack
 : >cyc    cyc-stack >s ;
@@ -248,8 +250,14 @@ $ assm     $;
 % >>|      1+ { >>| ∧ } %;				 	\ ( r1 r2 r3 # -- r1 r2 r3 r1 #+1 )
 % >|>|     1+ 1+ { >|>| ∧ >< ∧ >< } %;
 
-% (>r)       1- { >ret } %;
-% (r>)       1+ { ret> } %;
+% (>r)		1- { >ret } %;
+% (r>)		1+ { ret> } %;
+
+% locals(	%;
+% -locals-	%;
+% )locals	%;
+% #l@		@skip >< 1+ { #ret@ ∧ } %;
+% #l!		@skip >< 1- { | #ret! ∨ } %;
 
 
 % lit      @skip | opt-lit ! opt-index 1+! .(( .. ).( _ )) 1+ { ?∧ } %;	\ ( # -- r #+1 )	Allocates new register
@@ -659,7 +667,8 @@ $ (repeat-post) $;
 	   ['] exit %.debug %.S %.used-regs
 ;
 
-: ^>
+: optimize 
+           ( :xt )
            0 opt-debug !
 
 	   cr white ." PASS=0 Register allocation" norm
@@ -669,12 +678,13 @@ $ (repeat-post) $;
 
 	   tmp-stack dirupload
 	   cr %.S
-	   ' | >r regalloc
+	   :xt | >r regalloc
 	   opt-index-word @ 1+ opt-index-last !
 	   fixup-branches
 	   ['] exit %.debug %.S cr %.used-regs
 	   cr .dump
 
+           1 opt-debug !
 	   cr white ." PASS=1 Initial code generation" norm
 	   OPT-PASS-BRANCHLEN opt-pass !
 	   0 opt-index !
@@ -688,6 +698,7 @@ $ (repeat-post) $;
 	   ['] exit %.debug %.S %.used-regs
 	   cr .dump
 
+           0 opt-debug !
 	   cr white ." PASS=2 Final code generation" norm
 	   OPT-PASS-BRANCHLEN opt-pass !
 	   0 opt-index !
@@ -710,5 +721,8 @@ $ (repeat-post) $;
 	   ['] exit %.debug %.S %.used-regs
 	   cr .dump
 
+           return
 ;
+
+: ^>       ' optimize ;
 

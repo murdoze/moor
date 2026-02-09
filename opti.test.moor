@@ -1,0 +1,30 @@
+\\
+\\ Optimizer tests
+\\
+
+
+: optimize!
+	( :#params :xt )
+	here | ." CODE at " .
+	{
+	:^ :#params | if for ?^ over then
+	:#params :xt optimize
+	}
+	(code) interpretation :xt does
+	return
+;
+
+
+: fib		| if 0 1 >>> for >| + >< over _ then noop ;
+: nup		>r _ r> ; 
+: lswap		( :c :d ) :c :d :c! :d! :c :d return ;
+: -lswap	( :c :d ) :c :d :c! :d! :d :c return ;
+
+
+: test-opti-fib		1 ['] fib	optimize! ;
+: test-opti-nup		2 ['] nup	optimize! ;
+: test-opti-lswap	2 ['] lswap	optimize! ;
+: test-opti--lswap	2 ['] -lswap	optimize! ;
+
+maze
+: test-opti-MAZE	0 ['] MAZE	optimize! ;
