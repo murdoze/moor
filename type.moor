@@ -77,14 +77,16 @@ interpretation ' typechecking!!  behavior typechecking ' typechecking!!  does
 : ?depth
 	>< || < if >>>
 		blue ..name bl emit
-		yellow ." depth: expected " blue . bs yellow ." , got " blue . norm cr abort 
+		yellow ." depth: expected " blue . bs yellow ." , got " blue . norm cr 
+		unwind
+		abort 
 	then _ _ _ ;
 : ?D
 	compile depth compile 1- latest-typecheck @ [compile] literal compile <<< compile ?depth ; immediate
 
 : T>xt	-2 and 
-	| 0f and if red ." Xt expected, received " . norm cr abort then 
-	| -1000 and -if red ." Xt expected, received " . norm cr abort then 
+	| | 0f and if red ." Xt expected, received " norm . cr unwind abort then _
+	| | -1000 and -if red ." Xt expected, received " norm . cr unwind abort then _
 ;
 : T~
 	|| = if _ _ 1 exit then
@@ -114,6 +116,8 @@ interpretation ' typechecking!!  behavior typechecking ' typechecking!!  does
 : tcs>>	tcs-stack s#>> _ ;
 
 \\ Typecheck implementation
+
+T: dummy	abort ;T
 
 T: (does)	;T
 T: does		;T
@@ -147,6 +151,7 @@ T: (while-post)	>>tcs ;T
 T: (repeat-post) depth #_ tcs>> ;T
 
 T: (for)	1 ?D ~Number ?T ;T
+T: I		~Number ;T
 T: (over)	skip ;T
 T: (over-post)	;T
 
@@ -167,6 +172,7 @@ T: shl		2 ?D ~Number ?T ~Number ?T ~Number ;T	\\ TODO: ~Adr also can be shifted 
 T: sar		2 ?D ~Number ?T ~Number ?T ~Number ;T
 T: and		2 ?D ~Number ?T ~Number ?T ~Number ;T
 T: or		2 ?D ~Number ?T ~Number ?T ~Number ;T
+T: xor		2 ?D ~Number ?T ~Number ?T ~Number ;T
 T: not		1 ?D ~Number ?T ~Number ;T
 
 T: @		1 ?D ~Adr ?T ~Number ;T
@@ -194,18 +200,14 @@ T: *		2 ?D ~Number ?T ~Number ?T ~Number ;T
 		_ _ 0
 ;
 : .2~Number~Adr-expected
-		yellow ." '>' accepts two numbers or two addresses, got "
+		yellow ." accepts two numbers or two addresses, got "
 		blue .type yellow ."  and " blue .type norm cr abort
 ;
-T: >		2~Number~Adr if ~Bool else
-		blue ." '>' "
-		.2~Number~Adr-expected then 
-;T
-T: <>		2~Number~Adr if ~Bool else
-		blue ." '>' "
-		.2~Number~Adr-expected then 
-;T
+T: >		2~Number~Adr if ~Bool else blue ." '>' "  .2~Number~Adr-expected then ;T
+T: <		2~Number~Adr if ~Bool else blue ." '<' "  .2~Number~Adr-expected then ;T
+T: <>		2~Number~Adr if ~Bool else blue ." '<>' " .2~Number~Adr-expected then ;T
 
+T: randseed	~Adr ;T
 
 \ Return stack
 :: rstack-types	10 stack
@@ -281,7 +283,7 @@ T: s>		?Tstack ?T ~Adr ...;T
 	cr
 ;
 
-: cs2	if 41 43 else 42 then 42 = if 30 emit else emit then cr ;
+: cs2	if 1+ else 2+ then emit ;
 : cs3	if 41 else if 42 else 43 then then emit cr ;
 
 
