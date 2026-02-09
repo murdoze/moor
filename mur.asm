@@ -22,7 +22,8 @@
 	.equ	rend, r12
 	.equ	rnext, r13
 	.equ	rstack0, r15
-
+	.equ	HERE_SOURCE_OFFSET, 0x70000000
+	.equ	WORD_SOURCE_OFFSET, 0x70000000
 # Initialization
 
 	.align	4096
@@ -41,7 +42,9 @@ __setcolor:	.quad	0
 __warm:		.quad	_warm0
 __warm2:	.quad	_warm0
 
-_start1:	
+_start1:
+	mov	[_sp0], rsp
+
 	cmp	byte ptr [runmode], RUNMODE_LINUXUSR
 	je	1f
 
@@ -202,7 +205,7 @@ _do_trace:
 	cmp	byte ptr [runmode], RUNMODE_BAREMETAL
 	jne	4f
 	call	_dup
-	mov	rtop, 0x9
+	mov	rtop, 0xa
 	call	_emit
 	jmp	5f
 
@@ -276,6 +279,8 @@ _trace_brkpt:
 	.p2align	3, 0x90
 _state:
 	.quad	INTERPRETING
+_sp0:
+	.quad	0
 _tib:
 	.quad	0
 _mem_reserved:
@@ -2054,6 +2059,12 @@ word	_exec_, "(exec)",, forth
 	.quad	lit, _exec
 	.quad	exit
 
+# (CODE) ( -- _code )
+# Returns address of the _code primitive entry point
+word	_code_, "(code)",, forth
+	.quad	lit, _code
+	.quad	exit
+
 # (RESTART) ( -- _restart ) 
 # Returns address of the _restart primitive entry point
 word	_restart_, "(restart)",, forth
@@ -2071,6 +2082,20 @@ word	_restart2_, "(restart2)",, forth
 word	_abort_, "(abort)",, forth
 	.quad	lit, _abort
 	.quad	exit
+
+# (RSP0) ( -- rsp0 )
+# Returns initial address of RSP (return steck pointer)
+word	_sp0_, "(sp0)"
+	call	_dup
+	mov	rtop, [_sp0]
+	ret
+
+# SP@ ( -- rsp )
+# Returns current return stack pointer
+word	_sp_fetch, "sp@"
+	call	_dup
+	lea	rtop, [rsp - 8]
+	ret
 
 # FIND ( '#str -- xt | 0 )
 # Searches for word name, placed at TIB, in the vocabularies CONTEXT, CURRENT and FORTH
@@ -2342,6 +2367,32 @@ word	dot_s, ".S"
 # Read one word from input stream and interpret it
 word	quit_, "(quit)"
 _quit_:
+	# Source
+	###############################################################
+	cmp	byte ptr [_source], 0
+	jz	20f
+	cmp	byte ptr [_source_completed], 0
+	jnz	20f
+
+_quit_source_ref:
+.ifndef BAREMETAL
+.if	1
+	call	latest
+	add	rhere, WORD_SOURCE_OFFSET
+	mov	qword ptr [rhere], rtop
+	sub	rhere, WORD_SOURCE_OFFSET
+	call	_drop
+.endif
+.endif
+.if	0
+	mov	rtmp, [_source_in]
+	add	rhere, HERE_SOURCE_OFFSET
+	mov	qword ptr [rhere], rtmp
+	sub	rhere, HERE_SOURCE_OFFSET
+.endif
+	20:
+	###############################################################
+
 	call	_bl_
 	call	_word
 	call	_count
@@ -2736,6 +2787,8 @@ _source:
 	.incbin "opti.moor"
 
 	.incbin	"maze.moor"
+
+	.incbin "opti.test.moor"
 
 	.ifdef	BAREMETAL
 		.incbin	"vamp.moor"
