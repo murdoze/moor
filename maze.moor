@@ -91,16 +91,16 @@ M-init
 :: Δrow-index	0 var
 :: Δcol-index	0 var
 
-: left!		-1 Δcol !  0 Δrow ! 	M-cols @ 1- curr-col !	0 last-col ! 		-1 last-row ! ;
-: right!	 1 Δcol !  0 Δrow ! 	       0 curr-col !	M-cols @ last-col !	-1 last-row ! ;
-: up!		 0 Δcol ! -1 Δrow ! 	M-rows @ 1- curr-row !	0 last-row ! 		-1 last-col ! ;
-: down!		 0 Δcol !  1 Δrow ! 	       0 curr-row !	M-rows @ last-row !	-1 last-col ! ;
+: left!		-1 Δcol !  0 Δrow ! 	M-cols @ 1- curr-col !	       0 last-col ! 	-1 last-row ! ;
+: right!	 1 Δcol !  0 Δrow ! 	          0 curr-col !	M-cols @ last-col !	-1 last-row ! ;
+: up!		 0 Δcol ! -1 Δrow ! 	M-rows @ 1- curr-row !	       0 last-row ! 	-1 last-col ! ;
+: down!		 0 Δcol !  1 Δrow ! 	          0 curr-row !	M-rows @ last-row !	-1 last-col ! ;
 
 : draw-direction!					\ ( dir -- )	Set draw direction
 	| LEFT	= if left!	 0 Δcol-index !	 1 Δrow-index !	else
 	| RIGHT = if right!	 0 Δcol-index !	 1 Δrow-index !	else
 	| UP	= if up!	 1 Δcol-index !	 0 Δrow-index !	else
-	| DOWN	= if down!	 1 Δcol-index !	 0 Δrow-index !	else	uemit abort" : invalid draw direction"
+	| DOWN	= if down!	 1 Δcol-index !	 0 Δrow-index !	else	abort" : invalid draw direction"
 	then then then then _ ; 
 
 : draw
