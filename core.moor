@@ -861,3 +861,18 @@ create locals!
 : .@       { >| + } #@ >< ;
 : .!       { >>| + } #! ;
 
+								\\ Unwind
+: unwind
+	begin
+		sp@ (sp0) = if abort" End of unwind" then
+		r>
+		| 7 and -if
+		\ @ | .
+		7000_0000 + @ | 0 <> if
+			>name count cr blue type norm
+		else _ then
+		else cr . \ _ cr ." -" \ cr . ." Not an XT"
+		then
+	again
+;
+

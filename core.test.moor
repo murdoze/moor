@@ -67,5 +67,18 @@ test definitions internal
 	TEST" 📝 Nested locals 1"		111 222 loc22 ?SUCCEEDED 
 ;
 
+\\ Unwind
+
+: aa
+	unwind
+	abort" aa aborted"
+;
+: bb	16 { aa } ;
+: cc	dummy bb dummy ;
+
+
+
+
+\\ Back to Forth
 forth definitions
 
