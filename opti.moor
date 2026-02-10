@@ -305,6 +305,8 @@ $ assm     $;
            { cyc> ∨ } ;%;
 % (over-post) %;
 
+
+\\ Abstract out for AND, XOR etc
 % +        { 							\ ( rs1 rs2 # -- rs1 rs2 rd #+1 )
            >< ∨∧ if | <<< >< |∨ >< else				\			Try to allocate rs1 as rd, then rs2, then a new register
 	   >< ∨∧ if | else
@@ -405,6 +407,23 @@ $ +        { >>> >|>| - if <<< >|>| -				\ ( rs1 rs2 rd )	Assemble +
            <<< >|>|
 	   .(( .--- " add" .inst .rr
 	   ).( ¦ add, ))
+	   then } $;
+
+$ and       { >>> >|>| - if <<< >|>| -				\ ( rs1 rs2 rd )	Assemble AND
+           if							\			RD <> RS1, RS2		mov rd, rs1	and rd, rs1
+	   { >|>| } | { <<< }
+	   >>> >< >|
+	   .(( .--- .movrr .--- " and" .inst .rr
+	   ).( ¦ mov, ¦ and, ))
+           else							\			RD = RS2
+           <<< >|>|
+	   .(( .--- " and" .inst .rr
+	   ).( ¦ and, ))
+	   then
+	   else							\			RD = RS1
+           <<< >|>|
+	   .(( .--- " and" .inst .rr
+	   ).( ¦ and, ))
 	   then } $;
 
 $ -        { >>> >|>| - if <<< >|>| -				\ ( rs1 rs2 rd )	Assemble -
