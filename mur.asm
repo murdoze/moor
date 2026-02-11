@@ -34,6 +34,7 @@ _start:
 
 	RUNMODE_LINUXUSR	= 0
 	RUNMODE_BAREMETAL 	= 1
+	RUNMODE_VIM		= 2
 
 runmode:	.byte	0
 __key:		.quad	0
@@ -42,55 +43,59 @@ __setcolor:	.quad	0
 __warm:		.quad	_warm0
 __warm2:	.quad	_warm0
 
-_start1:
-	mov	[_sp0], rsp
+__emit_vim:	.quad	0
 
-	cmp	byte ptr [runmode], RUNMODE_LINUXUSR
+_start1:
+	mov	[rip + _sp0], rsp
+
+	cmp	byte ptr [rip + runmode], RUNMODE_LINUXUSR
+	je	1f
+	cmp	byte ptr [rip + runmode], RUNMODE_VIM
 	je	1f
 
-	lea	rhere, [here0]
+	lea	rhere, [rip + here0]
 	jmp	_cold
 
 	1:
 	mov	rax, 12
-	lea	rdi, [here0]
+	lea	rdi, [rip + here0]
 	syscall
 	# TODO check for error here
-	mov	[_mem_reserved], rax
+	mov	[rip + _mem_reserved], rax
 
 	call	_setup_sigsegv_handler
-	mov	rhere, [_mem_reserved]
+	mov	rhere, [rip + _mem_reserved]
 
 _cold:
-	lea	rwork, last
-	mov	[forth_], rwork
-	lea	rwork, [forth_]
-	mov	[_current], rwork
-	mov	[_context], rwork
+	lea	rwork, [rip + last]
+	mov	[rip + forth_], rwork
+	lea	rwork, [rip + forth_]
+	mov	[rip + _current], rwork
+	mov	[rip + _context], rwork
 
 _restart:
-	mov	rpc, qword ptr [__warm]
+	mov	rpc, qword ptr [rip + __warm]
 	jmp	_abort2
 _restart2:
-	mov	rpc, qword ptr [__warm2]
+	mov	rpc, qword ptr [rip + __warm2]
 	jmp	_abort2
 _abort:
-	lea	rpc, [_warm0]
+	lea	rpc, [rip + _warm0]
 _abort2:	
-	mov	byte ptr [_trace], 0
-	mov	byte ptr [_debug], 0
+	mov	byte ptr [rip + _trace], 0
+	mov	byte ptr [rip + _debug], 0
 	xor	rtop, rtop
 	xor	rstate, rstate
-	mov	[_state], rstate
-	lea	rnext, qword ptr [_next]
+	mov	[rip + _state], rstate
+	lea	rnext, qword ptr [rip + _next]
 	/* TODO: In "hardened" version map stacks to separate pages, with gaps between them */
 	lea	rstack0, [rsp - 0x1000]
 	xor	rstack, rstack
 	lea	rwork, [rsp - 0x2000]
-	mov	qword ptr [_tib], rwork
+	mov	qword ptr [rip + _tib], rwork
 	xor	rwork, rwork
 
-	cmp	byte ptr [runmode], RUNMODE_LINUXUSR
+	cmp	byte ptr [rip + runmode], RUNMODE_LINUXUSR
 	je	2f
 
 	#sti
@@ -140,32 +145,32 @@ _comp:
 	stosq
 	jmp	rnext
 _interp:
-	lea	rnext, qword ptr [_next]
+	lea	rnext, qword ptr [rip + _next]
 	mov	rstate, INTERPRETING
-	mov	qword ptr [_state], INTERPRETING
+	mov	qword ptr [rip + _state], INTERPRETING
 	jmp	rnext
 
 _do_trace:
-	cmp	byte ptr [_trace], 0
+	cmp	byte ptr [rip + _trace], 0
 	jz	99f
 
-	cmp	byte ptr [_trace], 2
+	cmp	byte ptr [rip + _trace], 2
 	jne	21f
 	cmp	rstate, 0
 	jz	99f
 
 	21:
-	lea	rtmp, [_interpreting__]
+	lea	rtmp, [rip + _interpreting__]
 	cmp	rwork, rtmp
 	je	99f
-	lea	rtmp, [exit]
+	lea	rtmp, [rip + exit]
 	cmp	rwork, rtmp
 	je	99f
 
-	lea	rtmp, [_quit]
+	lea	rtmp, [rip + _quit]
 	cmp	rpc, rtmp
 	jb	3f
-	lea	rtmp, [_quit$]
+	lea	rtmp, [rip + _quit$]
 	cmp	rpc, rtmp
 	jae	3f
 	jmp	99f
@@ -173,11 +178,11 @@ _do_trace:
 	3:
 	lea	r9, [rsi - 8]
 
-	cmp	qword ptr [_brkpt], 0
+	cmp	qword ptr [rip + _brkpt], 0
 	jz	31f
-	cmp	qword ptr [_brkpt], r9
+	cmp	qword ptr [rip + _brkpt], r9
 	#jne	99f
-	mov	qword ptr [_brkpt], 0
+	mov	qword ptr [rip + _brkpt], 0
 
 	31:
 	push	rwork
@@ -202,7 +207,7 @@ _do_trace:
 	call	_decomp_print
 	pop	rwork
 
-	cmp	byte ptr [runmode], RUNMODE_BAREMETAL
+	cmp	byte ptr [rip + runmode], RUNMODE_BAREMETAL
 	jne	4f
 	call	_dup
 	mov	rtop, 0xa
@@ -236,15 +241,15 @@ _do_trace:
 	mov	rtop, 0xa
 	call	_emit
 
-	cmp	byte ptr [_debug], 1
+	cmp	byte ptr [rip + _debug], 1
 	jne	8f
 
-	cmp	qword ptr [_brkpt], 0
+	cmp	qword ptr [rip + _brkpt], 0
 	jz	7f
 _trace_brkpt:
-	cmp	qword ptr [_brkpt], r9
+	cmp	qword ptr [rip + _brkpt], r9
 	jne	98f
-	mov	qword ptr [_brkpt], 0
+	mov	qword ptr [rip + _brkpt], 0
 
 	7:
 	call    _dup
@@ -267,7 +272,7 @@ _trace_brkpt:
 	cmp	rtmp, 'n'
 	jne	9f
 
-	mov	qword ptr [_brkpt], rsi
+	mov	qword ptr [rip + _brkpt], rsi
 
 	9:
 
@@ -311,7 +316,7 @@ _debug:
 
 _canary_fail:
 	# TODO: Nice error message
-	lea	rtop, qword ptr [.L_canary_fail_errm1]
+	lea	rtop, qword ptr [rip + .L_canary_fail_errm1]
 	call	_count
 	call	_type
 
@@ -330,7 +335,7 @@ _state_notimpl:
 	push	rwork
 
 	call	_dup
-	lea	rtop, qword ptr [.L_state_notimpl_errm1]
+	lea	rtop, qword ptr [rip + .L_state_notimpl_errm1]
 	call	_count
 	call	_type
 	
@@ -344,7 +349,7 @@ _state_notimpl:
 	call	_type
 
 	call	_dup
-	lea	rtop, qword ptr [.L_state_notimpl_errm2]
+	lea	rtop, qword ptr [rip + .L_state_notimpl_errm2]
 	call	_count
 	call	_type
 
@@ -355,7 +360,7 @@ _state_notimpl:
 	call	_dot
 
 	call	_dup
-	lea	rtop, qword ptr [.L_state_notimpl_errm3]
+	lea	rtop, qword ptr [rip + .L_state_notimpl_errm3]
 	call	_count
 	call	_type
 
@@ -403,11 +408,13 @@ _setup_sigsegv_handler:
 	# rax             rdi      rsi                          rdx                     r10
 	# 13 rt_sigaction int sig, const struct sigaction *act, struct sigaction *oact, size_t sigsetsize
 
-	lea	rax, [_sigsegv_handler]
-	mov	[_sigaction], rax
+	lea	rax, [rip + _sigsegv_handler]
+	mov	[rip + _sigaction], rax
+	lea	rax, [rip + _sigsegv_restorer]
+	mov	[rip + _sigaction + 16], rax
 	mov	rax, 13
 	mov	rdi, SIGSEGV
-	lea	rsi, [_sigaction]
+	lea	rsi, [rip + _sigaction]
 	xor	rdx, rdx
 	mov	r10, 8
 	syscall
@@ -418,13 +425,13 @@ _sigsegv_handler:
 	# rdi = sig, rsi = siginfo_t , rdx = ucontext_t
 
 	mov	rax, qword ptr [rdx + 40 + 8 * 8]	# RDI, see <sys/ucontext.h>
-	cmp	rax, [_mem_reserved]
+	cmp	rax, [rip + _mem_reserved]
 	jnb	11f					# cause of fault is not ALLOT
 
 
 	push	rdx
 	call	_dup
-	lea	rtop, qword ptr [.L_gpf_errm1]
+	lea	rtop, qword ptr [rip + .L_gpf_errm1]
 	call	_count
 	call	_type
 
@@ -435,13 +442,13 @@ _sigsegv_handler:
 	call	_dot
 
 	call	_dup
-	lea	rtop, qword ptr [.L_gpf_errm2]
+	lea	rtop, qword ptr [rip + .L_gpf_errm2]
 	call	_count
 	call	_type
 
 	pop	rdx
 
-	cmp	byte ptr [_source_completed], 0
+	cmp	byte ptr [rip + _source_completed], 0
 	jz	_bye
 
 	jmp	5f	
@@ -459,7 +466,7 @@ _sigsegv_handler_needalloc:
 	and	rdi, 0xfffffffffffff000
 	1:
 	mov	rsi, rdi
-	mov	rdi, [_mem_reserved]
+	mov	rdi, [rip + _mem_reserved]
 	sub	rsi, rdi
 	jnz	3f
 	add	rsi, 0x2000
@@ -477,12 +484,12 @@ _sigsegv_handler_needalloc:
 	jle	4f					
 
 	add	r9, rsi
-	mov	[_mem_reserved], r9			# update reserved memory pointer
+	mov	[rip + _mem_reserved], r9			# update reserved memory pointer
 
 .if	0						# might be useful for debugging later, let is stay here for now
 	push	rdx
 	call	_dup
-	lea	rtop, [.L_avail_mem_msg]
+	lea	rtop, [rip + .L_avail_mem_msg]
 	call	_count
 	call	_type
 	call	_dup
@@ -493,7 +500,7 @@ _sigsegv_handler_needalloc:
 	mov	rtop, rdi
 	call	_dot
 	call	_dup
-	mov	rtop, [_mem_reserved]
+	mov	rtop, [rip + _mem_reserved]
 	call	_dot
 .endif
 
@@ -501,7 +508,7 @@ _sigsegv_handler_needalloc:
 
 	4:
 	call	_dup
-	lea	rtop, qword ptr [.L_out_of_memory_errm1]
+	lea	rtop, qword ptr [rip + .L_out_of_memory_errm1]
 	call	_count
 	call	_type
 	jmp	_bye
@@ -511,12 +518,12 @@ _sigsegv_handler_needalloc:
 	mov	rax, qword ptr [rdx + 40 + 8 * 16]	# RIP
 	push	rax
 
-	lea	rax, [_abort]
+	lea	rax, [rip + _abort]
 	mov	qword ptr [rdx + 40 + 8 * 16], rax # continue execution from _cold
 
 .if	0
 	call	_dup
-	lea	rtop, qword ptr [.L_sigsegv_errm1]
+	lea	rtop, qword ptr [rip + .L_sigsegv_errm1]
 	call	_count
 	call	_type
 .endif
@@ -530,7 +537,7 @@ _sigsegv_handler_needalloc:
 	pop	rtop
 	call	_dot
 	call	_dup
-	mov	rtop, [_mem_reserved]
+	mov	rtop, [rip + _mem_reserved]
 	call	_dot
 	jmp	9f
 .endif
@@ -546,7 +553,7 @@ __rt_restorer:
 _sigsegv_restorer:
 
 .if	0
-	lea	rtop, qword ptr [.L_sigsegv_errm2]
+	lea	rtop, qword ptr [rip + .L_sigsegv_errm2]
 	call	_count
 	call	_type
 .endif
@@ -676,7 +683,7 @@ _sigsegv_restorer:
 word	forth_, "forth", immediate, code, _forth_
 	.quad	last
 _forth_:
-	mov	[_context], rwork
+	mov	[rip + _context], rwork
 	ret
 
 # DUMMY
@@ -689,14 +696,14 @@ _dummy:
 # Returns current vocabulary
 word	current
 	call	_dup
-	lea	rtop, [_current]
+	lea	rtop, [rip + _current]
 	ret
 
 # CONTEXT ( -- v )
 # Returns context vocabulary
 word	context
 	call	_dup
-	lea	rtop, [_context]
+	lea	rtop, [rip + _context]
 	ret
 
 # LATEST ( -- xt )
@@ -710,30 +717,30 @@ word	latest
 # TRACE
 # Turn tracing on
 word	trace
-	mov	byte ptr [_trace], 1
+	mov	byte ptr [rip + _trace], 1
 	ret
 
 # NOTRACE
 word	notrace
-	mov	byte ptr [_trace], 0
+	mov	byte ptr [rip + _trace], 0
 	ret
 
 # STRACE
 # Turn tracing on for non-INTERPRETING states 
 word	strace
-	mov	byte ptr [_trace], 2
+	mov	byte ptr [rip + _trace], 2
 	ret
 
 # DEBUG
 # Turn debugging on. Works when TRACE ON
 word	debug
-	mov	byte ptr [_debug], 1
+	mov	byte ptr [rip + _debug], 1
 	ret
 
 # BRKPT! ( pc -- )
 # Set breakpoint in threaded code for debugging
 word	brkptset, "brkpt!"
-	mov	qword ptr [_brkpt], rtop
+	mov	qword ptr [rip + _brkpt], rtop
 	call	_drop
 	ret
 
@@ -741,15 +748,15 @@ word	brkptset, "brkpt!"
 # Breaks execution during tracing
 word	brkpt, "brkpt"
 	lea	rwork, [rpc + 8]
-	mov	qword ptr [_brkpt], rwork
+	mov	qword ptr [rip + _brkpt], rwork
 	call	debug
 	call	trace
 	ret
 
 # NODEBUG
 word	nodebug
-	mov	byte ptr [_debug], 0
-	mov	qword ptr [_brkpt], 0
+	mov	byte ptr [rip + _debug], 0
+	mov	qword ptr [rip + _brkpt], 0
 	ret
 
 # EXECUTE ( xt -- )
@@ -759,7 +766,7 @@ word	execute
 	call	_drop
 	pop	rtmp	# Skip return address (=NEXT)
 
-	mov	rstate, [_state]
+	mov	rstate, [rip + _state]
 
 	jmp	_doxt
 
@@ -811,7 +818,7 @@ _xexit:
 word	summon
 _summon:
 	push	rpc
-	lea	rpc, qword ptr [forsake]
+	lea	rpc, qword ptr [rip + forsake]
 	jmp	_doxt
 
 # RETREAT
@@ -1048,7 +1055,7 @@ word	_quot_skip, "(\")-skip"
 word	quot, "\"", immediate
 	call	qcomp
 
-	lea	rwork, qword ptr [_quot_]	/* compile (") */
+	lea	rwork, qword ptr [rip + _quot_]	/* compile (") */
 	stosq
 
 	call	_dup
@@ -1074,9 +1081,14 @@ word	quot, "\"", immediate
 # Prints a character to stdout
 word	emit
 _emit:
-	cmp	byte ptr [runmode], RUNMODE_BAREMETAL
+	cmp	byte ptr [rip + runmode], RUNMODE_BAREMETAL
 	je	_emit_baremetal
+	cmp	byte ptr [rip + runmode], RUNMODE_VIM
+	jne	1f
+	cmp	qword ptr [rip + __emit_vim], 0
+	jnz	_emit_vim
 
+	1:
 	push	rtop
 	push	rwork
 	push	rdx
@@ -1115,14 +1127,33 @@ _emit_baremetal:
 	
 	mov	rwork, rtop
 
-	call	[__emitchar]
+	call	[rip + __emitchar]
 	
 	pop	rdi
 	pop	rsi
 	pop	rdx
 	pop	rwork
 	pop	rtop
-	
+
+	call	_drop
+
+	ret
+
+_emit_vim:
+	push	rtop
+	push	rdi
+	push	rbx
+	push	rsi
+
+	mov	rdi, rtop
+	call	[rip + __emit_vim]
+
+	pop	rsi
+	pop	rbx
+	pop	rdi
+	pop	rtop
+	jmp	1b
+
 	call	_drop
 
 	ret
@@ -1139,26 +1170,26 @@ word	read
 _read:
 	call	_dup
 
-	cmp	byte ptr [_source], 0
+	cmp	byte ptr [rip + _source], 0
 	jz	7f
-	cmp	byte ptr [_source_completed], 0
+	cmp	byte ptr [rip + _source_completed], 0
 	jnz	7f
 
-	mov	rax, [_source_in]
-	inc	qword ptr [_source_in]
+	mov	rax, [rip + _source_in]
+	inc	qword ptr [rip + _source_in]
 	movzx	rtop, byte ptr [rax]
 	
 	or	rtop, rtop
 	jnz	5f
 
-	mov	byte ptr [_source_completed], 1
+	mov	byte ptr [rip + _source_completed], 1
 	jmp	7f
 
 	5:
 	ret
 
 	7:
-	cmp	byte ptr [runmode], RUNMODE_BAREMETAL
+	cmp	byte ptr [rip + runmode], RUNMODE_BAREMETAL
 	je	_read_baremetal
 
 _read_key:
@@ -1196,7 +1227,7 @@ _read_baremetal:
 # STOP ( -- )
 # Stops source interpretation
 word	stop
-	mov	qword ptr [_source_completed], 1
+	mov	qword ptr [rip + _source_completed], 1
 	ret
 
 .ifndef	BAREMETAL
@@ -1207,7 +1238,7 @@ word	stop
 # Reads one character from input
 word	key
 	call	_dup
-	cmp	byte ptr [runmode], RUNMODE_BAREMETAL
+	cmp	byte ptr [rip + runmode], RUNMODE_BAREMETAL
 	je	_key_baremetal
 
 .ifndef	BAREMETAL
@@ -1238,7 +1269,7 @@ _key_baremetal:
 	push	rsi
 	push	rdi
 
-	call	[__key]
+	call	[rip + __key]
 	mov	rtop, rax
 
 	pop	rdi
@@ -1251,7 +1282,7 @@ _key_baremetal:
 # Print string to stdout
 word	type
 _type:
-	cmp	byte ptr [runmode], RUNMODE_BAREMETAL
+	cmp	byte ptr [rip + runmode], RUNMODE_BAREMETAL
 	je	_type_baremetal
 
 	push	rsi
@@ -1309,7 +1340,7 @@ _words:
 
 	call	current
 	mov	rtop, [rtop]
-	cmp	rtop, [_context]
+	cmp	rtop, [rip + _context]
 	je	2f
 	mov	rtop, [rtop]
 	call	_dup
@@ -1321,10 +1352,10 @@ _words:
 	call	_drop
 	3:
 	call	_dup
-	lea	rtop, [forth_]
-	cmp	rtop, [_context]
+	lea	rtop, [rip + forth_]
+	cmp	rtop, [rip + _context]
 	je	4f
-	cmp	rtop, [_current]
+	cmp	rtop, [rip + _current]
 	je	4f
 	mov	rtop, [rtop]
 	call	_dup
@@ -1386,11 +1417,11 @@ _words_:
 # ?COMP ( --  )
 # Returns address interpreter state for the next word from the text interpreter
 word	qcomp, "?comp"
-	cmp	qword ptr [_state], COMPILING
+	cmp	qword ptr [rip + _state], COMPILING
 	je	9f
 
 	call	_dup
-	lea	rtop, qword ptr [.L_comperr1_msg]
+	lea	rtop, qword ptr [rip + .L_comperr1_msg]
 	call	_count
 	call	_type
 
@@ -1409,7 +1440,7 @@ word	qcomp, "?comp"
 word	state_, "state!"
 	mov	rwork, rtop
 	call	_drop
-	mov	qword ptr [_state], rwork
+	mov	qword ptr [rip + _state], rwork
 	ret
 
 # STATE!! ( state -- )
@@ -1424,13 +1455,13 @@ word	state__, "state!!"
 # Sets STATE to DECOMPILING
 word	see
 _see:
-	mov	qword ptr [_state], DECOMPILING
+	mov	qword ptr [rip + _state], DECOMPILING
 	ret
 	
 # DECOMPILE ( pc -- )
 # Decompile starting from PC
 word	decompile
-	mov	qword ptr [_decompiling], 1
+	mov	qword ptr [rip + _decompiling], 1
 	mov	rstate, DECOMPILING
 	push	rpc
 	mov	rpc, rtop
@@ -1440,7 +1471,7 @@ word	decompile
 # DECOMP ( -- )
 # Decompile XT being currently interpreted
 _decomp_code:
-	cmp	qword ptr [_decompiling], 1
+	cmp	qword ptr [rip + _decompiling], 1
 	je	1f
 
 	call	_dup
@@ -1452,13 +1483,13 @@ _decomp_code:
 	call	_interpreting_
 	jmp	rnext
 _decomp:
-	cmp	qword ptr [_decompiling], 1
+	cmp	qword ptr [rip + _decompiling], 1
 	je	1f
 	call	_dup
 _decomp1:
 	push	rpc
 	mov	rpc, rwork
-	mov	qword ptr [_decompiling], 1
+	mov	qword ptr [rip + _decompiling], 1
 	jmp	7f
 	1:
 	call	_dup
@@ -1473,7 +1504,7 @@ __decompile:
 	call	_drop
 	jmp	rnext
 _decomp_exit:
-	mov	qword ptr [_decompiling], 0
+	mov	qword ptr [rip + _decompiling], 0
 	call	_bracket_open
 	call	_interpreting_
 	call	_dup
@@ -1590,7 +1621,7 @@ _count:
 # TODO: BUG: If \ is the last character on the line (just before 0a), the next line is skipped (?)
 word	word,,, code, _word
 _word:
-	mov	rtmp, qword ptr [_tib]
+	mov	rtmp, qword ptr [rip + _tib]
 	push	rbx
 
 	mov	rbx, rtop
@@ -1609,7 +1640,7 @@ _word:
 	call	_read
 .ifdef	DEBUG
 .ifdef	BAREMETAL
-	#cmp	byte ptr [_source_completed], 0
+	#cmp	byte ptr [rip + _source_completed], 0
 	#je	11f
 .endif	
 	call	_dup
@@ -1642,7 +1673,7 @@ _word:
 	cmp	rcx, 127
 	je	31f
 .ifdef	BAREMETAL
-	#cmp	byte ptr [_source_completed], 0
+	#cmp	byte ptr [rip + _source_completed], 0
 	#je	31f
 .endif	
 	call	_dup
@@ -1695,7 +1726,7 @@ _backspace:
 	pop	rdi
 
 	mov	al, dl
-	mov	rtmp, qword ptr [_tib]
+	mov	rtmp, qword ptr [rip + _tib]
 	push	rtmp
 	mov	byte ptr [rtmp], al
 
@@ -1709,7 +1740,7 @@ _backspace:
 word	cfa_allot, "cfa-allot"
 _cfa_allot:
 	mov	rcx, 16
-	lea	rtmp, qword ptr [_state_notimpl]
+	lea	rtmp, qword ptr [rip + _state_notimpl]
 	mov	rwork, 0
 
 	1:
@@ -1736,7 +1767,7 @@ _header:
 	push	rsi
 	mov	rtmp, rtop	# count
 	inc	rtmp
-	mov	rsi, qword ptr [_tib]
+	mov	rsi, qword ptr [rip + _tib]
 
 	call	_drop
 	call	_drop
@@ -1770,7 +1801,7 @@ _header:
 	jmp	9f
 
 	6:
-	lea	rtop, qword ptr [.L_header_errm]
+	lea	rtop, qword ptr [rip + .L_header_errm]
 	call	_count
 	call	_type
 .ifdef	DEBUG
@@ -1801,14 +1832,14 @@ _here:
 # Switches text interpreter STATE to INTERPRETING
 word	bracket_open, "[", immediate
 _bracket_open:
-	mov	qword ptr [_state], INTERPRETING
+	mov	qword ptr [rip + _state], INTERPRETING
 	ret
 
 # ] ( -- )
 # Switches text interpterer STATE to COMPILING
 word	bracket_close, "]"
 _bracket_close:
-	mov	qword ptr [_state], COMPILING
+	mov	qword ptr [rip + _state], COMPILING
 	ret
 
 # (INTERPRETING) IMMEDIATE
@@ -1821,7 +1852,7 @@ _interpreting_:
 # SEE-DOES!
 # Allows seeing DOES> words that use INTERPRETING! A dirty hack, but...
 word	see_does_, "see-does!"
-	mov	_see_does, rtop
+	mov	[rip + _see_does], rtop
 	call	_drop
 	ret
 
@@ -1835,7 +1866,7 @@ _interpreting__:
 	mov	rstate, INTERPRETING
 	ret
 _interpreting__decomp:
-	cmp	qword ptr [_see_does], 0
+	cmp	qword ptr [rip + _see_does], 0
 	jnz	9f
 	mov     rstate, INTERPRETING
 	9:
@@ -1858,7 +1889,7 @@ _immediate:
 	mov	rwork, rtop
 	call	_drop
 
-	lea	rtmp, _run
+	lea	rtmp, [rip + _run]
 	mov	[rwork + COMPILING * 8 - 16], rtmp
 	mov	rtmp, [rwork + INTERPRETING * 8 - 16 + 8]
 	mov	[rwork + COMPILING * 8 - 16 + 8], rtmp
@@ -2087,7 +2118,7 @@ word	_abort_, "(abort)",, forth
 # Returns initial address of RSP (return steck pointer)
 word	_sp0_, "(sp0)"
 	call	_dup
-	mov	rtop, [_sp0]
+	mov	rtop, [rip + _sp0]
 	ret
 
 # SP@ ( -- rsp )
@@ -2102,23 +2133,23 @@ word	_sp_fetch, "sp@"
 word	find
 _find:
 	call	_dup
-	mov	rtop, [_context]
+	mov	rtop, [rip + _context]
 	call	_find_
 	test	rtop, rtop
 	jnz	3f
 
-	mov	rtop, [_current]
-	cmp	rtop, [_context]
+	mov	rtop, [rip + _current]
+	cmp	rtop, [rip + _context]
 	je	1f
 	call	_find_
 	test	rtop, rtop
 	jnz	3f
 
 	1:
-	lea	rtop, [forth_]
-	cmp	rtop, [_current]
+	lea	rtop, [rip + forth_]
+	cmp	rtop, [rip + _current]
 	je	2f
-	cmp	rtop, [_context]
+	cmp	rtop, [rip + _context]
 	je	2f
 	call	_find_
 	test	rtop, rtop
@@ -2138,7 +2169,7 @@ word	_find_, "(find)"
 
 	mov	rtmp, [rtop]
 
-	mov	rbx, qword ptr [_tib]
+	mov	rbx, qword ptr [rip + _tib]
 
 	5:
 	test	rtmp, rtmp
@@ -2369,14 +2400,15 @@ word	quit_, "(quit)"
 _quit_:
 	# Source
 	###############################################################
-	cmp	byte ptr [_source], 0
+	cmp	byte ptr [rip + _source], 0
 	jz	20f
-	cmp	byte ptr [_source_completed], 0
+	cmp	byte ptr [rip + _source_completed], 0
 	jnz	20f
 
 _quit_source_ref:
 .ifndef BAREMETAL
 .if	1
+.ifndef	VIM
 	call	latest
 	add	rhere, WORD_SOURCE_OFFSET
 	mov	qword ptr [rhere], rtop
@@ -2384,8 +2416,9 @@ _quit_source_ref:
 	call	_drop
 .endif
 .endif
+.endif
 .if	0
-	mov	rtmp, [_source_in]
+	mov	rtmp, [rip + _source_in]
 	add	rhere, HERE_SOURCE_OFFSET
 	mov	qword ptr [rhere], rtmp
 	sub	rhere, HERE_SOURCE_OFFSET
@@ -2408,13 +2441,13 @@ _quit_found:
 	mov	rwork, rtop
 	call	_drop
 
-	mov	rstate, qword ptr [_state]
+	mov	rstate, qword ptr [rip + _state]
 
 	pop	rtmp
 	jmp	_doxt
 
 	2:
-	mov	rtop, qword ptr [_tib]
+	mov	rtop, qword ptr [rip + _tib]
 __number:
 	call	_number
 	test	rtop, rtop
@@ -2422,10 +2455,10 @@ __number:
 
 	call	_drop
 	# TODO: Explicit STATE check in NUMBER, move to compilation CFA
-	cmp	qword ptr [_state], COMPILING
+	cmp	qword ptr [rip + _state], COMPILING
 	jne	9f
 
-	lea	rax, qword ptr [lit]
+	lea	rax, qword ptr [rip + lit]
 	stosq
 	mov	rax, rcx
 	stosq
@@ -2434,15 +2467,15 @@ __number:
 	jmp	9f
 
 	6:
-	lea	rtop, qword ptr [.L_quiterr1_msg]
+	lea	rtop, qword ptr [rip + .L_quiterr1_msg]
 	call	_count
 	call	_type
 	call	_dup
-	mov	rtop, qword ptr [_tib]
+	mov	rtop, qword ptr [rip + _tib]
 	call	_count
 	call	_type
 	call	_dup
-	lea	rtop, qword ptr [.L_quiterr2_msg]
+	lea	rtop, qword ptr [rip + .L_quiterr2_msg]
 	call	_count
 	call	_type
 	call	_qbye
@@ -2480,7 +2513,7 @@ _qcsp:
 	jmp	9f
 
 	6:
-	lea	rtop, qword ptr [.L_qcsperr_msg]
+	lea	rtop, qword ptr [rip + .L_qcsperr_msg]
 	call	_count
 	call	_type
 .ifdef	DEBUG
@@ -2544,7 +2577,7 @@ _dump:
 word	bye
 _bye:
 
-	cmp	byte ptr [runmode], RUNMODE_BAREMETAL
+	cmp	byte ptr [rip + runmode], RUNMODE_BAREMETAL
 	je	_bye_baremetal
 	
 	mov	rdi, rtop
@@ -2552,10 +2585,10 @@ _bye:
 	syscall
 
 _bye_baremetal:
-	mov	byte ptr [_source_completed], 1
+	mov	byte ptr [rip + _source_completed], 1
 
-	lea	rax, [_source]
-	mov	[_source_in], rax
+	lea	rax, [rip + _source]
+	mov	[rip + _source_in], rax
 
 	jmp	_abort
 
@@ -2563,7 +2596,7 @@ _bye_baremetal:
 # BYE is compiling source, ABORT if interactive mode
 word	qbye, "?bye"
 _qbye:
-	cmp	byte ptr [_source_completed], 0
+	cmp	byte ptr [rip + _source_completed], 0
 	jz	_bye
 	jmp	_abort
 
@@ -2574,7 +2607,7 @@ _abort1:
 .ifdef	DEBUG
 	jmp	bye
 .else
-	cmp	byte ptr [_source_completed], 0
+	cmp	byte ptr [rip + _source_completed], 0
 	jz	_bye
 	jmp	_abort
 .endif
@@ -2585,15 +2618,15 @@ _guard:
 word	guard
 	mov	rax, rsp
 	add	rax, 8
-	mov	[_guard], rax
+	mov	[rip + _guard], rax
 	ret
 
 # RAISE
 word	raise
-	mov	rax, [_guard]
+	mov	rax, [rip + _guard]
 	mov	rsp, rax
 	mov	rstate, INTERPRETING
-	mov	[_state], rstate
+	mov	[rip + _state], rstate
 	jmp	rnext
 
 
@@ -2609,7 +2642,7 @@ word	darklord,,, forth
 # Dark Lord, I summon Thee!
 word	summoner
 _summoner:
-	lea	rwork, qword ptr [darklord]
+	lea	rwork, qword ptr [rip + darklord]
 	call	summon
 	call	_dup
 	mov	rtop, 43
@@ -2624,27 +2657,27 @@ word	cold
 # WARM ( xt -- )
 # Sets restart point to XT
 word	warm
-	mov	[__warm], rtop
+	mov	[rip + __warm], rtop
 	call	_drop
 	ret
 
 # WARM2 ( xt -- )
 # Sets restart point to XT
 word	warm2
-	mov	[__warm2], rtop
+	mov	[rip + __warm2], rtop
 	call	_drop
 	ret
 
 # (WARM) ( -- 'warm )	
 word	_warm_, "(warm)"
 	call	_dup
-	lea	rtop, [warm]
+	lea	rtop, [rip + warm]
 	ret
 
 # (WARM2) ( -- 'warm2 )	
 word	_warm2_, "(warm2)"
 	call	_dup
-	lea	rtop, [warm2]
+	lea	rtop, [rip + warm2]
 	ret
 
 # WARM0
@@ -2671,7 +2704,7 @@ word	baremetalq, "baremetal?"
 	call	_dup
 
 	xor	rtop, rtop
-	cmp	byte ptr [runmode], RUNMODE_BAREMETAL 	
+	cmp	byte ptr [rip + runmode], RUNMODE_BAREMETAL 	
 	jne	1f
 	inc	rtop
 	1:
@@ -2682,10 +2715,10 @@ word	baremetalq, "baremetal?"
 # Needed after warm restart
 word	source
 
-	lea	rax, [_source]
-	mov	[_source_in], rax
+	lea	rax, [rip + _source]
+	mov	[rip + _source_in], rax
 
-	mov	byte ptr [_source_completed], 0
+	mov	byte ptr [rip + _source_completed], 0
 
 	ret	
 
@@ -2769,6 +2802,65 @@ _vmread_xxx:
 .endif	# BAREMETAL
 
 
+.ifdef	VIM
+
+.globl mur_add
+.type  mur_add, @function
+mur_add:
+	#int64_t mur_add(int64_t a, int64_t b)
+	#SysV: a in RDI, b in RSI
+	mov	rax, rdi
+	add	rax, rsi
+	ret
+
+
+.globl	vim_init
+.type	vim_init, @function
+vim_init:
+	mov	qword ptr [rip + runmode], RUNMODE_VIM
+	ret
+
+.globl	vim_set_emit
+.type	vim_set_emit, @function
+vim_set_emit:
+	mov	[rip + __emit_vim], rdi
+	ret
+
+
+_vim_rsp: 	.quad	0
+_vim_rbx: 	.quad	0
+_vim_rbp: 	.quad	0
+_vim_r12: 	.quad	0
+_vim_r13: 	.quad	0
+_vim_r14: 	.quad	0
+_vim_r15: 	.quad	0
+
+.globl	vim_run
+.type	vim_run, @function
+vim_run:
+	mov	[rip + _vim_rsp], rsp
+	mov	[rip + _vim_rbx], rbx
+	mov	[rip + _vim_rbp], rbp
+	mov	[rip + _vim_r12], r12
+	mov	[rip + _vim_r13], r13
+	mov	[rip + _vim_r14], r14
+	mov	[rip + _vim_r15], r15
+	jmp	_start
+
+word	vim
+	mov	rsp, [rip + _vim_rsp]
+	mov	rbx, [rip + _vim_rbx]
+	mov	rbp, [rip + _vim_rbp]
+	mov	r12, [rip + _vim_r12]
+	mov	r13, [rip + _vim_r13]
+	mov	r14, [rip + _vim_r14]
+	mov	r15, [rip + _vim_r15]
+	ret
+
+
+.endif
+
+
 
 # LATEST
 	.endfunc
@@ -2780,6 +2872,12 @@ _source:
 
 .ifdef BOOT_SOURCE
 	.incbin "core.moor"
+	
+	.ifdef	VIM
+		.ascii	"vim "
+	.endif
+
+
 	.incbin "core.test.moor"
 	.incbin "type.moor"
 	.incbin "unicode.moor"
