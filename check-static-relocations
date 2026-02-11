@@ -1,0 +1,1 @@
+readelf -rW mur.o | grep R_X86_64_32S
