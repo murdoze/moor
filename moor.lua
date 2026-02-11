@@ -10,7 +10,8 @@ ffi.cdef[[
   typedef void (* emit_func_t)(int c); 
   void vim_set_emit(emit_func_t ef);
 
-  void vim_run();
+  void vim_launch();
+  void vim_exec(const char *source);
 
 ]]
 local moor = ffi.load("moorst.so");
@@ -23,9 +24,10 @@ moor.vim_init()
 MOOR_OUT = "This is Forth output: "
 moor.vim_set_emit(function (c) MOOR_OUT = MOOR_OUT .. string.char(c) end)
 
-moor.vim_run()
+moor.vim_launch()
 
+-- print("Moor!" .. MOOR_OUT)
+MOOR_OUT = ""
+moor.vim_exec("30 emit vim")
 
 print("Moor!" .. MOOR_OUT)
-
-

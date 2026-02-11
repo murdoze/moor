@@ -1,4 +1,4 @@
 rm mur.o
-as mur.asm --defsym ORG=0 --defsym TRACE=1 --defsym DEBUG=1 --defsym BOOT_SOURCE=1 --defsym VIM=1 -n -g -O0 --64 -am -amhls=mur.lst -o mur.o
+as mur.asm --defsym ORG=0 --defsym TRACE=1 --defsym BOOT_SOURCE=1 --defsym VIM=1 -n -g -O0 --64 -am -amhls=mur.lst -o mur.o
 ld mur.o -shared -N -o mur
 mv mur libmoorst.so

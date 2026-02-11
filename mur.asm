@@ -2579,6 +2579,8 @@ _bye:
 
 	cmp	byte ptr [rip + runmode], RUNMODE_BAREMETAL
 	je	_bye_baremetal
+	cmp	byte ptr [rip + runmode], RUNMODE_VIM
+	je	_bye_vim
 	
 	mov	rdi, rtop
 	mov	rax, 60
@@ -2591,6 +2593,9 @@ _bye_baremetal:
 	mov	[rip + _source_in], rax
 
 	jmp	_abort
+
+_bye_vim:
+	jmp	vim
 
 # ?BYE
 # BYE is compiling source, ABORT if interactive mode
@@ -2835,9 +2840,7 @@ _vim_r13: 	.quad	0
 _vim_r14: 	.quad	0
 _vim_r15: 	.quad	0
 
-.globl	vim_run
-.type	vim_run, @function
-vim_run:
+.macro	save_regs
 	mov	[rip + _vim_rsp], rsp
 	mov	[rip + _vim_rbx], rbx
 	mov	[rip + _vim_rbp], rbp
@@ -2845,9 +2848,9 @@ vim_run:
 	mov	[rip + _vim_r13], r13
 	mov	[rip + _vim_r14], r14
 	mov	[rip + _vim_r15], r15
-	jmp	_start
+.endm
 
-word	vim
+.macro	restore_regs
 	mov	rsp, [rip + _vim_rsp]
 	mov	rbx, [rip + _vim_rbx]
 	mov	rbp, [rip + _vim_rbp]
@@ -2855,6 +2858,32 @@ word	vim
 	mov	r13, [rip + _vim_r13]
 	mov	r14, [rip + _vim_r14]
 	mov	r15, [rip + _vim_r15]
+.endm
+
+.globl	vim_launch
+.type	vim_launch, @function
+vim_launch:
+
+	save_regs
+
+	jmp	_start
+
+
+.globl	vim_exec
+.type	vim_exec, @function
+vim_exec:
+	mov	[rip + _source_in], rdi
+	mov	byte ptr [rip + _source_completed], 0
+
+	save_regs
+
+	jmp	_cold
+
+# Return back to VIM restoring registers
+word	vim
+
+	restore_regs
+
 	ret
 
 
