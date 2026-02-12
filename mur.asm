@@ -49,21 +49,33 @@ _start1:
 	mov	[rip + _sp0], rsp
 
 	cmp	byte ptr [rip + runmode], RUNMODE_LINUXUSR
-	je	1f
+	je	_linux
 	cmp	byte ptr [rip + runmode], RUNMODE_VIM
-	je	1f
+	je	_linux
 
 	lea	rhere, [rip + here0]
 	jmp	_cold
 
-	1:
+_linux:
+	call	_setup_sigsegv_handler
+
+	#cmp	byte ptr [rip + runmode], RUNMODE_LINUXUSR
+	#je	_brk
+	#jmp	_brk
+
+	lea	rax, [rip + here0]
+	add	rax, 0x1000
+	jmp	_setmem
+
+_brk:
 	mov	rax, 12
 	lea	rdi, [rip + here0]
 	syscall
 	# TODO check for error here
+
+_setmem:	
 	mov	[rip + _mem_reserved], rax
 
-	call	_setup_sigsegv_handler
 	mov	rhere, [rip + _mem_reserved]
 
 _cold:
@@ -1121,6 +1133,7 @@ _emit_baremetal:
 
 	push	rtop
 	push	rwork
+	push	rtmp
 	push	rdx
 	push	rsi
 	push	rdi
@@ -1132,6 +1145,7 @@ _emit_baremetal:
 	pop	rdi
 	pop	rsi
 	pop	rdx
+	pop	rtmp
 	pop	rwork
 	pop	rtop
 
@@ -1140,18 +1154,51 @@ _emit_baremetal:
 	ret
 
 _emit_vim:
-	push	rtop
-	push	rdi
+	push	rax
+	push	rcx
+	push	rdx
 	push	rbx
 	push	rsi
+	push	rdi
+	push	rbp
+	push	r8
+	push	r9
+	push	r10
+	push	r11
+	push	r12
+	push	r13
+	push	r14
+	push	r15
+
+	mov	rax, rsp
+	and	rax, 15
+	sub	rsp, rax
+	push	rax
+	push	rax
 
 	mov	rdi, rtop
 	call	[rip + __emit_vim]
 
+	pop	rax
+	pop	rax
+	add	rsp, rax 
+
+	pop	r15
+	pop	r14
+	pop	r13
+	pop	r12
+	pop	r11
+	pop	r10
+	pop	r9
+	pop	r8
+	pop	rbp
+	pop	rdi
 	pop	rsi
 	pop	rbx
-	pop	rdi
-	pop	rtop
+	pop	rdx
+	pop	rcx
+	pop	rax
+
 	jmp	1b
 
 	call	_drop
@@ -1284,6 +1331,8 @@ word	type
 _type:
 	cmp	byte ptr [rip + runmode], RUNMODE_BAREMETAL
 	je	_type_baremetal
+	cmp	byte ptr [rip + runmode], RUNMODE_VIM
+	je	_type_vim
 
 	push	rsi
 	push	rdi
@@ -1303,6 +1352,7 @@ _type:
 	ret
 
 _type_baremetal:
+_type_vim:
 	push	rsi
 	push	rdi
 
@@ -1320,11 +1370,10 @@ _type_baremetal:
 	dec	rtmp
 	jnz	1b
 	
-
+	8:
 	pop	rdi
 	pop	rsi
 	
-	8:
 	call	_drop
 
 	ret
@@ -2595,7 +2644,11 @@ _bye_baremetal:
 	jmp	_abort
 
 _bye_vim:
+.ifdef	VIM
 	jmp	vim
+.else
+	jmp	_abort
+.endif
 
 # ?BYE
 # BYE is compiling source, ABORT if interactive mode
@@ -2840,7 +2893,9 @@ _vim_r13: 	.quad	0
 _vim_r14: 	.quad	0
 _vim_r15: 	.quad	0
 
-.macro	save_regs
+_moor_here:	.quad	0
+
+.macro	save_vim_regs
 	mov	[rip + _vim_rsp], rsp
 	mov	[rip + _vim_rbx], rbx
 	mov	[rip + _vim_rbp], rbp
@@ -2850,7 +2905,7 @@ _vim_r15: 	.quad	0
 	mov	[rip + _vim_r15], r15
 .endm
 
-.macro	restore_regs
+.macro	restore_vim_regs
 	mov	rsp, [rip + _vim_rsp]
 	mov	rbx, [rip + _vim_rbx]
 	mov	rbp, [rip + _vim_rbp]
@@ -2864,7 +2919,7 @@ _vim_r15: 	.quad	0
 .type	vim_launch, @function
 vim_launch:
 
-	save_regs
+	save_vim_regs
 
 	jmp	_start
 
@@ -2875,14 +2930,18 @@ vim_exec:
 	mov	[rip + _source_in], rdi
 	mov	byte ptr [rip + _source_completed], 0
 
-	save_regs
+	save_vim_regs
 
-	jmp	_cold
+	mov	rhere, [rip + _moor_here]
+
+	jmp	_abort
 
 # Return back to VIM restoring registers
 word	vim
 
-	restore_regs
+	mov	[rip + _moor_here], rhere
+
+	restore_vim_regs
 
 	ret
 
@@ -2903,27 +2962,26 @@ _source:
 	.incbin "core.moor"
 	
 	.ifdef	VIM
-		.ascii	"vim "
-	.endif
+		.ascii	"words vim \n"
+	.else
+		.incbin "core.test.moor"
+		.incbin "type.moor"
+		.incbin "unicode.moor"
+		.incbin "ansi.moor"
+		.incbin "opti.moor"
 
+		.incbin	"maze.moor"
 
-	.incbin "core.test.moor"
-	.incbin "type.moor"
-	.incbin "unicode.moor"
-	.incbin "ansi.moor"
-	.incbin "opti.moor"
+		.incbin "opti.test.moor"
 
-	.incbin	"maze.moor"
-
-	.incbin "opti.test.moor"
-
-	.ifdef	BAREMETAL
-		.incbin	"vamp.moor"
-	.endif
-	.ifdef SCORCH
-		.incbin "font.moor"
-		.incbin "xwin.moor"
-		.incbin "scorch.moor"
+		.ifdef	BAREMETAL
+			.incbin	"vamp.moor"
+		.endif
+		.ifdef SCORCH
+			.incbin "font.moor"
+			.incbin "xwin.moor"
+			.incbin "scorch.moor"
+		.endif
 	.endif
 .else
 	.byte	0
@@ -2931,7 +2989,7 @@ _source:
 
 	.byte	0
 	.byte	0
-here0:
-
 	.align	4096
+
+here0:
 
