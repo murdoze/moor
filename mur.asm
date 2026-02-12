@@ -48,9 +48,9 @@ __call_vim:	.quad	0
 _start1:
 	mov	[rip + _sp0], rsp
 
-	cmp	byte ptr [rip + runmode], RUNMODE_LINUXUSR
+	cmpb	[rip + runmode], RUNMODE_LINUXUSR
 	je	_linux
-	cmp	byte ptr [rip + runmode], RUNMODE_VIM
+	cmpb	[rip + runmode], RUNMODE_VIM
 	je	_linux
 
 	lea	rhere, [rip + here0]
@@ -84,6 +84,9 @@ _cold:
 	lea	rwork, [rip + forth_]
 	mov	[rip + _current], rwork
 	mov	[rip + _context], rwork
+
+	cmpb	[rip + runmode], RUNMODE_VIM
+	je	_abort_nologo
 
 _restart:
 	mov	rpc, qword ptr [rip + __warm]
@@ -2818,9 +2821,32 @@ _vmread_xxx:
 
 .endif	# BAREMETAL
 
+# SOURCEFILE (<file-name> -- )
+# marks start of the new source file, resets source line and column
+word	sourcefile
+	call	_bl_
+	call	_word
 
-# Neovim callback
+.ifdef	VIM
+
+	call	_dup
+	mov	rtop, [rip + _tib]
+	inc	rtop
+	call	_dup
+	mov	rtop, 0
+	call	_dup
+	mov	rtop, 2
+
+	call	_vim_callback
+
+	call	_drop
+.endif
+
+	ret
+
+# Neovim callback	( what iparam sparam -- ret )
 # Placed outside IFDEF to avoid IFDEFs around code
+# 
 _vim_callback:
 	cmpq	[rip + __call_vim], 0
 	jnz	1f
@@ -2854,6 +2880,8 @@ _vim_callback:
 	mov	rdi, rtop
 	call	_drop
 	mov	rsi, rtop
+	call	_drop
+	mov	rdx, rtop
 	
 	call	[rip + __call_vim]
 	mov	rtop, rax
@@ -2967,29 +2995,37 @@ word	vim
 
 _source:
 
+.macro	source	filename
+	.ascii	"sourcefile "
+	.ascii	"\filename\n"
+	.incbin	"\filename"
+.endm
+
 .ifdef BOOT_SOURCE
-	.incbin "core.moor"
+	#.ascii	"sourcefile core.moor\n"
+	#.incbin "core.moor"
+	source	core.moor
 	
 	.ifdef	VIM
-		.ascii	"words vim \n"
+		.ascii	" vim \n"
 	.else
-		.incbin "core.test.moor"
-		.incbin "type.moor"
-		.incbin "unicode.moor"
-		.incbin "ansi.moor"
-		.incbin "opti.moor"
+		source core.test.moor
+		source type.moor
+		source unicode.moor
+		source ansi.moor
+		source opti.moor
 
-		.incbin	"maze.moor"
+		source maze.moor
 
-		.incbin "opti.test.moor"
+		source opti.test.moor
 
 		.ifdef	BAREMETAL
-			.incbin	"vamp.moor"
+			source vamp.moor
 		.endif
 		.ifdef SCORCH
-			.incbin "font.moor"
-			.incbin "xwin.moor"
-			.incbin "scorch.moor"
+			source font.moor
+			source xwin.moor
+			source scorch.moor
 		.endif
 	.endif
 .else
