@@ -43,7 +43,7 @@ __setcolor:	.quad	0
 __warm:		.quad	_warm0
 __warm2:	.quad	_warm0
 
-__emit_vim:	.quad	0
+__call_vim:	.quad	0
 
 _start1:
 	mov	[rip + _sp0], rsp
@@ -93,6 +93,9 @@ _restart2:
 	jmp	_abort2
 _abort:
 	lea	rpc, [rip + _warm0]
+	jmp	_abort2
+_abort3:
+	lea	rpc, [rip + _warm1]
 _abort2:	
 	mov	byte ptr [rip + _trace], 0
 	mov	byte ptr [rip + _debug], 0
@@ -1095,7 +1098,7 @@ _emit:
 	je	_emit_baremetal
 	cmp	byte ptr [rip + runmode], RUNMODE_VIM
 	jne	1f
-	cmp	qword ptr [rip + __emit_vim], 0
+	cmp	qword ptr [rip + __call_vim], 0
 	jnz	_emit_vim
 
 	1:
@@ -1152,52 +1155,10 @@ _emit_baremetal:
 	ret
 
 _emit_vim:
-	push	rax
-	push	rcx
-	push	rdx
-	push	rbx
-	push	rsi
-	push	rdi
-	push	rbp
-	push	r8
-	push	r9
-	push	r10
-	push	r11
-	push	r12
-	push	r13
-	push	r14
-	push	r15
+	call	_dup
+	mov	rtop, 1
 
-	mov	rax, rsp
-	and	rax, 15
-	sub	rsp, rax
-	push	rax
-	push	rax
-
-	mov	rdi, rtop
-	call	[rip + __emit_vim]
-
-	pop	rax
-	pop	rax
-	add	rsp, rax 
-
-	pop	r15
-	pop	r14
-	pop	r13
-	pop	r12
-	pop	r11
-	pop	r10
-	pop	r9
-	pop	r8
-	pop	rbp
-	pop	rdi
-	pop	rsi
-	pop	rbx
-	pop	rdx
-	pop	rcx
-	pop	rax
-
-	jmp	1b
+	call	_vim_callback
 
 	call	_drop
 
@@ -2744,7 +2705,7 @@ _warm0:
 	.quad	count
 	.quad	type
 
-
+_warm1:
 	.quad	quit
 	.quad	bye
 	.quad	exit # Not needed here, for decompiler only for now
@@ -2858,16 +2819,67 @@ _vmread_xxx:
 .endif	# BAREMETAL
 
 
-.ifdef	VIM
+# Neovim callback
+# Placed outside IFDEF to avoid IFDEFs around code
+_vim_callback:
+	cmpq	[rip + __call_vim], 0
+	jnz	1f
 
-.globl mur_add
-.type  mur_add, @function
-mur_add:
-	#int64_t mur_add(int64_t a, int64_t b)
-	#SysV: a in RDI, b in RSI
-	mov	rax, rdi
-	add	rax, rsi
+	call	_drop
+	call	_drop
 	ret
+
+	1:
+	push	rax
+	push	rdx
+	push	rbx
+	push	rsi
+	push	rdi
+	push	rbp
+	push	r8
+	push	r9
+	push	r10
+	push	r11
+	push	r12
+	push	r13
+	push	r14
+	push	r15
+
+	mov	rax, rsp
+	and	rax, 15
+	sub	rsp, rax
+	push	rax
+	push	rax
+
+	mov	rdi, rtop
+	call	_drop
+	mov	rsi, rtop
+	
+	call	[rip + __call_vim]
+	mov	rtop, rax
+
+	pop	rax
+	pop	rax
+	add	rsp, rax 
+
+	pop	r15
+	pop	r14
+	pop	r13
+	pop	r12
+	pop	r11
+	pop	r10
+	pop	r9
+	pop	r8
+	pop	rbp
+	pop	rdi
+	pop	rsi
+	pop	rbx
+	pop	rdx
+	pop	rax
+
+	ret
+
+.ifdef	VIM
 
 
 .globl	vim_init
@@ -2876,10 +2888,10 @@ vim_init:
 	mov	qword ptr [rip + runmode], RUNMODE_VIM
 	ret
 
-.globl	vim_set_emit
-.type	vim_set_emit, @function
-vim_set_emit:
-	mov	[rip + __emit_vim], rdi
+.globl	vim_set_callback
+.type	vim_set_callback, @function
+vim_set_callback:
+	mov	[rip + __call_vim], rdi
 	ret
 
 
@@ -2891,7 +2903,7 @@ _vim_r13: 	.quad	0
 _vim_r14: 	.quad	0
 _vim_r15: 	.quad	0
 
-_moor_here:	.quad	0
+_moor_rhere:	.quad	0
 
 .macro	save_vim_regs
 	mov	[rip + _vim_rsp], rsp
@@ -2926,18 +2938,18 @@ vim_launch:
 .type	vim_exec, @function
 vim_exec:
 	mov	[rip + _source_in], rdi
-	mov	byte ptr [rip + _source_completed], 0
+	movb	[rip + _source_completed], 0
 
 	save_vim_regs
 
-	mov	rhere, [rip + _moor_here]
+	mov	rhere, [rip + _moor_rhere]
 
-	jmp	_abort
+	jmp	_abort3
 
 # Return back to VIM restoring registers
 word	vim
 
-	mov	[rip + _moor_here], rhere
+	mov	[rip + _moor_rhere], rhere
 
 	restore_vim_regs
 
@@ -2945,7 +2957,6 @@ word	vim
 
 
 .endif
-
 
 
 # LATEST
