@@ -94,8 +94,8 @@ _restart2:
 _abort:
 	lea	rpc, [rip + _warm0]
 	jmp	_abort2
-_abort3:
-	lea	rpc, [rip + _warm1]
+_abort_nologo:
+	lea	rpc, [rip + _warm_nologo]
 _abort2:	
 	mov	byte ptr [rip + _trace], 0
 	mov	byte ptr [rip + _debug], 0
@@ -2705,7 +2705,7 @@ _warm0:
 	.quad	count
 	.quad	type
 
-_warm1:
+_warm_nologo:
 	.quad	quit
 	.quad	bye
 	.quad	exit # Not needed here, for decompiler only for now
@@ -2944,7 +2944,7 @@ vim_exec:
 
 	mov	rhere, [rip + _moor_rhere]
 
-	jmp	_abort3
+	jmp	_abort_nologo
 
 # Return back to VIM restoring registers
 word	vim
