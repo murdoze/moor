@@ -124,7 +124,8 @@ _next:
 	lodsq
 _doxt:
 .ifdef TRACE
-	jmp	_do_trace
+	cmp	byte ptr [rip + _trace], 0
+	jne	_do_trace
 .endif
 _notrace:
 	jmp	[rwork + rstate * 8 - 16]
@@ -163,9 +164,6 @@ _interp:
 	jmp	rnext
 
 _do_trace:
-	cmp	byte ptr [rip + _trace], 0
-	jz	99f
-
 	cmp	byte ptr [rip + _trace], 2
 	jne	21f
 	cmp	rstate, 0
