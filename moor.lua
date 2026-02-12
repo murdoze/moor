@@ -22,12 +22,16 @@ local moor = ffi.load("moorst.so");
 moor.vim_init()
 
 MOOR_OUT = "This is Forth output: "
-moor.vim_set_emit(function (c) MOOR_OUT = MOOR_OUT .. string.char(c) end)
+moor.vim_set_emit(
+  function (c) 
+    MOOR_OUT = MOOR_OUT .. string.char(c); 
+    -- print(string.char(c))
+  end)
 
 moor.vim_launch()
 
--- print("Moor!" .. MOOR_OUT)
+--print("Moor!" .. MOOR_OUT)
 MOOR_OUT = ""
-moor.vim_exec("30 emit vim")
+moor.vim_exec('words vim')
 
 print("Moor!" .. MOOR_OUT)
