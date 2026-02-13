@@ -24,4 +24,4 @@ function! SynGroup()
 endfun
 
 
-nmap <C-\> :call SynGroup()<CR>
+"nmap <C-\> :call SynGroup()<CR>
