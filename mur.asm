@@ -1179,10 +1179,10 @@ _emit_vim:
 # READ ( -- c )
 # Reads a character from stdin
 
-_source_completed:
-	.byte	0
-_source_in:
-	.quad	_source
+_source_completed:	.byte	0
+_source_in:		.quad	_source
+_source_line:		.quad	0
+_source_col:		.quad	0
 
 word	read
 _read:
@@ -1196,12 +1196,20 @@ _read:
 	mov	rax, [rip + _source_in]
 	inc	qword ptr [rip + _source_in]
 	movzx	rtop, byte ptr [rax]
+
+	incq	[rip + _source_col]
+
+	cmp	rtop, 0xa
+	jnz	1f
+
+	incq	[rip + _source_line]
+	movq	[rip + _source_col], 0
+
+	1:
 	
 	or	rtop, rtop
 	jnz	5f
 
-.ifdef	VIM
-.endif
 
 _read_source_completed:
 	mov	byte ptr [rip + _source_completed], 1
@@ -1797,7 +1805,10 @@ _header:
 	mov	rtop, [rip + _tib]
 	inc	rtop
 	call	_dup
-	mov	rtop, 0x20003	# line/col, TODO
+	mov	eax, [rip + _source_line]
+	shl	eax, 16
+	movw	ax, [rip + _source_col]
+	mov	rtop, rax
 	call	_dup
 	mov	rtop, VIM_DEF_SOURCE
 	call	_vim_callback
@@ -2869,6 +2880,9 @@ _vmread_xxx:
 # SOURCEFILE (<file-name> -- )
 # marks start of the new source file, resets source line and column
 word	sourcefile
+	movq	[rip + _source_line], 0
+	movq	[rip + _source_col], 0
+
 	call	_bl_
 	call	_word
 
