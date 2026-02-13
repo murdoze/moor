@@ -14,6 +14,10 @@ is_moor, moor = pcall(ffi.load, "moorst.so")
 
 if not is_moor then return end
 
+--
+-- Word under cursor
+--
+
 local function forth_word_under_cursor()
   local row, col0 = unpack(vim.api.nvim_win_get_cursor(0)) -- row is 1-based, col is 0-based
   local line = vim.api.nvim_get_current_line()
@@ -48,7 +52,10 @@ local function forth_word_under_cursor()
   return line:sub(left, right)
 end
 
+--
 -- Scratch buffers/windows
+--
+
 local out_buf, stack_buf
 local out_win, stack_win
 
@@ -62,24 +69,42 @@ local function ensure_scratch_buf(name)
   return b
 end
 
+local baleia = require("baleia").setup({ })
+
+function strip_cursor_motion(s)
+  -- CSI n G  (Horizontal Absolute)   e.g. ESC[19G
+  s = s:gsub("\27%[[0-9]+G", "")
+  -- CSI n H / CSI r;c H (Cursor Position)  ESC[H or ESC[12;34H
+  s = s:gsub("\27%[[0-9;]*H", "")
+  -- CSI n f (same as H)
+  s = s:gsub("\27%[[0-9;]*f", "")
+  -- CSI n A/B/C/D (cursor up/down/right/left)
+  s = s:gsub("\27%[[0-9]*[ABCD]", "")
+  return s
+end
+
 local function buf_append_text(buf, text)
   if not text or text == "" then return end
+  text = strip_cursor_motion(text)
   vim.bo[buf].modifiable = true
   local lines = vim.split(text, "\n", { plain = true })
   -- Avoid inserting a final empty line if text ends with "\n"
   if #lines > 0 and lines[#lines] == "" then table.remove(lines, #lines) end
 
   local last = vim.api.nvim_buf_line_count(buf)
+  vim.bo[buf].modifiable = true
   vim.api.nvim_buf_set_lines(buf, last, last, true, lines)
-  vim.bo[buf].modifiable = false
 end
 
 local function buf_set_text(buf, text)
+  test = strip_cursor_motion(text)
   vim.bo[buf].modifiable = true
   local lines = vim.split(text or "", "\n", { plain = true })
   if #lines > 0 and lines[#lines] == "" then table.remove(lines, #lines) end
   vim.api.nvim_buf_set_lines(buf, 0, -1, true, lines)
-  vim.bo[buf].modifiable = false
+
+  vim.bo[buf].modifiable = true
+  baleia.automatically(out_buf, 0, 999999)
 end
 
 local function buf_visible_in_current_tab(buf)
@@ -242,6 +267,10 @@ moor.vim_launch()
 -- Dirty tail
 --
 
+
+-- print("Moor!\n" .. MOOR_OUT)
+--moor.vim_exec("test-opti-MAZE vim")
+--print("Moor!\n" .. MOOR_OUT)
 
 --moor.vim_exec('.S ')
 --print("Moor!\n" .. MOOR_OUT)
