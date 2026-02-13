@@ -69,8 +69,6 @@ local function ensure_scratch_buf(name)
   return b
 end
 
-local baleia = require("baleia").setup({ })
-
 function strip_cursor_motion(s)
   -- CSI n G  (Horizontal Absolute)   e.g. ESC[19G
   s = s:gsub("\27%[[0-9]+G", "")
@@ -117,48 +115,179 @@ local function buf_visible_in_current_tab(buf)
   return false
 end
 
+-- Live OUT terminal (renders ANSI cursor motion like WezTerm)
+-- Globals you keep (one OUT terminal)
+local out_chan, out_term_buf, out_term_win
 
-function moor_open_panels()
-  if buf_visible_in_current_tab(out_buf) then return end
+local function out_term_visible_in_current_tab()
+  if not out_term_buf or not vim.api.nvim_buf_is_valid(out_term_buf) then return false end
+  local tab = vim.api.nvim_get_current_tabpage()
+  for _, win in ipairs(vim.api.nvim_tabpage_list_wins(tab)) do
+    if vim.api.nvim_win_get_buf(win) == out_term_buf then
+      return true
+    end
+  end
+  return false
+end
 
-  if not out_buf then out_buf = ensure_scratch_buf("MOOR-OUT") end
-  if not stack_buf then stack_buf = ensure_scratch_buf("MOOR-STACK") end
+local function moor_open_out_live()
+  -- If OUT terminal already exists and window is valid, do nothing
+  if out_term_win and vim.api.nvim_win_is_valid(out_term_win)
+     and out_term_buf and vim.api.nvim_buf_is_valid(out_term_buf) then
+    return
+  end
 
   local src_win = vim.api.nvim_get_current_win()
 
-  -- Create right column and get its win id deterministically
-  vim.cmd("split")
-  vim.cmd("wincmd w")
-  local right_win = vim.api.nvim_get_current_win()
+  -- Create a NEW bottom split for OUT and move into it
+  vim.cmd("botright split")
+  vim.cmd("resize 15")
+  out_term_win = vim.api.nvim_get_current_win()
 
-  -- Put OUT in right_win
-  vim.api.nvim_win_set_buf(right_win, out_buf)
+  -- Start terminal job in THIS window only
+  out_term_buf = vim.api.nvim_get_current_buf()
+  out_chan = vim.b.terminal_job_id
 
-  -- Set right column width (adjust to taste)
-  vim.api.nvim_win_set_height(right_win, 20)
+  -- Make it panel-like
+  vim.bo[out_term_buf].buflisted = false
+  vim.wo[out_term_win].number = false
+  vim.wo[out_term_win].relativenumber = false
+  vim.wo[out_term_win].signcolumn = "no"
 
-  -- Split right column horizontally -> bottom pane
-  vim.api.nvim_set_current_win(right_win)
-  vim.cmd("vsplit")
-  vim.cmd("wincmd w")
-  local stack_win = vim.api.nvim_get_current_win()
-
-  -- Put STACK in bottom-right
-  vim.api.nvim_win_set_buf(stack_win, stack_buf)
-
-  -- Set heights (top is OUT, bottom is STACK)
-  vim.api.nvim_win_set_width(stack_win, 20)  -- stack height
-  -- output pane gets remaining height automatically
+  -- Go back to source window
+  vim.api.nvim_set_current_win(src_win)
   vim.cmd("wincmd r")
 
-  -- Return focus to source
-  vim.api.nvim_set_current_win(src_win)
+end
+
+local function ensure_out_terminal_here()
+  local win = vim.api.nvim_get_current_win()
+  local buf = vim.api.nvim_get_current_buf()
+
+  -- If this window is not already a terminal, replace its buffer with a fresh one
+  -- BEFORE termopen, otherwise you convert the source buffer into a terminal buffer.
+  if vim.bo[buf].buftype ~= "terminal" then
+    vim.cmd("enew")  -- critical: break buffer sharing created by :split
+  end
+
+  -- Now ensure we have a terminal job
+  buf = vim.api.nvim_get_current_buf()
+  if vim.bo[buf].buftype ~= "terminal" then
+    -- vim.fn.termopen({ "cat" })
+    vim.fn.termopen({ "sh", "-lc", "stty -echo -icanon min 1 time 0; cat"  })
+  end
+
+  out_term_win = win
+  out_term_buf = vim.api.nvim_get_current_buf()
+  out_chan = vim.b.terminal_job_id
+
+  -- panel cosmetics
+  vim.bo[out_term_buf].buflisted = false
+  vim.wo[out_term_win].number = false
+  vim.wo[out_term_win].relativenumber = false
+  vim.wo[out_term_win].signcolumn = "no"
+end
+
+local function out_send(s)
+  if not s or s == "" then return end
+  if not out_chan then moor_open_out_live() end
+  if out_chan then
+    vim.api.nvim_chan_send(out_chan, s)
+  end
+end
+
+local function out_clear()
+  if out_chan then
+    -- clear screen + home cursor
+    vim.api.nvim_chan_send(out_chan, "\27[2J\27[H")
+  end
+end
+
+local function out_term_visible_in_current_tab()
+  if not out_term_buf or not vim.api.nvim_buf_is_valid(out_term_buf) then return false end
+  local tab = vim.api.nvim_get_current_tabpage()
+  for _, win in ipairs(vim.api.nvim_tabpage_list_wins(tab)) do
+    if vim.api.nvim_win_get_buf(win) == out_term_buf then
+      return true
+    end
+  end
+  return false
+end
+
+function moor_open_panels()
+  -- If OUT terminal already exists in this tab, do nothing
+  if out_term_visible_in_current_tab() then
+    return
+  end
+
+  -- Create stack buffer once
+  if not stack_buf then
+    stack_buf = ensure_scratch_buf("MOOR-STACK")
+  end
+
+  -- Capture source window/buffer explicitly
+  local src_win = vim.api.nvim_get_current_win()
+  local src_buf = vim.api.nvim_win_get_buf(src_win)
+
+  -- 1) Create OUT row (bottom split)
+  vim.cmd("split")
   vim.cmd("wincmd w")
+  local out_win = vim.api.nvim_get_current_win()
+
+  -- Critical: detach OUT window from source buffer by putting a new empty buffer into OUT win
+  local tmpbuf = vim.api.nvim_create_buf(false, true) -- scratch
+  vim.api.nvim_win_set_buf(out_win, tmpbuf)
+  vim.bo[tmpbuf].buftype = "nofile"
+  vim.bo[tmpbuf].bufhidden = "wipe"
+  vim.bo[tmpbuf].swapfile = false
+
+  -- Turn THAT buffer into a terminal by running termopen in OUT window
+  vim.api.nvim_set_current_win(out_win)
+  vim.fn.termopen({ "cat" })
+
+  out_term_win = out_win
+  out_term_buf = vim.api.nvim_get_current_buf()
+  out_chan = vim.b.terminal_job_id
+
+  -- Panel cosmetics
+  vim.bo[out_term_buf].buflisted = false
+  vim.wo[out_term_win].number = false
+  vim.wo[out_term_win].relativenumber = false
+  vim.wo[out_term_win].signcolumn = "no"
+
+  -- Set OUT height
+  vim.api.nvim_win_set_height(out_term_win, 20)
+
+  -- 2) Create STACK column on the right inside the OUT row
+  vim.cmd("vsplit")
+  vim.cmd("wincmd w")
+  
+  local sw = vim.api.nvim_get_current_win()
+  stack_win = sw
+  -- vim.api.nvim_win_set_buf(stack_win, stack_buf)
+  vim.api.nvim_win_set_width(stack_win, 20)
+
+  -- Optional cosmetics for stack pane
+  vim.wo[stack_win].number = false
+  vim.wo[stack_win].relativenumber = false
+  vim.wo[stack_win].signcolumn = "no"
+
+  -- 3) Restore focus to source window + buffer (belt and suspenders)
+  if vim.api.nvim_win_is_valid(src_win) then
+    vim.api.nvim_set_current_win(src_win)
+    -- Ensure source buffer is still the source buffer
+    if vim.api.nvim_win_get_buf(src_win) ~= src_buf and vim.api.nvim_buf_is_valid(src_buf) then
+      vim.api.nvim_win_set_buf(src_win, src_buf)
+    end
+  end
+
+  vim.cmd("b MOOR-STACK")
   vim.cmd("wincmd w")
 end
 
+
 local sink = "out"          -- "out" or "stack"
-local pending_out = {}
+local pending_out = ""
 local pending_stack = {}
 local flush_scheduled = false
 
@@ -167,10 +296,12 @@ local function schedule_flush()
   flush_scheduled = true
   vim.schedule(function()
     flush_scheduled = false
-    if out_buf and #pending_out > 0 then
-      buf_append_text(out_buf, table.concat(pending_out))
-      pending_out = {}
+
+    if out_chan and #pending_out > 0 then
+      out_send(pending_out)
+      pending_out = ""
     end
+
     if stack_buf and #pending_stack > 0 then
       buf_set_text(stack_buf, table.concat(pending_stack))
       pending_stack = {}
@@ -182,9 +313,8 @@ local function sink_emit_char(c)
   if sink == "stack" then
     pending_stack[#pending_stack + 1] = c
   else
-    pending_out[#pending_out + 1] = c
+    pending_out = pending_out .. c
   end
-  schedule_flush()
 end
 
 --
@@ -207,17 +337,15 @@ end,
 
 vim.keymap.set('n', '<s-Enter>', 
 function()
-  moor_open_panels()
-
   local word = forth_word_under_cursor()
   print(word)
-  word = word .. " "
+  word = word .. " vim "
 
+  moor_open_panels()
 
-  MOOR_OUT = ""
+  out_clear()
   moor.vim_exec(word)
-  MOOR_OUT = MOOR_OUT .. "\n"
-  buf_set_text(out_buf, MOOR_OUT)
+  schedule_flush()
 end,
 { noremap=true, silent=true, desc = "Go to Moor definition" })
 
@@ -267,15 +395,4 @@ moor.vim_launch()
 -- Dirty tail
 --
 
-
--- print("Moor!\n" .. MOOR_OUT)
---moor.vim_exec("test-opti-MAZE vim")
---print("Moor!\n" .. MOOR_OUT)
-
---moor.vim_exec('.S ')
---print("Moor!\n" .. MOOR_OUT)
---moor.vim_exec('30 emit ')
-
---print("Moor!" .. MOOR_OUT)
--- moor.vim_exec('.S ')
 
