@@ -3064,31 +3064,27 @@ _source:
 .endm
 
 .ifdef BOOT_SOURCE
-	#.ascii	"sourcefile core.moor\n"
-	#.incbin "core.moor"
 	source	core.moor
 	
-	#.ifdef	VIM
-	#.else
-		source core.test.moor
-		source type.moor
-		source unicode.moor
-		source ansi.moor
-		source opti.moor
+	source core.test.moor
+	source type.moor
+	source unicode.moor
+	source ansi.moor
+	source opti.moor
 
-		source maze.moor
+	source maze.moor
 
-		source opti.test.moor
+	source opti.test.moor
 
-		.ifdef	BAREMETAL
-			source vamp.moor
-		.endif
-		.ifdef SCORCH
-			source font.moor
-			source xwin.moor
-			source scorch.moor
-		.endif
-	#.endif
+	.ifdef	BAREMETAL
+		source vamp.moor
+	.endif
+	.ifdef SCORCH
+		source font.moor
+		source xwin.moor
+		source scorch.moor
+	.endif
+
 	.ifdef	VIM
 		.ascii	" vim \n"
 	.endif
