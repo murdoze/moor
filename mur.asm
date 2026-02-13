@@ -37,13 +37,20 @@ _start:
 	RUNMODE_VIM		= 2
 
 runmode:	.byte	0
+
+# BAREMETAL interface
 __key:		.quad	0
 __emitchar:	.quad	0
 __setcolor:	.quad	0
 __warm:		.quad	_warm0
 __warm2:	.quad	_warm0
 
+# VIM interface
 __call_vim:	.quad	0
+	VIM_EMIT	= 1
+	VIM_SOURCEFILE	= 11
+	VIM_DEF_SOURCE	= 21
+	VIM_DEF_XT	= 22
 
 _start1:
 	mov	[rip + _sp0], rsp
@@ -109,7 +116,8 @@ _abort2:
 	/* TODO: In "hardened" version map stacks to separate pages, with gaps between them */
 	lea	rstack0, [rsp - 0x1000]
 	xor	rstack, rstack
-	lea	rwork, [rsp - 0x2000]
+	#lea	rwork, [rsp - 0x4000]
+	lea	rwork, [rip + __tib]
 	mov	qword ptr [rip + _tib], rwork
 	xor	rwork, rwork
 
@@ -1159,7 +1167,9 @@ _emit_baremetal:
 
 _emit_vim:
 	call	_dup
-	mov	rtop, 1
+	call	_dup
+	call	_dup
+	mov	rtop, VIM_EMIT
 
 	call	_vim_callback
 
@@ -1191,6 +1201,10 @@ _read:
 	or	rtop, rtop
 	jnz	5f
 
+.ifdef	VIM
+.endif
+
+_read_source_completed:
 	mov	byte ptr [rip + _source_completed], 1
 	jmp	7f
 
@@ -1734,6 +1748,8 @@ _backspace:
 	jnz	8b
 
 	9:
+	xor	al, al
+	stosb
 	pop	rdi
 
 	mov	al, dl
@@ -1775,6 +1791,22 @@ _header:
 	test	rtop, rtop
 	jz	6f
 
+.if	1
+.ifdef	VIM
+	push	rtop
+	call	_dup
+	mov	rtop, [rip + _tib]
+	inc	rtop
+	call	_dup
+	mov	rtop, 0x20003	# line/col, TODO
+	call	_dup
+	mov	rtop, VIM_DEF_SOURCE
+	call	_vim_callback
+	call	_drop
+	pop	rtop
+.endif
+.endif
+
 	push	rsi
 	mov	rtmp, rtop	# count
 	inc	rtmp
@@ -1803,6 +1835,20 @@ _header:
 
 	call	_cfa_allot
 	call	_drop
+
+.if	0
+.ifdef	VIM
+	call	_dup
+	mov	rtop, [rip + _tib]
+	inc	rtop
+	call	_dup
+	mov	rtop, rhere
+	call	_dup
+	mov	rtop, VIM_DEF_XT
+	call	_vim_callback
+	call	_drop
+.endif
+.endif
 
 	call	current
 	mov	rtop, [rtop]
@@ -2835,7 +2881,7 @@ word	sourcefile
 	call	_dup
 	mov	rtop, 0
 	call	_dup
-	mov	rtop, 2
+	mov	rtop, VIM_SOURCEFILE
 
 	call	_vim_callback
 
@@ -2853,6 +2899,7 @@ _vim_callback:
 
 	call	_drop
 	call	_drop
+	call	_drop
 	ret
 
 	1:
@@ -2861,7 +2908,6 @@ _vim_callback:
 	push	rbx
 	push	rsi
 	push	rdi
-	push	rbp
 	push	r8
 	push	r9
 	push	r10
@@ -2898,7 +2944,6 @@ _vim_callback:
 	pop	r10
 	pop	r9
 	pop	r8
-	pop	rbp
 	pop	rdi
 	pop	rsi
 	pop	rbx
@@ -2992,6 +3037,10 @@ word	vim
 	.equ	last, latest_word
 
 	.align	4096
+__tib:
+	.skip	8192
+
+	.align	4096
 
 _source:
 
@@ -3006,9 +3055,8 @@ _source:
 	#.incbin "core.moor"
 	source	core.moor
 	
-	.ifdef	VIM
-		.ascii	" vim \n"
-	.else
+	#.ifdef	VIM
+	#.else
 		source core.test.moor
 		source type.moor
 		source unicode.moor
@@ -3027,6 +3075,9 @@ _source:
 			source xwin.moor
 			source scorch.moor
 		.endif
+	#.endif
+	.ifdef	VIM
+		.ascii	" vim \n"
 	.endif
 .else
 	.byte	0
