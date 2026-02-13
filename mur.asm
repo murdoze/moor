@@ -1168,7 +1168,6 @@ _emit_baremetal:
 _emit_vim:
 	call	_dup
 	call	_dup
-	call	_dup
 	mov	rtop, VIM_EMIT
 
 	call	_vim_callback
