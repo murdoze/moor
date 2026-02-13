@@ -243,11 +243,16 @@ function moor_open_panels()
 
   -- Turn THAT buffer into a terminal by running termopen in OUT window
   vim.api.nvim_set_current_win(out_win)
-  vim.fn.termopen({ "cat" })
 
+  -- Create OUT terminal buffer (no job/PTY)
+  out_term_buf = vim.api.nvim_create_buf(false, true)
+  vim.api.nvim_win_set_buf(out_win, out_term_buf)
+  vim.bo[out_term_buf].bufhidden = "hide"
+  vim.bo[out_term_buf].swapfile = false
+  vim.bo[out_term_buf].modifiable = false
+
+  out_chan = vim.api.nvim_open_term(out_term_buf, {})
   out_term_win = out_win
-  out_term_buf = vim.api.nvim_get_current_buf()
-  out_chan = vim.b.terminal_job_id
 
   -- Panel cosmetics
   vim.bo[out_term_buf].buflisted = false
@@ -348,6 +353,8 @@ function()
   schedule_flush()
 end,
 { noremap=true, silent=true, desc = "Go to Moor definition" })
+
+vim.keymap.set("t", "<Esc>", [[<C-\><C-n>]], { noremap = true })
 
 --
 -- MOOR API
