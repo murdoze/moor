@@ -143,7 +143,7 @@
 : ><,      #_1 r1 load, #_1 r0 store, r0 r1 mov, ;		\ ( a b -- b a )	swap
 : >|,      #_1 r1 load, on, #_1 r0 store, r0 r1 mov, ;		\ ( a b -- a b a )	over
 : >|>|,    #_1 r1 load, on, #_1 r0 store, on, #_1 r1 store, ;	\ ( a b -- a b a b )	2dup = over over
-: >>>,     #_1 r1 load, #_2 r2 load,				\ ( a b c -- b c a )	roT
+: >>>,     #_1 r1 load, #_2 r2 load,				\ ( a b c -- b c a )	rot
            #_2 r1 store, #_1 r0 store, r0 r2 mov, ;
 : <<<,     #_1 r1 load, #_2 r2 load,				\ ( a b c -- c a b )	-rot
            #_2 r0 store, #_1 r2 store, r0 r1 mov, ;
