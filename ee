@@ -1,0 +1,6 @@
+while true
+do
+	./bd
+	nvim -p core.moor opti.test.moor type.moor maze.moor
+	read
+done
