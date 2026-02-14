@@ -32,8 +32,7 @@
 _start:
 	jmp	_start1
 
-	# Baremetal API
-
+# Baremetal API
 	RUNMODE_LINUXUSR	= 0
 	RUNMODE_BAREMETAL 	= 1
 	RUNMODE_VIM		= 2
@@ -50,15 +49,23 @@ __warm2:	.quad	_warm0
 # VIM interface
 __call_vim:	.quad	0
 	VIM_EMIT	= 1
+
 	VIM_SOURCEFILE	= 11
+
 	VIM_DEF_SOURCE	= 21
 	VIM_DEF_XT	= 22
+	VIM_DEF_PC	= 23
+
 	VIM_STACK_DEPTH	= 31
 	VIM_STACK_ITEM	= 32
 
-_start1:
-	mov	[rip + _sp0], rsp
+# TRACE interface
+	TRACE_OFF	= 0
+	TRACE_ALL	= 1
+	TRACE_STATE	= 2
 
+
+_start1:
 	cmpb	[rip + runmode], RUNMODE_LINUXUSR
 	je	_linux
 	cmpb	[rip + runmode], RUNMODE_VIM
@@ -119,10 +126,10 @@ _abort2:
 	lea	rnext, qword ptr [rip + _next]
 
 	lea	rsp, [rip + __stack0]
+	mov	[rip + _sp0], rsp
 	lea	rstack0, [rsp - 0x4000]
 	xor	rstack, rstack
 
-	#lea	rwork, [rsp - 0x4000]
 	lea	rwork, [rip + __tib]
 	mov	qword ptr [rip + _tib], rwork
 	xor	rwork, rwork
@@ -185,7 +192,7 @@ _interp:
 	jmp	rnext
 
 _do_trace:
-	cmp	byte ptr [rip + _trace], 2
+	cmp	byte ptr [rip + _trace], TRACE_STATE
 	jne	21f
 	cmp	rstate, 0
 	jz	99f
@@ -1805,7 +1812,6 @@ _header:
 	test	rtop, rtop
 	jz	6f
 
-.if	1
 .ifdef	VIM
 	push	rtop
 	call	_dup
@@ -1821,7 +1827,6 @@ _header:
 	call	_vim_callback
 	call	_drop
 	pop	rtop
-.endif
 .endif
 
 	push	rsi
@@ -1853,7 +1858,6 @@ _header:
 	call	_cfa_allot
 	call	_drop
 
-.if	0
 .ifdef	VIM
 	call	_dup
 	mov	rtop, [rip + _tib]
@@ -1864,7 +1868,6 @@ _header:
 	mov	rtop, VIM_DEF_XT
 	call	_vim_callback
 	call	_drop
-.endif
 .endif
 
 	call	current
@@ -3050,6 +3053,9 @@ _moor_rstate:	.quad	0
 _moor_rpc:	.quad	0
 _moor_rstack:	.quad	0
 _moor_rstack0:	.quad	0
+_moor_r8:	.quad	0
+_moor_r9:	.quad	0
+_moor_rindex:	.quad	0
 _moor_rsp:	.quad	0
 
 
@@ -3106,6 +3112,9 @@ vim_cont:
 	mov	rpc, [rip + _moor_rpc]
 	mov	rstack, [rip + _moor_rstack]
 	mov	rstack0, [rip + _moor_rstack0]
+	mov	r8, [rip + _moor_r8]
+	mov	r9, [rip + _moor_r9]
+	mov	rindex, [rip + _moor_rindex]
 	mov	rsp, [rip + _moor_rsp]
 
 	jmp	rnext
@@ -3121,6 +3130,9 @@ word	vim
 	mov	[rip + _moor_rpc], rpc
 	mov	[rip + _moor_rstack], rstack
 	mov	[rip + _moor_rstack0], rstack0
+	mov	[rip + _moor_r8], r8
+	mov	[rip + _moor_r9], r9
+	mov	[rip + _moor_rindex], rindex
 	mov	[rip + _moor_rsp], rsp
 
 	restore_vim_regs
