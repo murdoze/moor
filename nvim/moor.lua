@@ -356,7 +356,7 @@ function()
 
   local word = forth_word_under_cursor()
   print(word)
-  word = word .. " vim.S vim abort "
+  word = word .. " vim.S vimloop "
 
   moor_open_panels()
 
@@ -408,7 +408,7 @@ function()
   vim.fn.inputrestore()
   if expr == "" then return end
 
-  expr = expr .. " vim.S vim abort "
+  expr = expr .. " vim.S vimloop "
   print(expr)
 
   moor_open_panels()
@@ -502,12 +502,13 @@ moor.vim_launch()
 moor_open_panels()
 out_clear()
 -- moor.vim_exec(' : qq 30 emit #11 vim.S vim 31 emit #22 vim.S vim begin yellow ." DONE" vim again ; qq')
-moor.vim_exec(' : qq 30 emit #11 vim.S vim 31 emit #22 vim.S vim ; qq')
-moor.vim_exec(" qq ")
+moor.vim_exec(' : qq 30 emit #11 vim.S vim 31 emit #22 vim.S vim ; qq vimloop ')
+schedule_flush()
+--moor.vim_exec(" qq ")
 schedule_flush()
 moor.vim_cont()
 schedule_flush()
-moor.vim_cont()
+-- moor.vim_cont()
 --schedule_flush()
 --moor.vim_cont()
 schedule_flush()
