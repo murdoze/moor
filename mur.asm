@@ -22,8 +22,10 @@
 	.equ	rend, r12
 	.equ	rnext, r13
 	.equ	rstack0, r15
+
 	.equ	HERE_SOURCE_OFFSET, 0x70000000
 	.equ	WORD_SOURCE_OFFSET, 0x70000000
+
 # Initialization
 
 	.align	4096
@@ -131,6 +133,7 @@ _abort2:
 	#sti
 
 	2:
+
 	push	rpc
 
 # Address Interpreter and Compiler
@@ -3109,6 +3112,7 @@ vim_cont:
 
 # Return back to VIM restoring registers
 word	vim
+	pop	rtmp				# Remove RNEXT pushed by _call -- we do not return from here
 
 	mov	[rip + _moor_rtop], rtop
 	mov	[rip + _moor_rhere], rhere
@@ -3123,6 +3127,13 @@ word	vim
 
 	ret
 
+
+# VIMLOOP ( -- ) 
+# Vim equivalent of QUIT loop that does nothing, but is needed for continuation not no go beyond end of a definition
+word	vimloop,,, forth
+	.quad	vim
+	.quad	branch, -3
+	.quad	exit	# Needed here only for decompilation
 
 .endif
 
