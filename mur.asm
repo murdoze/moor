@@ -2888,8 +2888,8 @@ word	sourcefile
 
 .ifdef	VIM
 
-	call	_dup
-	mov	rtop, [rip + _tib]
+	#call	_dup
+	#mov	rtop, [rip + _tib]
 	inc	rtop
 	call	_dup
 	mov	rtop, 0
@@ -2898,8 +2898,8 @@ word	sourcefile
 
 	call	_vim_callback
 
-	call	_drop
 .endif
+	call	_drop
 
 	ret
 
