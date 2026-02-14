@@ -5,9 +5,10 @@ ffi.cdef[[
   typedef int (* moor_callback_func_t)(int what, int iparam, const char *sparam); 
   void vim_set_callback(moor_callback_func_t f);
 
-  void vim_init();
-  void vim_launch();
+  void vim_init(void);
+  void vim_launch(void);
   void vim_exec(const char *source);
+  void vim_cont(void);
 
 ]]
 is_moor, moor = pcall(ffi.load, "moorst.so")
@@ -410,6 +411,18 @@ function()
 end,
 { noremap=true, silent=true, desc = "Execure Moor string" })
 
+vim.keymap.set('n', 'MM', 
+function()
+  vim.cmd("wa")
+
+  moor_open_panels()
+
+  moor.vim_cont()
+  schedule_flush()
+
+end,
+{ noremap=true, silent=true, desc = "Execure Moor string" })
+
 vim.keymap.set("t", "<Esc>", [[<C-\><C-n>]], { noremap = true })
 
 vim.keymap.set("n", "LL", function()
@@ -449,10 +462,12 @@ moor.vim_init()
 
 moor.vim_set_callback(
   function(what, iparam, sparam)
-    if what == MOOR_EMIT then moor_emit(string.char(iparam)) end
-    if what == MOOR_SOURCEFILE then moor_sourcefile(ffi.string(sparam)) end
-    if what == MOOR_DEF_SOURCE then moor_definition(ffi.string(sparam), bit.band(iparam, 0xffff), bit.arshift(iparam, 16)) end
-    
+    if what == MOOR_EMIT then moor_emit(string.char(iparam)); return 0 end
+    if what == MOOR_SOURCEFILE then moor_sourcefile(ffi.string(sparam)); return 0 end
+    if what == MOOR_DEF_SOURCE then moor_definition(ffi.string(sparam), bit.band(iparam, 0xffff), bit.arshift(iparam, 16)); return 0 end
+   
+    print("Unknown callback " .. tostring(what))
+
     return 0
   end)
 
@@ -461,5 +476,15 @@ moor.vim_launch()
 -- 
 -- Dirty tail
 --
+
+moor_open_panels()
+out_clear()
+moor.vim_exec(" : qq 30 begin | emit 1+ vim again ; qq vim ")
+schedule_flush()
+moor.vim_cont()
+schedule_flush()
+moor.vim_cont()
+schedule_flush()
+
 
 
