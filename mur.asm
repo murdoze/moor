@@ -51,6 +51,8 @@ __call_vim:	.quad	0
 	VIM_SOURCEFILE	= 11
 	VIM_DEF_SOURCE	= 21
 	VIM_DEF_XT	= 22
+	VIM_STACK_DEPTH	= 31
+	VIM_STACK_ITEM	= 32
 
 _start1:
 	mov	[rip + _sp0], rsp
@@ -2903,6 +2905,52 @@ word	sourcefile
 .endif
 	call	_drop
 
+	ret
+
+word	vim_dot_s, "vim.S"
+	mov	rtmp, rstack
+	call	_dup
+	mov	rtop, 0
+	call	_dup
+	mov	rtop, rtmp
+	neg	rtop
+	call	_dup
+	mov	rtop, VIM_STACK_DEPTH
+	call	vimcall
+	call	_drop
+
+	test	rstack, rstack
+	jz	5f
+	mov	rwork, 0
+	1:
+	dec	rwork
+	cmp	rwork, rstack
+	je	3f
+	call	_dup
+	mov	rtop, 0
+	call	_dup
+	mov	rtop, [rstack0 + rwork * 8]
+	call	_dup
+	mov	rtop, VIM_STACK_ITEM
+	push	rwork
+	call	vimcall
+	call	_drop
+	pop	rwork
+	jmp	1b
+	3:
+	test	rstack, rstack
+	jz	5f
+	mov	rtmp, rtop
+	call	_dup
+	mov	rtop, 0
+	call	_dup
+	mov	rtop, rtmp
+	call	_dup
+	mov	rtop, VIM_STACK_ITEM
+	call	vimcall
+	call	_drop
+
+	5:
 	ret
 
 # Neovim callback	( sparam iparam what -- ret )
