@@ -113,9 +113,11 @@ _abort2:
 	xor	rstate, rstate
 	mov	[rip + _state], rstate
 	lea	rnext, qword ptr [rip + _next]
-	/* TODO: In "hardened" version map stacks to separate pages, with gaps between them */
-	lea	rstack0, [rsp - 0x1000]
+
+	lea	rsp, [rip + __stack0]
+	lea	rstack0, [rsp - 0x4000]
 	xor	rstack, rstack
+
 	#lea	rwork, [rsp - 0x4000]
 	lea	rwork, [rip + __tib]
 	mov	qword ptr [rip + _tib], rwork
@@ -2989,7 +2991,15 @@ _vim_r13: 	.quad	0
 _vim_r14: 	.quad	0
 _vim_r15: 	.quad	0
 
+_moor_rtop:	.quad	0
 _moor_rhere:	.quad	0
+_moor_rnext:	.quad	0
+_moor_rstate:	.quad	0
+_moor_rpc:	.quad	0
+_moor_rstack:	.quad	0
+_moor_rstack0:	.quad	0
+_moor_rsp:	.quad	0
+
 
 .macro	save_vim_regs
 	mov	[rip + _vim_rsp], rsp
@@ -3032,10 +3042,33 @@ vim_exec:
 
 	jmp	_abort_nologo
 
+.globl	vim_cont
+.type	vim_cont, @function
+vim_cont:
+	save_vim_regs
+
+	mov	rtop, [rip + _moor_rtop]
+	mov	rhere, [rip + _moor_rhere]
+	mov	rnext, [rip + _moor_rnext]
+	mov	rstate, [rip + _moor_rstate]
+	mov	rpc, [rip + _moor_rpc]
+	mov	rstack, [rip + _moor_rstack]
+	mov	rstack0, [rip + _moor_rstack0]
+	mov	rsp, [rip + _moor_rsp]
+
+	jmp	rnext
+
 # Return back to VIM restoring registers
 word	vim
 
+	mov	[rip + _moor_rtop], rtop
 	mov	[rip + _moor_rhere], rhere
+	mov	[rip + _moor_rnext], rnext
+	mov	[rip + _moor_rstate], rstate
+	mov	[rip + _moor_rpc], rpc
+	mov	[rip + _moor_rstack], rstack
+	mov	[rip + _moor_rstack0], rstack0
+	mov	[rip + _moor_rsp], rsp
 
 	restore_vim_regs
 
@@ -3049,12 +3082,18 @@ word	vim
 	.endfunc
 	.equ	last, latest_word
 
+# TIB
 	.align	4096
 __tib:
 	.skip	8192
-
+# Stack
 	.align	4096
+__stack_end:
+	.zero	16*1024
+__stack0:
+	.zero	4096
 
+# Source
 _source:
 
 .macro	source	filename
@@ -3095,6 +3134,6 @@ _source:
 	.byte	0
 	.byte	0
 	.align	4096
-
+# HERE
 here0:
 
