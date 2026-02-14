@@ -54,7 +54,9 @@ __call_vim:	.quad	0
 
 	VIM_DEF_SOURCE	= 21
 	VIM_DEF_XT	= 22
-	VIM_DEF_PC	= 23
+	VIM_DEF_HERE	= 23
+	VIM_DEF_HERE_XT	= 24
+	VIM_DEF_HERE_SOURCE = 25
 
 	VIM_STACK_DEPTH	= 31
 	VIM_STACK_ITEM	= 32
@@ -182,6 +184,9 @@ _does:
 	mov	rpc, [rwork + rstate * 8 - 16 + 8]
 	jmp	rnext
 _comp:
+.ifdef	VIM
+	call	vim_def_attrs_here	# Define attributes at HERE
+.endif
 	mov	rwork, [rwork + rstate * 8 - 16 + 8]
 	stosq
 	jmp	rnext
@@ -2913,6 +2918,8 @@ word	sourcefile
 
 	ret
 
+# vim.S
+# 'Print' stack to Vim
 word	vim_dot_s, "vim.S"
 	mov	rtmp, rstack
 	call	_dup
@@ -2957,6 +2964,48 @@ word	vim_dot_s, "vim.S"
 	call	_drop
 
 	5:
+	ret
+
+# Define attributes at HERE
+# Called from _comp only
+# rwork = XT
+# rhere = HERE
+vim_def_attrs_here:
+	push	rwork
+
+	call	_dup
+	mov	rtop, 0
+	call	_dup
+	mov	rtop, rhere
+	call	_dup
+	mov	rtop, VIM_DEF_HERE
+	call	vimcall
+	call	_drop
+
+	call	_dup
+	mov	rtop, 0
+	call	_dup
+	pop	rwork
+	push	rwork
+	mov	rtop, rwork
+	call	_dup
+	mov	rtop, VIM_DEF_HERE_XT
+	call	vimcall
+	call	_drop
+
+	call	_dup
+	mov	rtop, 0
+	call	_dup
+	mov	eax, [rip + _source_line]
+	shl	eax, 16
+	movw	ax, [rip + _source_col]
+	mov	rtop, rax
+	call	_dup
+	mov	rtop, VIM_DEF_HERE_SOURCE
+	call	vimcall
+	call	_drop
+
+	pop	rwork
 	ret
 
 # Neovim callback	( sparam iparam what -- ret )

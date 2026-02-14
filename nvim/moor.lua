@@ -339,6 +339,7 @@ end
 vim.keymap.set('n', '<c-\\>', 
 function()
   local word = forth_word_under_cursor()
+  if word == nil then return end
   local def = definitions[word]
   if def == nil then return end
 
@@ -355,6 +356,7 @@ function()
   vim.cmd("wa")
 
   local word = forth_word_under_cursor()
+  if word == nil then return end
   print(word)
   word = word .. " vim.S vimloop "
 
@@ -371,6 +373,7 @@ function()
   vim.cmd("wa")
 
   local word = forth_word_under_cursor()
+  if word == nil then return end
   print(word)
   word = "cr ' " .. word .. " decompile vim "
 
@@ -387,6 +390,7 @@ function()
   vim.cmd("wa")
 
   local word = forth_word_under_cursor()
+  if word == nil then return end
   local adr = tonumber(word, 16)
   if adr == nil then return end
   print(word)
@@ -398,6 +402,30 @@ function()
   schedule_flush()
 end,
 { noremap=true, silent=true, desc = "Decompile at address" })
+
+vim.keymap.set('n', 'mh', 
+function()
+  vim.cmd("wa")
+
+  local word = forth_word_under_cursor()
+  if word == nil then return end
+  local adr = tonumber(word, 16)
+  if adr == nil then return end
+  print(word)
+
+  local attr = here_attr[adr]
+  if attr == nil then
+    print("Nothing found at address " .. word)
+    return
+  end
+
+  vim.cmd("edit " .. vim.fn.fnameescape(attr.sourcefile))
+
+  local lnum = tonumber(attr.line) or 1
+  local cnum = tonumber(attr.col) or 1
+  vim.api.nvim_win_set_cursor(0, { lnum, math.max(cnum - 1, 0) })
+end,
+{ noremap=true, silent=true, desc = "What is here?" })
 
 vim.keymap.set('n', 'mm', 
 function()
@@ -446,7 +474,8 @@ hex = require'hex'
 sourcefiles = {}
 latest_sourcefile = ""
 definitions = {}
-defs = ""
+xt_names = {}
+here_attr = {}
 
 local function moor_emit(c)
   sink_emit_char(c)
@@ -463,6 +492,26 @@ end
 
 local function moor_def_xt(word, xt)
   definitions[word].xt = xt
+  xt_names[xt] = word
+end
+
+local latest_here = 0
+
+local function moor_def_here(here)
+  latest_here = here
+  here_attr[here] = { sourcefile = latest_sourcefile }
+end
+
+local function moor_def_here_xt(xt)
+  local attr = here_attr[latest_here]
+  attr.xt = xt
+  attr.word = xt_names[xt]
+end
+
+local function moor_def_here_source(col, line)
+  local attr = here_attr[latest_here]
+  attr.col = col
+  attr.line = line
 end
 
 local function moor_stack_depth(depth)
@@ -476,10 +525,15 @@ local function moor_stack_item(value)
 end
 
 local MOOR_EMIT		= 1
+
 local MOOR_SOURCEFILE	= 11
+
 local MOOR_DEF_SOURCE	= 21
 local MOOR_DEF_XT	= 22
-local MOOR_DEF_PC	= 23
+local MOOR_DEF_HERE	= 23
+local MOOR_DEF_HERE_XT	= 24
+local MOOR_DEF_HERE_SOURCE = 25
+
 local MOOR_STACK_DEPTH	= 31
 local MOOR_STACK_ITEM	= 32
 
@@ -492,6 +546,9 @@ moor.vim_set_callback(
 
     if what == MOOR_DEF_SOURCE then moor_def_source(ffi.string(sparam), bit.band(iparam, 0xffff), bit.arshift(iparam, 16)); return 0 end
     if what == MOOR_DEF_XT then moor_def_xt(ffi.string(sparam), iparam); return 0 end
+    if what == MOOR_DEF_HERE then moor_def_here(iparam); return 0 end
+    if what == MOOR_DEF_HERE_XT then moor_def_here_xt(iparam); return 0 end
+    if what == MOOR_DEF_HERE_SOURCE then moor_def_here_source(bit.band(iparam, 0xffff), bit.arshift(iparam, 16)); return 0 end
 
     if what == MOOR_STACK_DEPTH then moor_stack_depth(iparam); return 0 end
     if what == MOOR_STACK_ITEM then moor_stack_item(iparam); return 0 end
