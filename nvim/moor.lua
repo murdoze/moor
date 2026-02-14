@@ -222,7 +222,7 @@ function moor_open_panels()
 
   -- Create stack buffer once
   if not stack_buf then
-    stack_buf = ensure_scratch_buf("MOOR-STACK")
+    stack_buf = ensure_scratch_buf("STACK")
   end
 
   -- Capture source window/buffer explicitly
@@ -270,7 +270,7 @@ function moor_open_panels()
   local sw = vim.api.nvim_get_current_win()
   stack_win = sw
   -- vim.api.nvim_win_set_buf(stack_win, stack_buf)
-  vim.api.nvim_win_set_width(stack_win, 20)
+  vim.api.nvim_win_set_width(stack_win, 36)
 
   -- Optional cosmetics for stack pane
   vim.wo[stack_win].number = false
@@ -286,7 +286,7 @@ function moor_open_panels()
     end
   end
 
-  vim.cmd("b MOOR-STACK")
+  vim.cmd("b STACK")
   vim.cmd("wincmd r")
   vim.cmd("wincmd w")
 end
@@ -407,9 +407,9 @@ function()
   local expr = vim.fn.input("Input Moor: ")
   vim.fn.inputrestore()
   if expr == "" then return end
+  print(expr)
 
   expr = expr .. " vim.S vimloop "
-  print(expr)
 
   moor_open_panels()
 
@@ -457,8 +457,12 @@ local function moor_sourcefile(filename)
   latest_sourcefile = filename
 end
 
-local function moor_definition(word, col, line)
+local function moor_def_source(word, col, line)
   definitions[word] = { sourcefile = latest_sourcefile, line = line, col = col }
+end
+
+local function moor_def_xt(word, xt)
+  definitions[word].xt = xt
 end
 
 local function moor_stack_depth(depth)
@@ -467,7 +471,7 @@ local function moor_stack_depth(depth)
 end
 
 local function moor_stack_item(value)
-  stack_out_append(string.format("%16s\n", tostring(value)))
+  stack_out_append(string.format("%16s  %16s\n", string.format("%016x", value), tostring(value)))
   schedule_flush()
 end
 
@@ -475,6 +479,7 @@ local MOOR_EMIT		= 1
 local MOOR_SOURCEFILE	= 11
 local MOOR_DEF_SOURCE	= 21
 local MOOR_DEF_XT	= 22
+local MOOR_DEF_PC	= 23
 local MOOR_STACK_DEPTH	= 31
 local MOOR_STACK_ITEM	= 32
 
@@ -484,13 +489,16 @@ moor.vim_set_callback(
   function(what, iparam, sparam)
     if what == MOOR_EMIT then moor_emit(string.char(iparam)); return 0 end
     if what == MOOR_SOURCEFILE then moor_sourcefile(ffi.string(sparam)); return 0 end
-    if what == MOOR_DEF_SOURCE then moor_definition(ffi.string(sparam), bit.band(iparam, 0xffff), bit.arshift(iparam, 16)); return 0 end
+
+    if what == MOOR_DEF_SOURCE then moor_def_source(ffi.string(sparam), bit.band(iparam, 0xffff), bit.arshift(iparam, 16)); return 0 end
+    if what == MOOR_DEF_XT then moor_def_xt(ffi.string(sparam), iparam); return 0 end
+
     if what == MOOR_STACK_DEPTH then moor_stack_depth(iparam); return 0 end
     if what == MOOR_STACK_ITEM then moor_stack_item(iparam); return 0 end
    
     print("Unknown callback " .. tostring(what))
 
-    return 0
+    return 1
   end)
 
 moor.vim_launch()
@@ -499,22 +507,21 @@ moor.vim_launch()
 -- Dirty tail
 --
 
-moor_open_panels()
-out_clear()
+--moor_open_panels()
+--out_clear()
 -- moor.vim_exec(' : qq 30 emit #11 vim.S vim 31 emit #22 vim.S vim begin yellow ." DONE" vim again ; qq')
-moor.vim_exec(' : qq 30 emit #11 vim.S vim 31 emit #22 vim.S vim ; qq vimloop ')
-schedule_flush()
+-- moor.vim_exec(' : qq 30 emit #11 vim.S vim 31 emit #22 vim.S vim ; qq vimloop ')
+--schedule_flush()
 --moor.vim_exec(" qq ")
-schedule_flush()
-moor.vim_cont()
-schedule_flush()
+moor.vim_exec(" here . vim ")
+--schedule_flush()
+--moor.vim_cont()
+--schedule_flush()
 -- moor.vim_cont()
 --schedule_flush()
 --moor.vim_cont()
-schedule_flush()
-
+--schedule_flush()
 --moor.vim_exec(" #10 #20 #30 vim.S cr .( =========== ) cr vim ")
-
-schedule_flush()
+--schedule_flush()
 
 
