@@ -10,6 +10,7 @@
 :: typechecking		:state
 
 :: latest-typecheck	latest var
+:: current-typecheck	latest var
 
 : typechecking!!	typechecking state!! ;
 
@@ -47,6 +48,7 @@ interpretation ' typechecking!!  behavior typechecking ' typechecking!!  does
 	in-typecheck-def @ if abort" Typecheck definition not finished" then
 	here exec typechecking ' | latest-typecheck ! does
         compile interpreting!
+	compile r> compile | compile >r compile cell- compile current-typecheck compile !
 	] 
 	1 in-typecheck-def !
 ;
@@ -77,7 +79,8 @@ interpretation ' typechecking!!  behavior typechecking ' typechecking!!  does
 : ?depth
 	>< || < if >>>
 		blue ..name bl emit
-		yellow ." depth: expected " blue . bs yellow ." , got " blue . norm cr 
+		yellow ." depth: expected " blue . bs yellow ." , got " blue . norm
+		." at " current-typecheck @ . cr
 		unwind
 		abort 
 	then _ _ _ ;
@@ -85,8 +88,8 @@ interpretation ' typechecking!!  behavior typechecking ' typechecking!!  does
 	compile depth compile 1- latest-typecheck @ [compile] literal compile <<< compile ?depth ; immediate
 
 : T>xt	-2 and 
-	| | 0f and if red ." Xt expected, received " norm . cr unwind abort then _
-	| | -1000 and -if red ." Xt expected, received " norm . cr unwind abort then _
+	| | 0f and if red ." Xt expected, received " norm . ." at " current-typecheck @ . cr unwind abort then _
+	| | -1000 and -if red ." Xt expected, received " norm . ." at " current-typecheck @ . cr unwind abort then _
 ;
 : T~
 	|| = if _ _ 1 exit then
