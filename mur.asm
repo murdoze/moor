@@ -2905,9 +2905,10 @@ word	sourcefile
 
 	ret
 
-# Neovim callback	( what iparam sparam -- ret )
+# Neovim callback	( sparam iparam what -- ret )
 # Placed outside IFDEF to avoid IFDEFs around code
-# 
+#
+word	vimcall
 _vim_callback:
 	cmpq	[rip + __call_vim], 0
 	jnz	1f
