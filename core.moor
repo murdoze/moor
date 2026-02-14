@@ -135,6 +135,7 @@
 : cells    3 shl ;						\ ( n -- n*8 )		Convert size in cells to size in bytes
 : cell/	   3 sar ;						\ ( n -- n/8 )		Convert size in bytes to size in cells
 : cell+    cell + ;
+: cell-    cell - ;
 
 								\\ Stack manipulation words with modern and fancy names not without visual semantics
 : _,       #_1 r0 load, off, ;					\ ( a -- )		drop
@@ -863,8 +864,10 @@ create locals!
 
 								\\ Unwind
 : unwind
+	exit
 	begin
-		sp@ (sp0) = if abort" End of unwind" then
+		sp@ (sp0) = if abort" End of unwind at the end of stack" then
+		\ sp@ (guard) = if abort" End of unwind at guard" then
 		r>
 		| 7 and -if
 		\ @ | .
