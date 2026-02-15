@@ -61,6 +61,8 @@ __call_vim:	.quad	0
 	VIM_STACK_DEPTH	= 31
 	VIM_STACK_ITEM	= 32
 
+	VIM_TRACE_PC	= 41
+
 # TRACE interface
 	TRACE_OFF	= 0
 	TRACE_ALL	= 1
@@ -155,7 +157,11 @@ _next:
 _doxt:
 .ifdef TRACE
 	cmp	byte ptr [rip + _trace], 0
+.ifdef	VIM
+	jne	_do_trace_vim
+.else
 	jne	_do_trace
+.endif
 .endif
 _notrace:
 	jmp	[rwork + rstate * 8 - 16]
@@ -324,6 +330,43 @@ _trace_brkpt:
 	pop	rwork
 	99:
 	jmp	_notrace
+
+# Tracing under Vim
+
+.ifdef	VIM
+
+_do_trace_vim:
+	lea	rnext, [rip + _do_trace_vim_next]
+
+	push	rwork
+	push	rtop
+	mov	rtmp, rpc
+	call	_dup
+	mov	rtop, 0
+	call	_dup
+	sub	rtmp, 8
+	mov	rtop, rtmp
+	call	_dup
+	mov	rtop, VIM_TRACE_PC
+	call	vimcall
+	call	_drop
+
+	pop	rtop
+	pop	rwork
+
+	push	rwork
+	push	rtop
+	call	vim_dot_s
+	pop	rtop
+	pop	rwork
+	call	vim
+
+_do_trace_vim_next:
+	lea	rnext, [rip + _next]
+	jmp	_notrace
+
+.endif
+
 	.p2align	3, 0x90
 _state:
 	.quad	INTERPRETING
@@ -3095,6 +3138,7 @@ _vim_r13: 	.quad	0
 _vim_r14: 	.quad	0
 _vim_r15: 	.quad	0
 
+_moor_rwork:	.quad	0
 _moor_rtop:	.quad	0
 _moor_rhere:	.quad	0
 _moor_rnext:	.quad	0
@@ -3154,6 +3198,7 @@ vim_exec:
 vim_cont:
 	save_vim_regs
 
+	mov	rwork, [rip + _moor_rwork]
 	mov	rtop, [rip + _moor_rtop]
 	mov	rhere, [rip + _moor_rhere]
 	mov	rnext, [rip + _moor_rnext]
@@ -3172,6 +3217,7 @@ vim_cont:
 word	vim
 	pop	rtmp				# Remove RNEXT pushed by _call -- we do not return from here
 
+	mov	[rip + _moor_rwork], rwork
 	mov	[rip + _moor_rtop], rtop
 	mov	[rip + _moor_rhere], rhere
 	mov	[rip + _moor_rnext], rnext
@@ -3192,6 +3238,7 @@ word	vim
 # VIMLOOP ( -- ) 
 # Vim equivalent of QUIT loop that does nothing, but is needed for continuation not no go beyond end of a definition
 word	vimloop,,, forth
+	.quad	notrace
 	.quad	vim
 	.quad	branch, -3
 	.quad	exit	# Needed here only for decompilation

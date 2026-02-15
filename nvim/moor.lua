@@ -214,6 +214,8 @@ local function out_term_visible_in_current_tab()
   return false
 end
 
+local src_win
+
 function moor_open_panels()
   -- If OUT terminal already exists in this tab, do nothing
   if out_term_visible_in_current_tab() then
@@ -226,7 +228,7 @@ function moor_open_panels()
   end
 
   -- Capture source window/buffer explicitly
-  local src_win = vim.api.nvim_get_current_win()
+  src_win = vim.api.nvim_get_current_win()
   local src_buf = vim.api.nvim_win_get_buf(src_win)
 
   -- 1) Create OUT row (bottom split)
@@ -524,6 +526,37 @@ local function moor_stack_item(value)
   schedule_flush()
 end
 
+local trace_scheduled = false
+
+local function moor_trace_pc(pc)
+--    local attr = here_attr[pc]
+--    print(pc, string.format("%x", pc), vim.inspect(attr))
+--    if true then return end
+
+
+  if trace_scheduled then return end
+  trace_scheduled = true
+  vim.schedule(function()
+    trace_scheduled = false
+
+    local attr = here_attr[pc]
+    print(pc, string.format("%x", pc))
+    if attr == nil then return end
+
+    --vim.api.nvim_set_current_win(src_win)
+    vim.cmd("wincmd k")
+    vim.cmd("edit " .. vim.fn.fnameescape(attr.sourcefile))
+
+    local lnum = tonumber(attr.line) or 1
+    local cnum = tonumber(attr.col) or 1
+    vim.api.nvim_win_set_cursor(0, { lnum, math.max(cnum - 1, 0) })
+  end)
+end
+
+--
+-- MOOR API
+--
+
 local MOOR_EMIT		= 1
 
 local MOOR_SOURCEFILE	= 11
@@ -536,6 +569,8 @@ local MOOR_DEF_HERE_SOURCE = 25
 
 local MOOR_STACK_DEPTH	= 31
 local MOOR_STACK_ITEM	= 32
+
+local MOOR_TRACE_PC	= 41
 
 moor.vim_init()
 
@@ -552,6 +587,8 @@ moor.vim_set_callback(
 
     if what == MOOR_STACK_DEPTH then moor_stack_depth(iparam); return 0 end
     if what == MOOR_STACK_ITEM then moor_stack_item(iparam); return 0 end
+
+    if what == MOOR_TRACE_PC then moor_trace_pc(iparam); return 0 end
    
     print("Unknown callback " .. tostring(what))
 
@@ -564,13 +601,19 @@ moor.vim_launch()
 -- Dirty tail
 --
 
+moor.vim_exec(" trace qq notrace vimloop ")
+
+
+--for i=1,100 do moor.vim_cont() end
+
+
 --moor_open_panels()
 --out_clear()
 -- moor.vim_exec(' : qq 30 emit #11 vim.S vim 31 emit #22 vim.S vim begin yellow ." DONE" vim again ; qq')
 -- moor.vim_exec(' : qq 30 emit #11 vim.S vim 31 emit #22 vim.S vim ; qq vimloop ')
 --schedule_flush()
 --moor.vim_exec(" qq ")
-moor.vim_exec(" here . vim ")
+--moor.vim_exec(" here . vim ")
 --schedule_flush()
 --moor.vim_cont()
 --schedule_flush()
