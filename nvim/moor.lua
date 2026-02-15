@@ -450,9 +450,10 @@ function()
 end,
 { noremap=true, silent=true, desc = "Execute Moor string" })
 
-vim.keymap.set('n', 'MM', 
+vim.keymap.set('n', '<F8>', 
 function()
   vim.cmd("wa")
+  moor_unmark_pos()
 
   moor_open_panels()
 
@@ -526,7 +527,44 @@ local function moor_stack_item(value)
   schedule_flush()
 end
 
+--
+-- Tracinhg
+--
+
+local ns = vim.api.nvim_create_namespace("moor-trace")
+local mark_id
+vim.cmd([[
+  highlight MoorTraceArrow guifg=#ff0000 gui=bold ctermfg=46 cterm=bold
+]])
+
+function moor_unmark_pos()
+  if mark_id then
+    local bufnr = vim.fn.bufnr()              -- creates if needed
+    vim.api.nvim_buf_del_extmark(bufnr, ns, mark_id)
+  end
+end
+
+local function mark_pos(bufnr, line, col)
+  moor_unmark_pos()
+  mark_id = vim.api.nvim_buf_set_extmark(bufnr, ns, line-1, col-1, {
+    virt_text = { { "▶", "MoorTraceArrow" } },
+    virt_text_pos = "overlay",   -- draw over text
+    --hl_mode = "combine",
+    priority = 200,
+  })
+end
+
+local function goto_file_pos(file, line, col)
+  local bufnr = vim.fn.bufnr(file, true)      -- creates if needed
+  vim.cmd("wincmd k")                         -- your chosen source pane
+  vim.api.nvim_win_set_buf(0, bufnr)
+  vim.api.nvim_win_set_cursor(0, { line, math.max(col-1-1, 0) })
+  mark_pos(bufnr, line, col)
+end
+
 local trace_scheduled = false
+
+
 
 local function moor_trace_pc(pc)
 --    local attr = here_attr[pc]
@@ -541,15 +579,19 @@ local function moor_trace_pc(pc)
 
     local attr = here_attr[pc]
     print(pc, string.format("%x", pc))
-    if attr == nil then return end
+    if attr == nil then 
+      moor.vim_cont()
+      return 
+    end
 
     --vim.api.nvim_set_current_win(src_win)
-    vim.cmd("wincmd k")
-    vim.cmd("edit " .. vim.fn.fnameescape(attr.sourcefile))
+    --vim.cmd("wincmd k")
+    --vim.cmd("edit " .. vim.fn.fnameescape(attr.sourcefile))
 
     local lnum = tonumber(attr.line) or 1
     local cnum = tonumber(attr.col) or 1
-    vim.api.nvim_win_set_cursor(0, { lnum, math.max(cnum - 1, 0) })
+    -- vim.api.nvim_win_set_cursor(0, { lnum, math.max(cnum - 1, 0) })
+    goto_file_pos(attr.sourcefile, lnum, cnum)
   end)
 end
 
@@ -601,8 +643,13 @@ moor.vim_launch()
 -- Dirty tail
 --
 
-moor.vim_exec(" trace qq notrace vimloop ")
+--moor.vim_exec(" trace qq notrace vimloop ")
 
+moor_open_panels()
+moor.vim_cont()
+schedule_flush()
+moor.vim_cont()
+schedule_flush()
 
 --for i=1,100 do moor.vim_cont() end
 
