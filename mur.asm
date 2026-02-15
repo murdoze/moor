@@ -156,14 +156,14 @@ _next:
 	lodsq
 _doxt:
 .ifdef TRACE
-	cmp	byte ptr [rip + _trace], 0
-.ifdef	VIM
-	jne	_do_trace_vim
+	cmp     byte ptr [rip + _trace], 0
+.ifdef VIM
+	jne     _do_trace_vim
 .else
-	jne	_do_trace
+	jne     _do_trace
 .endif
 .endif
-_notrace:
+_notrace:	
 	jmp	[rwork + rstate * 8 - 16]
 _code:
 _call:
@@ -1283,6 +1283,16 @@ _read_source_completed:
 	7:
 	cmp	byte ptr [rip + runmode], RUNMODE_BAREMETAL
 	je	_read_baremetal
+	cmp	byte ptr [rip + runmode], RUNMODE_VIM
+	jne	_read_key
+
+.ifdef	VIM
+_key_vim:
+	nop
+	call	vim
+	jmp	.
+.endif
+	
 
 _read_key:
 	push	rsi
@@ -1716,9 +1726,9 @@ _count:
 word	word,,, code, _word
 _word:
 	mov	rtmp, qword ptr [rip + _tib]
-	push	rbx
+	push	r9
 
-	mov	rbx, rtop
+	mov	r9, rtop
 	call	_drop
 
 	push	rdi
@@ -1742,7 +1752,7 @@ _word:
 	11:
 .endif
 	pop	rtmp
-	cmp	rtop, rbx
+	cmp	rtop, r9
 	je	1b
 	cmp	rtop, 0xd
 	je	1b
@@ -1756,7 +1766,7 @@ _word:
 	
 
 	2:
-	cmp	rbx, 0x20
+	cmp	r9, 0x20
 	je	1b
 	jmp	5f
 
@@ -1775,7 +1785,7 @@ _word:
 	31:
 .endif
 	pop	rtmp
-	cmp	rtop, rbx
+	cmp	rtop, r9
 	je	7f
 	cmp	rtop, 0xd
 	je	6f
@@ -1792,7 +1802,7 @@ _word:
 	jmp	6f
 
 	4:
-	cmp	rbx, 0x20
+	cmp	r9, 0x20
 	je	7f
 
 	5:
@@ -1828,7 +1838,7 @@ _backspace:
 
 	pop	rtop
 
-	pop	rbx
+	pop	r9
 	ret
 
 # CFA-ALLOT ( -- )
