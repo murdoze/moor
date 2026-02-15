@@ -1245,6 +1245,8 @@ _source_completed:	.byte	0
 _source_in:		.quad	_source
 _source_line:		.quad	0
 _source_col:		.quad	0
+_source_prev_line:	.quad	0
+_source_prev_col:	.quad	0
 
 word	read
 _read:
@@ -1863,11 +1865,17 @@ _cfa_allot:
 # Reads word name from input stream and creates a default header for the new word. The new word does nothing
 word	header
 _header:
+	mov	r9, [rip + _source_col]
+	mov	rtmp, [rip + _source_line]
+	push	r9
+	push	rdx
 	call	_bl_		# ( bl )
 	call	_word		# ( tib ) 
 	call	_dup		# ( tib tib )
 	call	_count		# ( tib tib+1 count ) 
 	test	rtop, rtop
+	pop	rdx
+	pop	r9
 	jz	6f
 
 .ifdef	VIM
@@ -1876,9 +1884,9 @@ _header:
 	mov	rtop, [rip + _tib]
 	inc	rtop
 	call	_dup
-	mov	eax, [rip + _source_line]
+	mov	eax, edx # [rip + _source_line]
 	shl	eax, 16
-	movw	ax, [rip + _source_col]
+	mov	ax, r9w # [rip + _source_col]
 	mov	rtop, rax
 	call	_dup
 	mov	rtop, VIM_DEF_SOURCE
@@ -2561,6 +2569,11 @@ _quit_source_ref:
 	20:
 	###############################################################
 
+	mov	rtmp, [rip + _source_line]
+	mov	[rip + _source_prev_line], rtmp
+	mov	rtmp, [rip + _source_col]
+	mov	[rip + _source_prev_col], rtmp
+
 	call	_bl_
 	call	_word
 	call	_count
@@ -3049,9 +3062,9 @@ vim_def_attrs_here:
 	call	_dup
 	mov	rtop, 0
 	call	_dup
-	mov	eax, [rip + _source_line]
+	mov	eax, [rip + _source_prev_line]
 	shl	eax, 16
-	movw	ax, [rip + _source_col]
+	movw	ax, [rip + _source_prev_col]
 	mov	rtop, rax
 	call	_dup
 	mov	rtop, VIM_DEF_HERE_SOURCE

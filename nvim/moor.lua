@@ -467,6 +467,13 @@ function()
 end,
 { noremap=true, silent=true, desc = "Execute Moor string" })
 
+vim.keymap.set('n', '<F12>', 
+function()
+  vim.cmd("wa")
+  need_stop = true
+end,
+{ noremap=true, silent=true, desc = "Stop tracing" })
+
 
 vim.keymap.set('n', '<F4>', 
 function()
@@ -488,20 +495,32 @@ function()
     end
   end
   table.sort(sorted_cols, function(a, b) return a.col < b.col end)
+  local s = "Cols: " .. tostring(col) .. " => "
   for i, attr in ipairs(sorted_cols) do
-    if attr.col >= col then
+    s = s .. " + " .. tostring(attr.col)
+    if attr.col >= col + 1 then
       found_col = attr.col
       found_pc = attr.pc
       break
     end
   end
-  if found_col == nil then return end
+  if found_pc == nil and #sorted_cols == 1 then
+    for i, attr in ipairs(sorted_cols) do 
+      s = s .. " + " .. tostring(attr.col)
+      found_col = 1
+      found_pc = attr.pc
+      break
+    end
+  end
+  if found_pc == nil then  print(line, found_col, "F4: PC not found" .. s); return end
+  if found_col == nil then print("F4: Column not found ".. s); return end
 
   local bufnr = vim.fn.bufnr(0)      -- creates if needed
-  print(sourcefile, line, found_col, string.format("%x", found_pc or 0))
+  print(sourcefile, line, found_col, string.format("%x", found_pc or 0), s)
   mark_pos(0, line, found_col)
-	
 
+  brkpt = found_pc
+  -- moor.vim_cont()
 end,
 { noremap=true, silent=true, desc = "Continue Moor execution" })
 
@@ -529,6 +548,9 @@ hex = require'hex'
 -- MOOR API
 --
 
+need_stop = false
+brkpt = nil
+
 sourcefiles = {}
 latest_sourcefile = ""
 definitions = {}
@@ -544,7 +566,7 @@ local function moor_sourcefile(filename)
   latest_sourcefile = filename
 end
 
-local function moor_def_source(word, col, line)
+local function moor_def_source(word, col, line, iparam)
   definitions[word] = { sourcefile = latest_sourcefile, line = line, col = col }
 end
 
@@ -601,7 +623,6 @@ end
 
 function mark_pos(bufnr, line, col)
   moor_unmark_pos()
-  print(bufnr, line, col)
   mark_id = vim.api.nvim_buf_set_extmark(bufnr, ns, line-1, col-1, {
     virt_text = { { "▶", "MoorTraceArrow" } },
     virt_text_pos = "overlay",   -- draw over text
@@ -620,8 +641,6 @@ end
 
 local trace_scheduled = false
 
-
-
 local function moor_trace_pc(pc)
 --    local attr = here_attr[pc]
 --    print(pc, string.format("%x", pc), vim.inspect(attr))
@@ -632,6 +651,11 @@ local function moor_trace_pc(pc)
   trace_scheduled = true
   vim.schedule(function()
     trace_scheduled = false
+    if need_stop then
+      need_stop = false
+      brkpt = nil
+      return
+    end
 
     local attr = here_attr[pc]
     print(pc, string.format("%x", pc))
@@ -639,6 +663,11 @@ local function moor_trace_pc(pc)
       moor.vim_cont()
       return 
     end
+    if brkpt ~= nil and pc ~= brkpt then
+      moor.vim_cont()
+      return 
+    end
+    brkpt = nil
 
     --vim.api.nvim_set_current_win(src_win)
     --vim.cmd("wincmd k")
@@ -677,7 +706,7 @@ moor.vim_set_callback(
     if what == MOOR_EMIT then moor_emit(string.char(iparam)); return 0 end
     if what == MOOR_SOURCEFILE then moor_sourcefile(ffi.string(sparam)); return 0 end
 
-    if what == MOOR_DEF_SOURCE then moor_def_source(ffi.string(sparam), bit.band(iparam, 0xffff), bit.arshift(iparam, 16)); return 0 end
+    if what == MOOR_DEF_SOURCE then moor_def_source(ffi.string(sparam), bit.band(iparam, 0xffff), bit.arshift(iparam, 16), iparam); return 0 end
     if what == MOOR_DEF_XT then moor_def_xt(ffi.string(sparam), iparam); return 0 end
     if what == MOOR_DEF_HERE then moor_def_here(iparam); return 0 end
     if what == MOOR_DEF_HERE_XT then moor_def_here_xt(iparam); return 0 end
