@@ -16,7 +16,7 @@
 
 
 : fib		| if 0 1 >>> for >| + >< over _ then noop ;
-: nup		>r _ r> ; 
+: nup		>r _ r> ;
 : lswap		( :c :d ) :c :d :c! :d! :c :d return ;
 : -lswap	( :c :d ) :c :d :c! :d! :d :c return ;
 

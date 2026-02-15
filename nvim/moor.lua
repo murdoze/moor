@@ -370,6 +370,23 @@ function()
 end,
 { noremap=true, silent=true, desc = "Go to Moor definition" })
 
+vim.keymap.set('n', 'mT', 
+function()
+  vim.cmd("wa")
+
+  local word = forth_word_under_cursor()
+  if word == nil then return end
+  print(word)
+  word = "trace " .. word .. " vimloop "
+
+  moor_open_panels()
+
+  out_clear()
+  moor.vim_exec(word)
+  schedule_flush()
+end,
+{ noremap=true, silent=true, desc = "Trace word" })
+
 vim.keymap.set('n', 'md', 
 function()
   vim.cmd("wa")
@@ -449,6 +466,44 @@ function()
 
 end,
 { noremap=true, silent=true, desc = "Execute Moor string" })
+
+
+vim.keymap.set('n', '<F4>', 
+function()
+  vim.cmd("wa")
+  local line, col = unpack(vim.api.nvim_win_get_cursor(0)) -- row is 1-based, col is 0-based
+  local sourcefilefull = vim.api.nvim_buf_get_name(0)
+  local sourcefile = vim.fn.fnamemodify(sourcefilefull, ":.")
+
+
+
+  local found_pc = nil
+  local found_col = nil
+  local sorted_cols = {}
+  for pc, attr in pairs(here_attr) do
+    if attr.sourcefile == sourcefile then
+      if attr.line == line then
+	table.insert(sorted_cols, { col = attr.col, pc = pc })
+      end
+    end
+  end
+  table.sort(sorted_cols, function(a, b) return a.col < b.col end)
+  for i, attr in ipairs(sorted_cols) do
+    if attr.col >= col then
+      found_col = attr.col
+      found_pc = attr.pc
+      break
+    end
+  end
+  if found_col == nil then return end
+
+  local bufnr = vim.fn.bufnr(0)      -- creates if needed
+  print(sourcefile, line, found_col, string.format("%x", found_pc or 0))
+  mark_pos(0, line, found_col)
+	
+
+end,
+{ noremap=true, silent=true, desc = "Continue Moor execution" })
 
 vim.keymap.set('n', '<F8>', 
 function()
@@ -544,8 +599,9 @@ function moor_unmark_pos()
   end
 end
 
-local function mark_pos(bufnr, line, col)
+function mark_pos(bufnr, line, col)
   moor_unmark_pos()
+  print(bufnr, line, col)
   mark_id = vim.api.nvim_buf_set_extmark(bufnr, ns, line-1, col-1, {
     virt_text = { { "▶", "MoorTraceArrow" } },
     virt_text_pos = "overlay",   -- draw over text
