@@ -80,6 +80,7 @@ interpretation latest behavior REGALLOCING latest does
 : phi>    phi-stack s> ;
 
 								\\ Variables
+:: opt-definition   0 var					\ Definition currently being optimized
 :: opt-debug        0 var					\ Specifies whether debug output is enabled
 :: opt-index        0 var					\ Index inside current word, for branch visualization
 :: opt-index-word   0 var					\ Index of the beginning of the word
@@ -119,7 +120,7 @@ interpretation latest behavior REGALLOCING latest does
 : ofs-is-long ffffffffffffff80 and | if ffffffffffffff80 - then ;	\ ( ofs -- 1|0)	Return 0 if ofs is [-128d, 127d]
 
 : .dump
-  cr ." ==== " latest >name count type cr
+  cr ." ==== " opt-definition @ .name cr
   start-adr @ | here >< - 22 emit dump 22 emit cr ;
 
 :: bfx-stack 100 stack						\ Branch fixup stack
@@ -324,6 +325,8 @@ $ assm     $;
 % 1+       { | ∨?∧ } ;% { >< _ } ;%;				\ 			Increment and decrement do not change register allocation
 % 1-       { | ∨?∧ } ;% { >< _ } ;%;				\			Although, a new register is allocated if the destination is aliased
 
+% c!       ;% ⊻ ⊻ ;%;			 		\ ( rs rd # -- #-2 )
+
 								\\ Stubs to ignore debug output words in the optimizer for now
 % ,        ⊻ %;							\ ( r # -- #-1 )	Frees the parameter
 % emit     ;% ⊻ ;%;						\ ( r # -- #-1 )	Frees the parameter
@@ -345,14 +348,28 @@ $ assm     $;
 
 : .---     cr %.S ;
 : .label   purple . norm ;
-: .lit     blue . norm ;
-: .r       yellow ." r" . bs norm ;
-: .r,      yellow ." r" . bs ." , " norm ;
-: .rr      yellow ." r" . bs ." , r" . norm ;
 : .inst    green count type norm tab ;				\ ( str -- )		Print instruction string
+: .lit     blue . norm ;
+
+: .r       yellow ." r" . bs norm ;
+: .r.b     .r yellow ." b" norm ;
+: .r,      .r ." , " ;
+: .r.b,    .r.b ." , " ;
+: .rr      .r, .r ;
+: .rr.b    .r.b, .r.b ;
+: .rm      .r, yellow ." [r" . bs ." ] " norm ;
+: .mr      yellow ." [r" . bs ." ] , " .r norm ;
+: .rm.b    .r.b, yellow ." [r" . bs ." ] " norm ;
+: .mr.b    yellow ." [r" . bs ." ] , " .r.b norm ;
 
 : .mov     " mov" .inst ;
-: .movrr   .mov .rr ;
+: .mov.rr   .mov .rr ;
+: .mov.rm   .mov .rm ;
+: .mov.mr   .mov .mr ;
+: .mov.b.rr .mov .rr.b ;
+: .mov.b.rm .mov .rm.b ;
+: .mov.b.mr .mov .mr.b ;
+
 
 : ¦        >< ;							\ Swap source and destination registers, in optimizer they are in reverse order compared to assembler
 
@@ -392,11 +409,15 @@ $ assm     $;
 
 $ noop     .(( " nop" .inst ).( nop, )) $;
 
+$ c!       { || .(( .--- .mov.b.mr
+           ).( ¦ mov.b.mr, ))
+           } $;
+
 $ +        { >>> >|>| - if <<< >|>| -				\ ( rs1 rs2 rd )	Assemble +
            if							\			RD <> RS1, RS2		mov rd, rs1	add rd, rs1
 	   { >|>| } | { <<< }
 	   >>> >< >|
-	   .(( .--- .movrr .--- " add" .inst .rr
+	   .(( .--- .mov.rr .--- " add" .inst .rr
 	   ).( ¦ mov, ¦ add, ))
            else							\			RD = RS2
            <<< >|>|
@@ -413,7 +434,7 @@ $ and       { >>> >|>| - if <<< >|>| -				\ ( rs1 rs2 rd )	Assemble AND
            if							\			RD <> RS1, RS2		mov rd, rs1	and rd, rs1
 	   { >|>| } | { <<< }
 	   >>> >< >|
-	   .(( .--- .movrr .--- " and" .inst .rr
+	   .(( .--- .mov.rr .--- " and" .inst .rr
 	   ).( ¦ mov, ¦ and, ))
            else							\			RD = RS2
            <<< >|>|
@@ -430,7 +451,7 @@ $ -        { >>> >|>| - if <<< >|>| -				\ ( rs1 rs2 rd )	Assemble -
            if							\			RD <> RS1, RS2		mov rd, rs1	sub rd, rs1
 	   { >|>| } | { <<< }
 	   >>> >|
-	   .(( .--- .movrr .--- " sub" .inst .rr
+	   .(( .--- .mov.rr .--- " sub" .inst .rr
 	   ).( ¦ mov, ¦ sub, ))
 	   else							\			RD = RS2
 	   >< <<< >|
@@ -443,28 +464,28 @@ $ -        { >>> >|>| - if <<< >|>| -				\ ( rs1 rs2 rd )	Assemble -
 	   ).( ¦ sub, ))
 	   then } $;
 
-$ 1+       { >|>| - if >|>|
-           .(( .movrr .---
+$ 1+       { >|>| - if >|>|					\ ( rs rd )
+           .(( .mov.rr .---
 	   ).( ¦ mov, ))
 	   then |
 	   .(( " inc" .inst .r
 	   ).( inc, ))
 	   } $;
 
-$ 1-       { >|>| - if >|>|
-           .(( .movrr .---
+$ 1-       { >|>| - if >|>|					\ ( rs rd )
+           .(( .mov.rr .---
 	   ).( ¦ mov, ))
 	   then |
 	   .(( " dec" .inst .r
 	   ).( dec, ))
 	   } $;
 
-$ lit      { |  opt-lit @ ><
+$ lit      { |  opt-lit @ ><					\ ( rd )
            .(( .mov .r, .lit
 	   ).( ¦ mov.i, ))
 	   } $;
 
-$ emit     { |
+$ emit     { |							\ ( rs )
            .(( " emit" .inst .r
 	   ).( 90 ` _ ))
 	   } $;
@@ -492,12 +513,12 @@ $ emit     { |
 					   0 opt-phi-move !
 					   ?∧ opt-phi-temp-reg !
 					   |  opt-phi-temp-reg @
-					   .(( .movrr .--- ).( ¦ mov, ))
+					   .(( .mov.rr .--- ).( ¦ mov, ))
 					   | opt-phi-save-reg !
-					   .(( .movrr .--- ).( ¦ mov, ))
+					   .(( .mov.rr .--- ).( ¦ mov, ))
 				   else
 					   >| opt-phi-save-reg @ - if
-						   .(( .movrr .--- ).( ¦ mov, ))
+						   .(( .mov.rr .--- ).( ¦ mov, ))
 					   else
 						   | opt-phi-dest-reg !
 						   _ _
@@ -509,7 +530,7 @@ $ emit     { |
 		   over else _ then
 		   opt-phi-dest-reg @ 1+ if
 		   	   opt-phi-temp-reg @ opt-phi-dest-reg @
-			   .(( .movrr .--- ).( ¦ mov, ))
+			   .(( .mov.rr .--- ).( ¦ mov, ))
 		   then
 		   opt-phi-move @ if else opt-phi-temp-reg @ ∨ then
 		   opt-phi-forward @ if tmp-stack onload offload else tmp-stack onload then
@@ -592,7 +613,7 @@ $ branch   opt-branch @ opt-index @ + .S
 
 $ (for)    { >|>| - if
            >|>|
-	   .(( .movrr
+	   .(( .mov.rr
 	   ).( ¦ mov, ))
            then } $;
 $ (over)
@@ -688,6 +709,8 @@ $ (repeat-post) $;
 
 : optimize 
            ( :xt )
+           :xt opt-definition !
+
            0 opt-debug !
 
 	   cr white ." PASS=0 Register allocation" norm
