@@ -7,7 +7,7 @@
 	( :#params :xt )
 	here | ." CODE at " .
 	{
-	:^ :#params | if for ?^ over then
+	:^ :#params | if for ?^ over else _ then 
 	:#params :xt optimize
 	}
 	(code) interpretation :xt does
@@ -19,12 +19,25 @@
 : nup		>r _ r> ;
 : lswap		( :c :d ) :c :d :c! :d! :c :d return ;
 : -lswap	( :c :d ) :c :d :c! :d! :d :c return ;
-
+: onep		| 1+ 1+ 1+ >< - ;
+: cset		1 3333 c! ;
+: fill		<<< for >|>| c! 1+ over _ _ ;			\ ( a n c -- )		Fill N bytes from address A with character C
 
 : test-opti-fib		1 ['] fib	optimize! ;
 : test-opti-nup		2 ['] nup	optimize! ;
 : test-opti-lswap	2 ['] lswap	optimize! ;
 : test-opti--lswap	2 ['] -lswap	optimize! ;
+: test-opti-onep	1 ['] onep	optimize! ;
+: test-opti-cset	0 ['] cset	optimize! ;
+: test-opti-fill	3 ['] fill	optimize! ;
 
 maze
 : test-opti-MAZE	0 ['] MAZE	optimize! ;
+
+
+:: zzz adr 100 allot
+: qqq zzz 10 31 fill ;
+
+
+
+
