@@ -147,8 +147,9 @@ _abort2:
 
 	push	rpc
 
+#
 # Address Interpreter and Compiler
-
+#
 _exit:
 	call	_qcsp
 	pop	rpc
@@ -196,12 +197,10 @@ _comp:
 	mov	rwork, [rwork + rstate * 8 - 16 + 8]
 	stosq
 	jmp	rnext
-_interp:
-	lea	rnext, qword ptr [rip + _next]
-	mov	rstate, INTERPRETING
-	mov	qword ptr [rip + _state], INTERPRETING
-	jmp	rnext
 
+#
+# Tracing
+#
 _do_trace:
 	cmp	byte ptr [rip + _trace], TRACE_STATE
 	jne	21f
