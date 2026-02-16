@@ -1,6 +1,7 @@
 while true
 do
 	./bd || exit 1
-	nvim -p core.moor opti.test.moor type.moor maze.moor
+	nvim -p core.moor opti.test.moor opti.moor type.moor maze.moor
+	#nvim -S
 	read
 done
