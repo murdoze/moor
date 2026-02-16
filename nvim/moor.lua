@@ -60,6 +60,15 @@ end
 local out_buf, stack_buf
 local out_win, stack_win
 
+function find_buf_by_name(name)
+  for _, b in ipairs(vim.api.nvim_list_bufs()) do
+    if vim.api.nvim_buf_get_name(b) == name then
+      return b
+    end
+  end
+  return nil
+end
+
 local function ensure_scratch_buf(name)
   local b = vim.api.nvim_create_buf(false, true) -- listed=false, scratch=true
   vim.api.nvim_buf_set_name(b, name)
@@ -223,8 +232,8 @@ function moor_open_panels()
   end
 
   -- Create stack buffer once
-  if not stack_buf then
-    stack_buf = ensure_scratch_buf("STACK")
+  if not find_buf_by_name("MOOR://STACK") then
+    stack_buf = ensure_scratch_buf("MOOR://STACK")
   end
 
   -- Capture source window/buffer explicitly
@@ -272,7 +281,7 @@ function moor_open_panels()
   local sw = vim.api.nvim_get_current_win()
   stack_win = sw
   -- vim.api.nvim_win_set_buf(stack_win, stack_buf)
-  vim.api.nvim_win_set_width(stack_win, 36)
+  vim.api.nvim_win_set_width(stack_win, 26)
 
   -- Optional cosmetics for stack pane
   vim.wo[stack_win].number = false
@@ -288,7 +297,7 @@ function moor_open_panels()
     end
   end
 
-  vim.cmd("b STACK")
+  vim.cmd("b MOOR://STACK")
   vim.cmd("wincmd r")
   vim.cmd("wincmd w")
 end
@@ -340,6 +349,8 @@ end
 
 vim.keymap.set('n', '<c-\\>', 
 function()
+  vim.cmd("wa")
+
   local word = forth_word_under_cursor()
   if word == nil then return end
   local def = definitions[word]
@@ -539,6 +550,7 @@ end,
 vim.keymap.set("t", "<Esc>", [[<C-\><C-n>]], { noremap = true })
 
 vim.keymap.set("n", "LL", function()
+  vim.cmd("mks!")
   vim.cmd("wqa")
 end)
 
@@ -600,7 +612,7 @@ local function moor_stack_depth(depth)
 end
 
 local function moor_stack_item(value)
-  stack_out_append(string.format("%16s  %16s\n", string.format("%016x", value), tostring(value)))
+  stack_out_append(string.format("%16s  %8s\n", string.format("%016x", value), tostring(value)))
   schedule_flush()
 end
 
@@ -730,11 +742,11 @@ moor.vim_launch()
 
 --moor.vim_exec(" trace qq notrace vimloop ")
 
-moor_open_panels()
-moor.vim_cont()
-schedule_flush()
-moor.vim_cont()
-schedule_flush()
+--moor_open_panels()
+--moor.vim_cont()
+--schedule_flush()
+--moor.vim_cont()
+--schedule_flush()
 
 --for i=1,100 do moor.vim_cont() end
 
