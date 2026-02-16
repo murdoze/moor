@@ -284,6 +284,7 @@
 : rex.rd   >< rex? if 01 or then ;				\ ( rd rex' -- rex'' )	REX part with Rd bit set
 : rex.rs   >< rex? if 04 or then ;				\ ( rd rex' -- rex'' )	REX part with Rd bit set
 : rexrr.q  rex.q rex.rs rex.rd ;				\ ( rd rs -- rex )	Returns REX prefix for Rd and Rs
+: rexrr.b  rex.b rex.rs rex.rd ;				\ ( rd rs -- rex )	Returns REX prefix for Rd and Rs
 : rexrd.q  rex.q rex.rd ;					\ ( rd -- rex )		Returns REX prefix for Rd
 : rexrs.q  rex.q rex.rs ;					\ ( rs -- rex )		Returns REX prefix for Rs
 : rd       07 and ;						\ ( rd -- modrm' )	Returns ModR/M byte part for Rd
@@ -294,6 +295,7 @@
 : modrm    rs >< rd or rm or ;					\ ( rd rs -- modrm )	Returns ModR/M byte for Rd and Rs
 : modro    >< rd or rr or ;					\ ( rd op -- modrm )	Returns ModR/M byte for Rd and opcode
 : instrr   c, does> <<< >|>| rexrr.q ` >>> c@ ` modrr ` ;	\ ( op -- ) ( rd rs a -- )
+: instrr.b c, does> <<< >|>| rexrr.b ` >>> c@ ` modrr ` ;	\ ( op -- ) ( rd rs a -- )
 : instmr   c, does> <<< >|>| rexrr.q ` >>> c@ ` modrm ` ;	\ ( op -- ) ( rd rs a -- )
 : instrm   c, does> <<< >|>| >< rexrr.q ` >>> c@ ` >< modrm ` ;	\ ( op -- ) ( rd rs a -- )
 : instrr2  c, c, does> <<< >|>| >< rexrr.q ` >>> | c@ `		\ ( op1 op2 -- ) ( rd rs a -- )
@@ -350,11 +352,17 @@
 : ljmp,    e9 ` 4, ;						\ ( offset -- )         Long/near jump
 								\\ Arithmetic, logic and moves
 :: movzx.op b6 val						\ MOVZX opcode
-: movzx,   rex.q ` 0f ` movzx.op ` modrr ` ;			\ ( rd rs -- )		movzx	rdl, rs
+: (movzx)  || rexrr.q ` 0f ` movzx.op ` ;
+: movzx,   (movzx) modrr ` ;					\ ( rd rs -- )		movzx	rd, rsb
+: movzx.m, (movzx) modrm ` ;					\ ( rd rs -- )		movzx	rd, [rsb]
 
+								\ Parameters: rax rdi rsi rdx r10 r8 r9
 :: mov,    89 instrr						\ ( rd rs -- )		mov	rd, rs
-:: movmr,  89 instmr						\ ( rd rs -- )		mov	[rd], rs
-:: movrm,  8b instrm						\ ( rd rs -- )		mov	rd, [rs]
+:: mov.b,  88 instrr						\ ( rd rs -- )		mov	rd, rs
+:: mov.mr, 89 instmr						\ ( rd rs -- )		mov	[rd], rs
+:: mov.b.mr, 88 instmr						\ ( rd rs -- )		mov	[rd], rs
+:: mov.rm, 8b instrm						\ ( rd rs -- )		mov	rd, [rs]
+:: mov.b.rm, 8a instrm						\ ( rd rs -- )		mov	rd, [rs]
 :: test,   85 instrr						\ ( rd rs -- )		test	rd, rs
 :: add,    01 instrr						\ ( rd rs -- )		add	rd, rs
 :: sub,    29 instrr						\ ( rd rs -- )		sub	rd, rs
@@ -386,7 +394,6 @@
 :: xor     code #_1 r1 load, r0 r1 xor, off, ret,		\ ( n1 n2 -- n1 xor n2 )
 
 
-								\ Parameters: rax rdi rsi rdx r10 r8 r9
 : syscall, 0f ` 05 ` ;
 :: syscall code rax rtop mov, syscall, rtop rax mov, ret,
 :: syscall1 code rdi push,
