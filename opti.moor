@@ -376,6 +376,7 @@ $ assm     $;
 								\\ Prologue and epilogue
 : prologue,							\ ( an ... a1 n -- )	Based on input parameters and used register map compiles a prologue
           " |," .inst |, cr %.S
+	  rstack push,
           used-regs #regs for | c@ if				\			Push all used registers, but not parameters and outputs
 	  	" push" .inst | used-regs - | .r push,
 		cr { %.S }
@@ -400,6 +401,7 @@ $ assm     $;
 	  	" pop" .inst | used-regs - | .r pop,
 		cr { %.S }
 	  then 1- over _					
+	  rstack pop,
 
 	  " _," .inst _, cr %.S					\			Move TOS into rtop, if needed
 
@@ -491,7 +493,6 @@ $ emit     { |							\ ( rs )
 	   } $;
 
 								\ φ-junction
-
 : φ
            1 opt-phi-move !
 	   -1 opt-phi-save-reg !
@@ -651,8 +652,10 @@ $ (over)
 	   else
 	   | OPT-PASS-BRANCHLEN = if _
 	   	| label-offset@
-		ofs-is-long if label-offset@ ljmp, 
+		ofs-is-long _ 1 if		\ TODO: Dirty hack, jz above does not know if this branch will be short or long and generates wrong target. 
+			label-offset@ here 5 + start-adr @ - - ljmp,
 		else
+		\\ This code is never executed now, jump back is always long
 		\ A dirty hack here. Since we have two jumps at one index, second jump adds 1 to word index to store short/long branch flag
 		\ Thankfully, (over) occupies two indexes because it also stores branch offset
 		\ TODO: Think how to do it properly. This might not work well for ELSE
@@ -720,13 +723,13 @@ $ (repeat-post) $;
 
 	   tmp-stack dirupload
 	   cr %.S
-	   :xt | >r regalloc
+	   :xt regalloc
 	   opt-index-word @ 1+ opt-index-last !
 	   fixup-branches
 	   ['] exit %.debug %.S cr %.used-regs
 	   cr .dump
 
-           1 opt-debug !
+           0 opt-debug !
 	   cr white ." PASS=1 Initial code generation" norm
 	   OPT-PASS-BRANCHLEN opt-pass !
 	   0 opt-index !
@@ -736,7 +739,7 @@ $ (repeat-post) $;
 	   tmp-stack dirupload
 	   cr %.S
 	   start-adr @ here!
-	   r> | >r regalloc
+	   :xt regalloc
 	   ['] exit %.debug %.S %.used-regs
 	   cr .dump
 
@@ -757,7 +760,7 @@ $ (repeat-post) $;
 	   cr %.S
 
 	   here  start-adr @ - 0 shift-label-offsets
-	   r> regalloc
+	   :xt regalloc
 	   cr %.S
 	   epilogue,
 	   ['] exit %.debug %.S %.used-regs
