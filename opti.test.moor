@@ -7,7 +7,7 @@
 	( :#params :xt )
 	here | ." CODE at " .
 	{
-	:^ :#params | if for ?^ over else _ then 
+	regalloc-init :#params | if for ?^ over else _ then 
 	:#params :xt optimize
 	}
 	(code) interpretation :xt does
@@ -21,22 +21,30 @@
 : -lswap	( :c :d ) :c :d :c! :d! :d :c return ;
 : onep		| 1+ 1+ 1+ >< - ;
 : cset		1 3333 c! ;
+: for1		1 for | emit over ;
+: for2		( :c ) 1 for :c emit over return ;
 : fill		<<< for >|>| c! 1+ over _ _ ;			\ ( a n c -- )		Fill N bytes from address A with character C
+: fill2		( :a :n :c ) :a :n for | :c >< c! 1+ over _ return ;
 
-: test-opti-fib		1 ['] fib	optimize! ;
-: test-opti-nup		2 ['] nup	optimize! ;
-: test-opti-lswap	2 ['] lswap	optimize! ;
-: test-opti--lswap	2 ['] -lswap	optimize! ;
-: test-opti-onep	1 ['] onep	optimize! ;
-: test-opti-cset	0 ['] cset	optimize! ;
-: test-opti-fill	3 ['] fill	optimize! ;
+: opti-fib	1 ['] fib	optimize! ;
+: opti-nup	2 ['] nup	optimize! ;
+: opti-lswap	2 ['] lswap	optimize! ;
+: opti--lswap	2 ['] -lswap	optimize! ;
+: opti-onep	1 ['] onep	optimize! ;
+: opti-cset	0 ['] cset	optimize! ;
+: opti-fill	3 ['] fill	optimize! ;
+
+: opti-for1	1 ['] for1	optimize! ;
+: opti-for2	1 ['] for2	optimize! ;
+: opti-fill2	3 ['] fill2	optimize! ; \\ TODO: not working -- and it's clear why, look at disassembly
+: type-fill2	~Adr ~Number ~Number ['] fill2 typecheck ;
 
 maze
-: test-opti-MAZE	0 ['] MAZE	optimize! ;
+: opti-MAZE	0 ['] MAZE	optimize! ;
 
 
 :: zzz adr 100 allot
-: qqq zzz 10 31 fill ;
+: qqq zzz 10 31 fill2 ;
 
 
 
