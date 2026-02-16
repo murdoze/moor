@@ -116,7 +116,7 @@ M-init
 			curr-col @ M-left @ +
 			'M ! 
 			
-			curhome .M
+			curhome \ .M
 			\ key [char] q = if abort then 
 			\ curr-col @ 2* 1+ curr-row @ at WALL uemit
 		then
@@ -187,7 +187,7 @@ M-init
 	clrscr
 	curhome
 
-	margins? 1- -1 and 1 or 2- >< -1 and 1 or 2/ -1 and 1 or 2- M-total-size!
+	\ margins? 1- -1 and 1 or 2- >< -1 and 1 or 2/ -1 and 1 or 2- M-total-size!
 	M-init
 
 	#27 M-rows ! #20  M-top  !
@@ -204,6 +204,7 @@ M-init
 	M-draw-gen-wall-order
 	draw-sequence
 
+	.M
 	cr
 	curson
 ; \ latest typecheck
