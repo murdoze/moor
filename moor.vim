@@ -130,6 +130,12 @@ syn match   forthColon      "\<state\!\>"
 syn match   forthColon      "\<state@\>"
 syn match   forthColon      "\<?comp\>"
 syn keyword forthColon      var val adr
+syn match   forthColon      "\<%\>"
+syn match   forthColon      "\<%\;\>"
+syn match   forthColon      "\<\;%\>"
+syn match   forthColon      "\<\;%\;\>"
+
+
 syn keyword forthCharOps    ?SUCCEEDED ?FAILED
 
 "syn match   forthColonDef      "\<\:\s*\w*\>"
