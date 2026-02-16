@@ -155,7 +155,7 @@ interpretation latest behavior REGALLOCING latest does
 	   blue .regs norm
            1b emit 5b emit 37 emit 32 emit 47 emit
 	   52 emit 3a emit bl emit ret-stack .stack
-           1b emit 5b emit 37 emit 39 emit 47 emit
+           1b emit 5b emit 38 emit 32 emit 47 emit
 	   43 emit 3a emit bl emit cyc-stack .stack
            1b emit 5b emit 38 emit 38 emit 47 emit
 	   cf emit 86 emit 3a emit bl emit phi-stack .stack
@@ -729,8 +729,22 @@ $ (repeat-post) $;
 	   ['] exit %.debug %.S cr %.used-regs
 	   cr .dump
 
+           1 opt-debug !
+	   cr white ." PASS=1a Initial code generation DEBUG" norm
+	   OPT-PASS-BRANCHLEN opt-pass !
+	   0 opt-index !
+	   0 opt-index-word !
+	   offload
+	   tmp-stack download
+	   tmp-stack dirupload
+	   cr %.S
+	   start-adr @ here!
+	   :xt regalloc
+	   ['] exit %.debug %.S %.used-regs
+	   cr .dump
+
            0 opt-debug !
-	   cr white ." PASS=1 Initial code generation" norm
+	   cr white ." PASS=1b Initial code generation" norm
 	   OPT-PASS-BRANCHLEN opt-pass !
 	   0 opt-index !
 	   0 opt-index-word !
