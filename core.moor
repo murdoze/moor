@@ -392,7 +392,8 @@
 :: *       code rtmp rtop mov, _, rtop rtmp imul, ret,		\ ( a b -- a*b )
 
 :: xor     code #_1 r1 load, r0 r1 xor, off, ret,		\ ( n1 n2 -- n1 xor n2 )
-
+:: not     code rtop not, ret,
+:: negate  code rtop neg, ret,
 
 : syscall, 0f ` 05 ` ;
 :: syscall code rax rtop mov, syscall, rtop rax mov, ret,
@@ -428,12 +429,12 @@
 	    rtop rax mov,
 	    r10 pop, rsi pop, rdi pop,
 	    ret,
-:: syscall6 code rdi push, rsi push, r10 push,
+:: syscall6 code rdi push, rsi push, r10 push, r8 push,
             rax rtop mov, _, rdi rtop mov, _, rsi rtop mov, _,
 	    rdx rtop mov, _, r10 rtop mov, _, r8 rtop mov, _, r9 rtop mov,
             syscall,
 	    rtop rax mov,
-	    r10 pop, rsi pop, rdi pop,
+	    r8 pop, r10 pop, rsi pop, rdi pop,
 	    ret,
 
 : rdtsc,   0f ` 31 ` ;						\			RDTSC EDX:EAX
@@ -481,8 +482,13 @@
 : depth,   #_0 rtop store, rtop rstack mov, rtop neg, on, ;	\ ( -- # )		Stack depth 
 :: depth   code depth, ret,
 								\\ States									_states
+:: state-names	adr 10 cells allot
+: state-name!	>< negate 2/ cells state-names + ! ;		\ ( state xt -- )
+: .state-name	negate 2/ cells state-names + @			\ ( state -- )
+		| if .name else _ then ;
 :: MAX_STATE	 0 var
-: :state   MAX_STATE @ | -20 > if | val 2 - MAX_STATE !
+: :state   MAX_STATE @ | -20 > if | val 2- | MAX_STATE !
+           2+ latest state-name!
            else .. bad57a7e 0f10 .abort then ;
 								\\ Debug
 								\\ Dictionary structure manipulation
@@ -580,9 +586,6 @@ decompilation ' branch behavior  decompilation ' (-leave) does
 
 : >|>|>|   { >|>| } | { <<< } ; 				\ ( a b c -- a b c a b c ) 3OVER
 
-								\\ Arithmetic and logic, continued
-:: not     code rtop not, ret,
-:: negate  code rtop neg, ret,
 								\\ Min and max
 : min      >|>| - 0 > if >< then _ ;				\ ( a b -- min(a,b) ) Minimum
 : max      >|>| - 0 < if >< then _ ;				\ ( a b -- min(a,b) ) Minimum
