@@ -97,7 +97,6 @@ _brk:
 
 _setmem:	
 	mov	[rip + _mem_reserved], rax
-
 	mov	rhere, [rip + _mem_reserved]
 
 _cold:
@@ -129,7 +128,9 @@ _abort2:
 	mov	[rip + _state], rstate
 	lea	rnext, qword ptr [rip + _next]
 
+.ifndef	BAREMETAL
 	lea	rsp, [rip + __stack0]
+.endif
 	mov	[rip + _sp0], rsp
 	lea	rstack0, [rsp - 0x4000]
 	xor	rstack, rstack
@@ -2549,7 +2550,7 @@ _quit_:
 
 _quit_source_ref:
 .ifndef BAREMETAL
-.if	1
+.if	0
 .ifndef	VIM
 	call	latest
 	add	rhere, WORD_SOURCE_OFFSET
@@ -3294,16 +3295,18 @@ _source:
 
 .ifdef BOOT_SOURCE
 	source	core.moor
-	
-	source core.test.moor
-	source type.moor
-	source unicode.moor
-	source ansi.moor
-	source opti.moor
 
-	source maze.moor
+	.ifndef	BAREMETAL
+		source core.test.moor
+		source type.moor
+		source unicode.moor
+		source ansi.moor
+		source opti.moor
 
-	source opti.test.moor
+		source maze.moor
+
+		source opti.test.moor
+	.endif
 
 	.ifdef	BAREMETAL
 		source vamp.moor
