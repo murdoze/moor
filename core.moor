@@ -287,11 +287,15 @@
 : rexrd.q  rex.q rex.rd ;					\ ( rd -- rex )		Returns REX prefix for Rd
 : rexrs.q  rex.q rex.rs ;					\ ( rs -- rex )		Returns REX prefix for Rs
 : rd       07 and ;						\ ( rd -- modrm' )	Returns ModR/M byte part for Rd
-: rs       07 and 3 shl ;						\ ( rs -- modrm' )	Returns ModR/M byte part for Rs
+: rs       07 and 3 shl ;					\ ( rs -- modrm' )	Returns ModR/M byte part for Rs
 : rr       c0 ;							\ (  -- modrm' )	Returns ModR/M byte part for RR
+: rm       00 ;							\ (  -- modrm' )	Returns ModR/M byte part for RM
 : modrr    rs >< rd or rr or ;					\ ( rd rs -- modrm )	Returns ModR/M byte for Rd and Rs
+: modrm    rs >< rd or rm or ;					\ ( rd rs -- modrm )	Returns ModR/M byte for Rd and Rs
 : modro    >< rd or rr or ;					\ ( rd op -- modrm )	Returns ModR/M byte for Rd and opcode
 : instrr   c, does> <<< >|>| rexrr.q ` >>> c@ ` modrr ` ;	\ ( op -- ) ( rd rs a -- )
+: instmr   c, does> <<< >|>| rexrr.q ` >>> c@ ` modrm ` ;	\ ( op -- ) ( rd rs a -- )
+: instrm   c, does> <<< >|>| >< rexrr.q ` >>> c@ ` >< modrm ` ;	\ ( op -- ) ( rd rs a -- )
 : instrr2  c, c, does> <<< >|>| >< rexrr.q ` >>> | c@ `		\ ( op1 op2 -- ) ( rd rs a -- )
            1+ c@ ` >< modrr ` ;
 : instro   c, c, does> >< | rexrd.q ` >< | c@ `			\ ( op1 op2 -- ) ( rd a -- )
@@ -349,6 +353,8 @@
 : movzx,   rex.q ` 0f ` movzx.op ` modrr ` ;			\ ( rd rs -- )		movzx	rdl, rs
 
 :: mov,    89 instrr						\ ( rd rs -- )		mov	rd, rs
+:: movmr,  89 instmr						\ ( rd rs -- )		mov	[rd], rs
+:: movrm,  8b instrm						\ ( rd rs -- )		mov	rd, [rs]
 :: test,   85 instrr						\ ( rd rs -- )		test	rd, rs
 :: add,    01 instrr						\ ( rd rs -- )		add	rd, rs
 :: sub,    29 instrr						\ ( rd rs -- )		sub	rd, rs
