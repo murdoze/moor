@@ -273,13 +273,15 @@ if get(g:, "forth_no_comment_fold", 0)
     syn region forthComment start='\<(\>' end=')' contains=@Spell,forthTodo,forthSpaceError
       " extension words
     syn match  forthComment '\<\\\>.*$' contains=@Spell,forthTodo,forthSpaceError
+    syn match  forthComment '\<\\(\>.*$' contains=@Spell,forthTodo,forthSpaceError
     syn match  forthComment2 '\<\\\\\>.*$' contains=@Spell,forthTodo,forthSpaceError
     syn match  forthComment3 '\<\\\\\sTODO:\>.*$' contains=@Spell,forthTodo,forthSpaceError
     syn match  forthComment2 '\<\.\\\>.*$' contains=@Spell,forthTodo,forthSpaceError
 else
-    syn region forthForth start='\<(\>' end=')' contains=@Spell,forthTodo,forthSpaceError fold
+    syn region forthComment start='\<(\>' end=')' contains=@Spell,forthTodo,forthSpaceError
       " extension words
     syn match  forthComment '\<\\\>.*$' contains=@Spell,forthTodo,forthSpaceError
+    syn match  forthComment '\<\\(\>.*$' contains=@Spell,forthTodo,forthSpaceError
     syn match  forthComment2 '\<\\\\\>.*$' contains=@Spell,forthTodo,forthSpaceError
     syn match  forthComment3 '\<\\\\\sTODO:\>.*$' contains=@Spell,forthTodo,forthSpaceError
     syn match  forthComment2 '\<\.\\\>.*$' contains=@Spell,forthTodo,forthSpaceError
