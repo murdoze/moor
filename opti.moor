@@ -377,7 +377,6 @@ $ assm     $;
 								\\ Prologue and epilogue
 : prologue,							\ ( an ... a1 n -- )	Based on input parameters and used register map compiles a prologue
           " |," .inst |, cr %.S
-	  rstack push,
           used-regs #regs for | c@ if				\			Push all used registers, but not parameters and outputs
 	  	" push" .inst | used-regs - | .r push,
 		cr { %.S }
@@ -402,7 +401,6 @@ $ assm     $;
 	  	" pop" .inst | used-regs - | .r pop,
 		cr { %.S }
 	  then 1- over _					
-	  rstack pop,
 
 	  " _," .inst _, cr %.S					\			Move TOS into rtop, if needed
 
@@ -727,7 +725,7 @@ $ (repeat-post) $;
 	   :xt regalloc
 	   opt-index-word @ 1+ opt-index-last !
 	   fixup-branches
-	   ['] exit %.debug %.S cr %.used-regs
+	   ['] exit %.debug %.S cr %.used-regs cr %.S
 	   cr .dump
 
            1 opt-debug !
@@ -736,6 +734,7 @@ $ (repeat-post) $;
 	   0 opt-index !
 	   0 opt-index-word !
 	   offload
+	   cr %.S
 	   tmp-stack download
 	   tmp-stack dirupload
 	   cr %.S
@@ -743,7 +742,7 @@ $ (repeat-post) $;
 	   :xt regalloc
 	   ['] exit %.debug %.S %.used-regs
 	   cr .dump
-
+	
            0 opt-debug !
 	   cr white ." PASS=1b Initial code generation" norm
 	   OPT-PASS-BRANCHLEN opt-pass !
@@ -757,6 +756,7 @@ $ (repeat-post) $;
 	   :xt regalloc
 	   ['] exit %.debug %.S %.used-regs
 	   cr .dump
+	
 
            0 opt-debug !
 	   cr white ." PASS=2 Final code generation" norm
