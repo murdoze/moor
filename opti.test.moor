@@ -17,17 +17,22 @@
 
 : fib		| if 0 1 >>> for >| + >< over _ then noop ;
 : nup		>r _ r> ;
+: swap2		0 <<< <<< nup ;
 : lswap		( :c :d ) :c :d :c! :d! :c :d return ;
 : -lswap	( :c :d ) :c :d :c! :d! :d :c return ;
 : onep		| 1+ 1+ 1+ >< - ;
 : cset		1 3333 c! ;
 : for1		1 for | emit over ;
 : for2		( :c ) 1 for :c emit over return ;
-: fill		<<< for >|>| c! 1+ over _ _ ;			\ ( a n c -- )		Fill N bytes from address A with character C
+: fill		<<< for >|>| c! 1+ over _ _ ;
 : fill2		( :a :n :c ) :a :n for | :c >< c! 1+ over _ return ;
+: fill3		( :a :n :c ) :n for :c emit over return ;
+: fill4		( :a :n :c ) :n if :c emit then return ;
 
 : opti-fib	1 ['] fib	optimize! ;
 : opti-nup	2 ['] nup	optimize! ;
+: opti-swap2	2 ['] swap2	optimize! ;
+: opti-lswap	2 ['] lswap	optimize! ;
 : opti-lswap	2 ['] lswap	optimize! ;
 : opti--lswap	2 ['] -lswap	optimize! ;
 : opti-onep	1 ['] onep	optimize! ;
@@ -37,6 +42,9 @@
 : opti-for1	1 ['] for1	optimize! ;
 : opti-for2	1 ['] for2	optimize! ;
 : opti-fill2	3 ['] fill2	optimize! ;
+: opti-fill3	3 ['] fill3	optimize! ;
+: opti-fill4	3 ['] fill4	optimize! ;
+
 : type-fill2	~Adr ~Number ~Number ['] fill2 typecheck ;
 
 maze
