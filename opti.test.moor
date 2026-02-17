@@ -15,15 +15,15 @@
 ;
 
 
-: fib		| if 0 1 >>> for >| + >< over _ then noop ;
+: fib		| if 0 1 >>> for >| + >< over _ then ;
 : nup		>r _ r> ;
 : swap2		0 <<< <<< nup ;
 : lswap		( :c :d ) :c :d :c! :d! :c :d return ;
 : -lswap	( :c :d ) :c :d :c! :d! :d :c return ;
 : onep		| 1+ 1+ 1+ >< - ;
 : cset		1 3333 c! ;
-: if1		1 2 - if 0 else 1 then noop ;
-: if2		1 2 < if 0 else 1 then noop ;
+: if1		1 2 - if 0 else 1 then ;
+: if2		1 2 < if 0 else 1 then ;
 : for1		3 for | uemit over _ cr ;
 : for2		( :c ) 1 for :c emit over return ;
 : fill		<<< for >|>| c! 1+ over _ _ ;

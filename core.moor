@@ -200,6 +200,7 @@
 : (else-pre) ;
 : (else-post) ;
 : (then) ;
+: (then-post) ;
 : (begin) ;
 : (until) ;
 : (again) ;
@@ -219,7 +220,7 @@
 : if       ?comp compile (if) compile ?branch >mark compile (if-post) ; immediate
 : -if      ?comp compile (if) compile -?branch >mark ; immediate
 : else     ?comp compile (else-pre) compile branch >mark compile (else-post) >< >resolve ; immediate
-: then     ?comp compile (then) >resolve ; immediate
+: then     ?comp compile (then) >resolve compile (then-post) ; immediate
 : begin    ?comp compile (begin) <mark ; immediate
 : until    ?comp compile (until) compile ?branch <resolve ; immediate
 : again    ?comp compile (again) compile branch <resolve ; immediate

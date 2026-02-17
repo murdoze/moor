@@ -279,6 +279,7 @@ $ assm     $;
 	   tmp-stack download
 	   phi-stack revoffload %;
 % (then)   %;
+% (then-post) %;
 % (begin)  phi-stack revupload %;				\			Upload stack as it is now
 % (until)  %;
 % (again)  %;
