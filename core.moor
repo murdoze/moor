@@ -42,6 +42,7 @@
 : r9       09 ;
 : rindex   0a ;							\ r10 = rindex
 : r10      0a ;							\ r10 = rindex
+: r11      0b ;							\ r11
 : rend     0c ;							\ r12 = rend
 : rnext    0d ;							\ r13 = rnext
 : rstack0  0f ;							\ r15 = rstack0
@@ -350,6 +351,7 @@
 
 : sjmp,    eb ` ` ;						\ ( offset -- )         Short jump
 : ljmp,    e9 ` 4, ;						\ ( offset -- )         Long/near jump
+: lcall,   e8 ` 4, ;						\ ( offset -- )		Long/near call
 								\\ Arithmetic, logic and moves
 :: movzx.op b6 val						\ MOVZX opcode
 : (movzx)  || rexrr.q ` 0f ` movzx.op ` ;
