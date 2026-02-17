@@ -36,7 +36,7 @@
 
 : opti-for1	1 ['] for1	optimize! ;
 : opti-for2	1 ['] for2	optimize! ;
-: opti-fill2	3 ['] fill2	optimize! ; \\ TODO: not working -- and it's clear why, look at disassembly
+: opti-fill2	3 ['] fill2	optimize! ;
 : type-fill2	~Adr ~Number ~Number ['] fill2 typecheck ;
 
 maze

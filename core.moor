@@ -544,6 +544,7 @@
 : try	-if r> then ;
 								\\ Control structures: loops							_loops
 								\ DOC: https://github.com/TG9541/stm8ef/wiki/eForth-FOR-..-NEXT
+
 :: (for)   code 						\ ( n -- )		push rindex; mov rindex, rtop ; drop
 		rwork pop,
 		rindex push,
@@ -551,6 +552,7 @@
                 rwork push,
 		_, 
 		ret,
+: (for-post) ;
 : (aft) ;
 :: I       code |, r0 rindex mov, ret,				\ ( -- I )		Returns FOR loop index
 :: (over)  code rindex dec, lodsq, 4 .z j, skip, ret,		\ ( -- )		dec rindex ; lodsq ; jz ret ; rpc+=ofs ; ret
@@ -572,7 +574,8 @@ decompilation ' branch behavior  decompilation ' (over) does
 decompilation ' branch behavior  decompilation ' (-leave) does
 
 
-: for      ?comp compile (for) <mark ; immediate		\ ... n for ... [ aft ] ... [ then ] ... over ...
+: for      ?comp compile (for)					\ ... n for ... [ aft ] ... [ then ] ... over ...
+           compile (for-post) <mark ; immediate
 								\ TODO: ?FOR would be nice to have, but it's needed to pass a flag to OVER to compile THEN
 								\       This can be implemented after there is a control stack with checks and other flags
 : aft      ?comp compile (aft) compile branch _ >mark <mark >< ; immediate
