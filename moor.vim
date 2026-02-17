@@ -270,7 +270,7 @@ syn match forthTodo contained "\<\%(TODO\|FIXME\|XXX\)\%(\>\|:\@=\)"
 syn region forthComment start='\<\%(0\|FALSE\)\s\+\[IF]' end='\<\[ENDIF]' end='\<\[THEN]' contains=forthTodo
 
 if get(g:, "forth_no_comment_fold", 0)
-    syn region forthComment start='\<(\>' end=')' contains=@Spell,forthTodo,forthSpaceError
+    syn region forthOperators start='\<(\>' end=')' contains=@Spell,forthTodo,forthSpaceError
       " extension words
     syn match  forthComment '\<\\\>.*$' contains=@Spell,forthTodo,forthSpaceError
     syn match  forthComment '\<\\(\>.*$' contains=@Spell,forthTodo,forthSpaceError
@@ -278,7 +278,7 @@ if get(g:, "forth_no_comment_fold", 0)
     syn match  forthComment3 '\<\\\\\sTODO:\>.*$' contains=@Spell,forthTodo,forthSpaceError
     syn match  forthComment2 '\<\.\\\>.*$' contains=@Spell,forthTodo,forthSpaceError
 else
-    syn region forthComment start='\<(\>' end=')' contains=@Spell,forthTodo,forthSpaceError
+    syn region forthOperators start='\<(\>' end=')' contains=@Spell,forthTodo,forthSpaceError
       " extension words
     syn match  forthComment '\<\\\>.*$' contains=@Spell,forthTodo,forthSpaceError
     syn match  forthComment '\<\\(\>.*$' contains=@Spell,forthTodo,forthSpaceError
