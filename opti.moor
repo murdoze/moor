@@ -377,115 +377,123 @@ $ assm     $;
 
 								\\ Prologue and epilogue
 : prologue,							\ ( an ... a1 n -- )	Based on input parameters and used register map compiles a prologue
-          " |," .inst |, cr %.S
-          used-regs #regs for | c@ if				\			Push all used registers, but not parameters and outputs
-	  	" push" .inst | used-regs - | .r push,
-		cr { %.S }
-	  then 1+ over _					
+	" |," .inst |, cr %.S
+	used-regs #regs for | c@ if				\			Push all used registers, but not parameters and outputs
+	" push" .inst | used-regs - | .r push,
+	cr { %.S }
+	then 1+ over _
 
-          | if for						\			Load input parameters from Forth stack into registers
-	  	" load" .inst | .r
-		#_1 >< load, off,
-		cr %.S
-	  over else _ then
-	  cr %.S
+	| if for						\			Load input parameters from Forth stack into registers
+	" load" .inst | .r
+	#_1 >< load, off,
+	cr %.S
+	over else _ then
+	cr %.S
 ;
 
 : epilogue,
-	  | if for						\			Store output parameters onto Forth stack
-	  	" store" .inst | .r
-		| #_0 >< store, on, ∨ 
-		cr %.S 
-          over else _ then								
+	| if for						\			Store output parameters onto Forth stack
+	" store" .inst | .r
+	| #_0 >< store, on, ∨
+	cr %.S
+	over else _ then
 
-          used-regs #regs + 1- #regs for | c@ if		\			Push all pushed registers (not parameters and outputs)
-	  	" pop" .inst | used-regs - | .r pop,
-		cr { %.S }
-	  then 1- over _					
+	used-regs #regs + 1- #regs for | c@ if		\			Push all pushed registers (not parameters and outputs)
+	" pop" .inst | used-regs - | .r pop,
+	cr { %.S }
+	then 1- over _
 
-	  " _," .inst _, cr %.S					\			Move TOS into rtop, if needed
+	" _," .inst _, cr %.S					\			Move TOS into rtop, if needed
 
-	  " ret" .inst ret, cr %.S
-								
+	" ret" .inst ret, cr %.S
 ;
 
-$ noop     .(( " nop" .inst ).( nop, )) $;
+$ noop	.(( " nop" .inst ).( nop, )) $;
 
-$ c!       { || .(( .--- .mov.b.mr
-           ).( ¦ mov.b.mr, ))
-           } $;
+$ c!	{ || .(( .--- .mov.b.mr
+	).( ¦ mov.b.mr, ))
+	} $;
 
-$ +        { >>> >|>| - if <<< >|>| -				\ ( rs1 rs2 rd )	Assemble +
-           if							\			RD <> RS1, RS2		mov rd, rs1	add rd, rs1
-	   { >|>| } | { <<< }
-	   >>> >< >|
-	   .(( .--- .mov.rr .--- " add" .inst .rr
-	   ).( ¦ mov, ¦ add, ))
-           else							\			RD = RS2
-           <<< >|>|
-	   .(( .--- " add" .inst .rr
-	   ).( ¦ add, ))
-	   then
-	   else							\			RD = RS1
-           <<< >|>|
-	   .(( .--- " add" .inst .rr
-	   ).( ¦ add, ))
-	   then } $;
+$ <
+	$;
 
-$ and       { >>> >|>| - if <<< >|>| -				\ ( rs1 rs2 rd )	Assemble AND
-           if							\			RD <> RS1, RS2		mov rd, rs1	and rd, rs1
-	   { >|>| } | { <<< }
-	   >>> >< >|
-	   .(( .--- .mov.rr .--- " and" .inst .rr
-	   ).( ¦ mov, ¦ and, ))
-           else							\			RD = RS2
-           <<< >|>|
-	   .(( .--- " and" .inst .rr
-	   ).( ¦ and, ))
-	   then
-	   else							\			RD = RS1
-           <<< >|>|
-	   .(( .--- " and" .inst .rr
-	   ).( ¦ and, ))
-	   then } $;
+$ +
+	{ >>> >|>| - if <<< >|>| -				\ ( rs1 rs2 rd )	Assemble +
+	if							\			RD <> RS1, RS2		mov rd, rs1	add rd, rs1
+	{ >|>| } | { <<< }
+	>>> >< >|
+	.(( .--- .mov.rr .--- " add" .inst .rr
+	).( ¦ mov, ¦ add, ))
+	else							\			RD = RS2
+	<<< >|>|
+	.(( .--- " add" .inst .rr
+	).( ¦ add, ))
+	then
+	else							\			RD = RS1
+	<<< >|>|
+	.(( .--- " add" .inst .rr
+	).( ¦ add, ))
+	then } $;
 
-$ -        { >>> >|>| - if <<< >|>| -				\ ( rs1 rs2 rd )	Assemble -
-           if							\			RD <> RS1, RS2		mov rd, rs1	sub rd, rs1
-	   { >|>| } | { <<< }
-	   >>> >|
-	   .(( .--- .mov.rr .--- " sub" .inst .rr
-	   ).( ¦ mov, ¦ sub, ))
-	   else							\			RD = RS2
-	   >< <<< >|
-	   .(( .--- " sub" .inst .rr .--- " neg" .inst .r
-	   ).( ¦ sub, neg, ))
-	   then
-	   else							\			RD = RS1
-	   <<< >|>|
-	   .(( .--- " sub" .inst .rr
-	   ).( ¦ sub, ))
-	   then } $;
+$ and
+	{ >>> >|>| - if <<< >|>| -				\ ( rs1 rs2 rd )	Assemble AND
+	if							\			RD <> RS1, RS2		mov rd, rs1	and rd, rs1
+	{ >|>| } | { <<< }
+	>>> >< >|
+	.(( .--- .mov.rr .--- " and" .inst .rr
+	).( ¦ mov, ¦ and, ))
+	else							\			RD = RS2
+	<<< >|>|
+	.(( .--- " and" .inst .rr
+	).( ¦ and, ))
+	then
+	else							\			RD = RS1
+	<<< >|>|
+	.(( .--- " and" .inst .rr
+	).( ¦ and, ))
+	then } $;
 
-$ 1+       { >|>| - if >|>|					\ ( rs rd )
-           .(( .mov.rr .---
-	   ).( ¦ mov, ))
-	   then |
-	   .(( " inc" .inst .r
-	   ).( inc, ))
-	   } $;
+$ - 
+	{ >>> >|>| - if <<< >|>| -				\ ( rs1 rs2 rd )	Assemble -
+	if							\			RD <> RS1, RS2		mov rd, rs1	sub rd, rs1
+	{ >|>| } | { <<< }
+	>>> >|
+	.(( .--- .mov.rr .--- " sub" .inst .rr
+	).( ¦ mov, ¦ sub, ))
+	else							\			RD = RS2
+	>< <<< >|
+	.(( .--- " sub" .inst .rr .--- " neg" .inst .r
+	).( ¦ sub, neg, ))
+	then
+	else							\			RD = RS1
+	<<< >|>|
+	.(( .--- " sub" .inst .rr
+	).( ¦ sub, ))
+	then } $;
 
-$ 1-       { >|>| - if >|>|					\ ( rs rd )
-           .(( .mov.rr .---
-	   ).( ¦ mov, ))
-	   then |
-	   .(( " dec" .inst .r
-	   ).( dec, ))
-	   } $;
+$ 1+
+	{ >|>| - if >|>|					\ ( rs rd )
+	.(( .mov.rr .---
+	).( ¦ mov, ))
+	then |
+	.(( " inc" .inst .r
+	).( inc, ))
+	} $;
 
-$ lit      { |  opt-lit @ ><					\ ( rd )
-           .(( .mov .r, .lit
-	   ).( ¦ mov.i, ))
-	   } $;
+$ 1-
+	{ >|>| - if >|>|					\ ( rs rd )
+	.(( .mov.rr .---
+	).( ¦ mov, ))
+	then |
+	.(( " dec" .inst .r
+	).( dec, ))
+	} $;
+
+$ lit
+	{ |  opt-lit @ ><					\ ( rd )
+	.(( .mov .r, .lit
+	).( ¦ mov.i, ))
+	} $;
 
 :: <emit>	\ ( c=rdi )
 	code
@@ -513,19 +521,20 @@ $ lit      { |  opt-lit @ ><					\ ( rd )
 	r11 pop,
 	ret,
 
-$ emit     { |							\ ( rs )
-           .(( " emit" .inst .r
-	   ).( 
-		| rdi <> if
-			rdi push,
-			| rdi >< mov,
-		then
-		['] <emit> here 5 + - lcall,
-		| rdi <> if
-			rdi pop,
-		then
-	   ))
-	   } $;
+$ emit
+	{ |							\ ( rs )
+	.(( " emit" .inst .r
+	).(
+	| rdi <> if
+		rdi push,
+		| rdi >< mov,
+	then
+	['] <emit> here 5 + - lcall,
+	| rdi <> if
+		rdi pop,
+	then
+	))
+	} $;
 
 								\ φ-junction
 : φ
