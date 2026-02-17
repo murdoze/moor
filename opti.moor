@@ -298,9 +298,9 @@ $ assm     $;
 	   tmp-stack download %;
 % (continue) %;
 % (break)  %;
-% (for)    1- { | &∧ | >cyc }					\ ( r # -- #-1 )	Takes counter off the stack TODO: Save counter on another stack
+% (for)    1- { | ∧ | >cyc } 					\ ( r # -- #-1 )	Takes counter off the stack TODO: Save counter on another stack
            <<< { { phi-stack revupload } } >>> ;%
-           { _ _ } ;%;
+           { _ ∨ } ;%;
 % (for-post) %;
 % I        1+ { cyc> ∧ | >cyc } %;
 % (over)   @skip | opt-branch ! opt-index 1+! .. ;%
