@@ -308,20 +308,19 @@ $ assm     $;
            { cyc> ∨ } ;%;
 % (over-post) %;
 
+: %alloc-rd
+           >< ∨∧ if | <<< >< |∨ >< else				\			Try to allocate rs1 as rd, then rs2, then a new register
+	   >< ∨∧ if | else
+	   ?∧ then then ;
 
 \\ Abstract out for AND, XOR etc
-% +        { 							\ ( rs1 rs2 # -- rs1 rs2 rd #+1 )
-           >< ∨∧ if | <<< >< |∨ >< else				\			Try to allocate rs1 as rd, then rs2, then a new register
-	   >< ∨∧ if | else
-	   ?∧ then then }
-	   1+ ;%
+% +        { %alloc-rd } 1+ ;%					\ ( rs1 rs2 # -- rs1 rs2 rd #+1 )
 	   { { _ _ } } 1- 1- ;%;				\ ( -- rd #-1 )
 
-% -        { 							\ ( rs1 rs2 # -- rs1 rs2 rd #+1 )
-           >< ∨∧ if | <<< >< |∨ >< else				\			Try to allocate rs1 as rd, then rs2, then a new register
-	   >< ∨∧ if | else
-	   ?∧ then then }
-	   1+ ;%
+% -        { %alloc-rd } 1+ ;%					\ ( rs1 rs2 # -- rs1 rs2 rd #+1 )
+	   { { _ _ } } 1- 1- ;%;				\ ( -- rd #-1 )
+
+% <        { %alloc-rd } 1+ ;%					\ ( rs1 rs2 # -- rs1 rs2 rd #+1 )
 	   { { _ _ } } 1- 1- ;%;				\ ( -- rd #-1 )
 
 % 1+       { | ∨?∧ } ;% { >< _ } ;%;				\ 			Increment and decrement do not change register allocation
@@ -414,8 +413,29 @@ $ c!	{ || .(( .--- .mov.b.mr
 	).( ¦ mov.b.mr, ))
 	} $;
 
+: $compare								\ ( rs1 rs2 rd )
+	<<< ||
+	.((
+		.---  " cmp" .inst .rr
+	).(
+		¦ cmp,
+	))
+	>>>
+;
+
 $ <
-	$;
+	{
+	$compare
+	|
+	.((
+		| .---  " setf.l" .inst .r.b
+		| .---  " movzx" .inst | .r, .r.b
+	).(
+		| .l setf,
+		| movzx,
+	))
+
+	} $;
 
 $ +
 	{ >>> >|>| - if <<< >|>| -				\ ( rs1 rs2 rd )	Assemble +
@@ -635,7 +655,7 @@ $ -?branch opt-branch @ opt-index @ +
 	   ))
 	   $;
 
-$ branch   opt-branch @ opt-index @ + .S
+$ branch   opt-branch @ opt-index @ +
            .(( " jmp" .inst .label
 	   ).( 
 	   opt-pass @
@@ -651,7 +671,7 @@ $ branch   opt-branch @ opt-index @ + .S
 		here 2 + start-adr @ - - sjmp, 
 		then
 	   then 
-	   then  ." Z"
+	   then
 	   ))
 	   $;
 
