@@ -22,7 +22,7 @@
 : -lswap	( :c :d ) :c :d :c! :d! :d :c return ;
 : onep		| 1+ 1+ 1+ >< - ;
 : cset		1 3333 c! ;
-: for1		1 for | emit over ;
+: for1		3 for | emit over _ ;
 : for2		( :c ) 1 for :c emit over return ;
 : fill		<<< for >|>| c! 1+ over _ _ ;
 : fill2		( :a :n :c ) :a :n for | :c >< c! 1+ over _ return ;
