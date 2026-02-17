@@ -321,8 +321,17 @@ $ assm     $;
 % -        { %alloc-rd } 1+ ;%					\ ( rs1 rs2 # -- rs1 rs2 rd #+1 )
 	   { { _ _ } } 1- 1- ;%;				\ ( -- rd #-1 )
 
+% and      { %alloc-rd } 1+ ;%					\ ( rs1 rs2 # -- rs1 rs2 rd #+1 )
+	   { { _ _ } } 1- 1- ;%;				\ ( -- rd #-1 )
+
+% or       { %alloc-rd } 1+ ;%					\ ( rs1 rs2 # -- rs1 rs2 rd #+1 )
+	   { { _ _ } } 1- 1- ;%;				\ ( -- rd #-1 )
+
 % <        { %alloc-rd } 1+ ;%					\ ( rs1 rs2 # -- rs1 rs2 rd #+1 )
 	   { { _ _ } } 1- 1- ;%;				\ ( -- rd #-1 )
+
+% sar      ;%							\ ( rshift rd # -- rshift rd # )
+	   { >< ∨ } 1- ;%;				        \ ( -- #-1 )
 
 % 1+       { | ∨?∧ } ;% { >< _ } ;%;				\ 			Increment and decrement do not change register allocation
 % 1-       { | ∨?∧ } ;% { >< _ } ;%;				\			Although, a new register is allocated if the destination is aliased
@@ -438,6 +447,8 @@ $ <
 
 	} $;
 
+$ sar	{ } $;
+
 $ +
 	{ >>> >|>| - if <<< >|>| -				\ ( rs1 rs2 rd )	Assemble +
 	if							\			RD <> RS1, RS2		mov rd, rs1	add rd, rs1
@@ -472,6 +483,24 @@ $ and
 	<<< >|>|
 	.(( .--- " and" .inst .rr
 	).( ¦ and, ))
+	then } $;
+
+$ or
+	{ >>> >|>| - if <<< >|>| -				\ ( rs1 rs2 rd )	Assemble AND
+	if							\			RD <> RS1, RS2		mov rd, rs1	and rd, rs1
+	{ >|>| } | { <<< }
+	>>> >< >|
+	.(( .--- .mov.rr .--- " or" .inst .rr
+	).( ¦ mov, ¦ or, ))
+	else							\			RD = RS2
+	<<< >|>|
+	.(( .--- " or" .inst .rr
+	).( ¦ or, ))
+	then
+	else							\			RD = RS1
+	<<< >|>|
+	.(( .--- " or" .inst .rr
+	).( ¦ or, ))
 	then } $;
 
 $ - 
@@ -554,6 +583,7 @@ $ emit
 	| rdi <> if
 		rdi pop,
 	then
+	_
 	))
 	} $;
 

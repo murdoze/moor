@@ -30,6 +30,12 @@
 : fill2		( :a :n :c ) :a :n for | :c >< c! 1+ over _ return ;
 : fill3		( :a :n :c ) :n for :c emit over return ;
 : fill4		( :a :n :c ) :n if :c emit then return ;
+: emit1		41 42 43 emit emit emit cr ;
+: sar1		200 3 sar emit cr ;
+: andor1	1 3 and 2 or 40 + emit ;
+: orand1	1 3 or 2 and 40 + emit ;
+: pp1		1 3 + 2 + 40 + emit ;
+
 
 : opti-fib	1 ['] fib	optimize! ;
 : opti-nup	2 ['] nup	optimize! ;
@@ -40,6 +46,11 @@
 : opti-onep	1 ['] onep	optimize! ;
 : opti-cset	0 ['] cset	optimize! ;
 : opti-fill	3 ['] fill	optimize! ;
+: opti-emit1	0 ['] emit1	optimize! ;
+: opti-sar1	0 ['] sar1	optimize! ;
+: opti-andor1	0 ['] andor1	optimize! ;
+: opti-orand1	0 ['] orand1	optimize! ;
+: opti-pp1	0 ['] pp1	optimize! ;
 
 : opti-if1	0 ['] if1	optimize! ;
 : opti-if2	0 ['] if2	optimize! ;
