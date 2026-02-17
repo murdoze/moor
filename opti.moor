@@ -177,8 +177,10 @@ interpretation latest behavior REGALLOCING latest does
 								\\ Regallocing semantics definitions
 : noop ;
 
-: $        here exec ASSEMBLING ' does 				\ ( "<name>" --  )	Creates new semantics for assembling state
-           compile interpreting!
+: $ 			        				\ ( "<name>" --  )	Creates new semantics for assembling state
+           here 10 aligned here!
+           here exec ASSEMBLING ' does
+	   compile interpreting!
 	   ] ;
 : $;       compile ASSEMBLING!! compile exit [compile] [ ; immediate
 
@@ -485,9 +487,44 @@ $ lit      { |  opt-lit @ ><					\ ( rd )
 	   ).( ¦ mov.i, ))
 	   } $;
 
+:: <emit>	\ ( c=rdi )
+	code
+	r11 push,
+	rax push,
+	rcx push,
+	rdx push,
+	rsi push,
+	rdi push,
+
+	\ rdi 39 mov.i,
+	rdi push,
+	rsi rsp mov,
+	rax 1 mov.i,
+	rdx rax mov,
+	rdi rax mov,
+	syscall,
+	rdi pop,
+
+	rdi pop,
+	rsi pop,
+	rdx pop,
+	rcx pop,
+	rax pop,
+	r11 pop,
+	ret,
+
 $ emit     { |							\ ( rs )
            .(( " emit" .inst .r
-	   ).( 90 ` _ ))
+	   ).( 
+		| rdi <> if
+			rdi push,
+			| rdi >< mov,
+		then
+		['] <emit> here 5 + - lcall,
+		| rdi <> if
+			rdi pop,
+		then
+	   ))
 	   } $;
 
 								\ φ-junction
