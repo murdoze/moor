@@ -22,7 +22,9 @@
 : -lswap	( :c :d ) :c :d :c! :d! :d :c return ;
 : onep		| 1+ 1+ 1+ >< - ;
 : cset		1 3333 c! ;
-: for1		3 for | emit over _ ;
+: if1		1 2 - if 0 else 1 then noop ;
+: if2		1 2 < if 0 else 1 then noop ;
+: for1		3 for | uemit over _ cr ;
 : for2		( :c ) 1 for :c emit over return ;
 : fill		<<< for >|>| c! 1+ over _ _ ;
 : fill2		( :a :n :c ) :a :n for | :c >< c! 1+ over _ return ;
@@ -39,6 +41,8 @@
 : opti-cset	0 ['] cset	optimize! ;
 : opti-fill	3 ['] fill	optimize! ;
 
+: opti-if1	0 ['] if1	optimize! ;
+: opti-if2	0 ['] if2	optimize! ;
 : opti-for1	1 ['] for1	optimize! ;
 : opti-for2	1 ['] for2	optimize! ;
 : opti-fill2	3 ['] fill2	optimize! ;
