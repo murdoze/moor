@@ -655,7 +655,7 @@ $ ?branch  opt-branch @ opt-index @ +
 	   else
 	   | OPT-PASS-BRANCHLEN = if _
 	   	| label-offset@
-		ofs-is-long if label-offset@ .z lj, 
+		ofs-is-long if label-offset@ here 6 + start-adr @ - - .z lj, 
 		else
 		opt-index-word @ branch-is-short@ if else -4 opt-index-word @ 1+ shift-label-offsets opt-index-word @ branch-is-short! then
 		label-offset@
@@ -675,7 +675,7 @@ $ -?branch opt-branch @ opt-index @ +
 	   else
 	   | OPT-PASS-BRANCHLEN = if _
 	   	| label-offset@
-		ofs-is-long if label-offset@ .nz lj, 
+		ofs-is-long if label-offset@ here 6 + start-adr @ - - .nz lj, 
 		else
 		opt-index-word @ branch-is-short@ if else -4 opt-index-word @ 1+ shift-label-offsets opt-index-word @ branch-is-short! then
 		label-offset@
@@ -695,7 +695,7 @@ $ branch   opt-branch @ opt-index @ +
 	   else
 	   | OPT-PASS-BRANCHLEN = if _
 	   	| label-offset@
-		ofs-is-long if label-offset@ ljmp, 
+		ofs-is-long if label-offset@ here 5 + start-adr @ - - ljmp, 
 		else
 		opt-index-word @ branch-is-short@ if else -3 opt-index-word @ 1+ shift-label-offsets opt-index-word @ branch-is-short! then
 		label-offset@
@@ -726,7 +726,7 @@ $ (over)
 	   else
 	   | OPT-PASS-BRANCHLEN = if _
 	   	| label-offset@
-		ofs-is-long if label-offset@ .z lj, 
+		ofs-is-long if label-offset@ here 6 + start-adr @ - - .z lj, 
 		else
 		opt-index-word @ branch-is-short@ if else -4 opt-index-word @ 1+ shift-label-offsets opt-index-word @ branch-is-short! then
 		label-offset@
