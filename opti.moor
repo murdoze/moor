@@ -22,7 +22,6 @@ interpretation latest behavior REGALLOCING latest does
 : regalloc 							\ ( xt -- )		Run XT in REGALLOCING state
 	REGALLOCING state! execute interpreting! interpretation state! ;
 
-: :%       : compile interpreting! ;
 								\\ Register allocation
 :: #regs     10 val						\ Number of CPU registers
 :: regs      adr #regs allot					\ Register alias count
