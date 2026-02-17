@@ -550,7 +550,6 @@ end,
 vim.keymap.set("t", "<Esc>", [[<C-\><C-n>]], { noremap = true })
 
 vim.keymap.set("n", "LL", function()
-  vim.cmd("mks!")
   vim.cmd("wqa")
 end)
 
