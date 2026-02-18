@@ -428,9 +428,9 @@ $ c!	{ || .(( .--- .mov.b.mr
 : $compare								\ ( rs1 rs2 rd )
 	<<< ||
 	.((
-		.---  " cmp" .inst .rr
+		.---  >< " cmp" .inst .rr
 	).(
-		¦ cmp,
+		cmp,
 	))
 	>>>
 ;
