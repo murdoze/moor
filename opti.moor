@@ -345,7 +345,6 @@ $ assm     $;
 % ,        ⊻ %;							\ ( r # -- #-1 )	Frees the parameter
 % emit     ;% ⊻ ;%;						\ ( r # -- #-1 )	Frees the parameter
 
-% cr %;
 % ??       %;							\ ( r # -- #-1 )	Frees the parameter
 % ..       ⊻ %;							\ ( r # -- #-1 )	Frees the parameter
 % .        ⊻ %;							\ ( r # -- #-1 )	Frees the parameter
@@ -452,27 +451,21 @@ $ <
 
 $ sar								\ ( rd-orig rd-alloc rshift # -- <unchanged> )
 	{
-	.((
-		.--- ." 0"
-		<<<  .--- ." 1"					\ ( rshift rd-orig rd-alloc )
-		|| <> .--- ." 2"  if
-		|| .--- .mov.rr ."  3"
-		else
-		.--- ." A"
+		<<<						\ ( rshift rd-orig rd-alloc )
+		|| <> if
+		|| .(( .--- .mov.rr ).( ¦ mov, ))
 		then
-		>>> .--- ." B"					\ ( rd-orig rd-alloc rshift )
+		>>>						\ ( rd-orig rd-alloc rshift )
 		| rcx <> if
-		| .--- rcx .mov.rr
-		else
-		.--- ." C"
+		.(( .--- " push" .inst rcx .r ).( rcx push, ))
+		| .(( .--- rcx .mov.rr ).( rcx ¦ mov, ))
+		then
+		|| >< 
+		.(( .--- " sar" .inst .r, rcx .r.b ).( sar, ))
+		rcx <> if 
+		.(( .--- " pop" .inst rcx .r ).( rcx pop, ))
 		then
 
-
-		
-		|| >< .--- " sar" .inst .r, _ rcx .r.b
-	).(
-		
-	))
 	} $;
 
 $ +
