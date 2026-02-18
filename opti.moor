@@ -441,7 +441,7 @@ $ <
 	|
 	.((
 		| .---  " setf.l" .inst .r.b
-		| .---  " movzx" .inst | .r, .r.b
+		| .---  " movzx" .inst .r, .r.b
 	).(
 		| .l setf,
 		| movzx,
@@ -828,13 +828,11 @@ $ (repeat-post) $;
            ( :xt )
            :xt opt-definition !
 
-           1 opt-debug !
-
-	   cr white ." PASS=0 Register allocation" norm
+           0 opt-debug !
+	   cr white ." PASS=0a Register allocation" norm
 	   OPT-PASS-INITCODEGEN opt-pass !
 	   0 opt-index !
 	   0 opt-index-word !
-
 	   tmp-stack dirupload
 	   cr %.S
 	   :xt regalloc
@@ -859,7 +857,7 @@ $ (repeat-post) $;
 	   cr .dump
 	
            0 opt-debug !
-	   cr white ." PASS=1b Initial code generation" norm
+	   cr white ." PASS=1b Branch length optimization" norm
 	   OPT-PASS-BRANCHLEN opt-pass !
 	   0 opt-index !
 	   0 opt-index-word !
