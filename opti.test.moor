@@ -44,6 +44,7 @@
 : fill4		( :a :n :c ) :n if :c emit then return ;
 : emit1		41 42 43 emit emit emit cr ;
 : sar1		200 3 sar emit cr ;
+: sar2		1 200 | { 3 sar } + 201 - emit cr ;
 : andor1	1 3 and 2 or 40 + emit ;
 : orand1	1 3 or 2 and 40 + emit ;
 : pp1		1 3 + 2 + 40 + emit ;
@@ -60,6 +61,7 @@
 : opti-fill	3 ['] fill	optimize! ;
 : opti-emit1	0 ['] emit1	optimize! ;
 : opti-sar1	0 ['] sar1	optimize! ;
+: opti-sar2	0 ['] sar2	optimize! ;
 : opti-andor1	0 ['] andor1	optimize! ;
 : opti-orand1	0 ['] orand1	optimize! ;
 : opti-pp1	0 ['] pp1	optimize! ;

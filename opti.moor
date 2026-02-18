@@ -38,7 +38,7 @@ interpretation latest behavior REGALLOCING latest does
            0add bada110c .abort
            then >< _ #regs >< - | ^ ;
 : ∧        | ^ ;						\ ( r -- r )		Increments reference count for a register, leaving register on the stack
-: ∨        v ;
+: ∨        v ;							\ ( r -- )		Decrements reference count for a register
 : |∨       | v ;						\ ( r -- r )		Decrement reference count for a register, leaving register on the stack
 : ∨∧       | v^ ;						\ ( r -- r 1|0 )	Free register and reallocate it, if it's not aliased. If aliased, returns 1
 : ?∧       ?^ ;
@@ -330,13 +330,16 @@ $ assm     $;
 % <        { %alloc-rd } 1+ ;%					\ ( rs1 rs2 # -- rs1 rs2 rd #+1 )
 	   { { _ _ } } 1- 1- ;%;				\ ( -- rd #-1 )
 
-% sar      ;%							\ ( rshift rd # -- rshift rd # )
-	   { >< ∨ } 1- ;%;				        \ ( -- #-1 )
+% sar      							\ ( rd rshift # -- rd rd' rshift #+1 )
+           { { 
+	   | | rcx = if ∨?∧ then
+	   } } 1+ ;%
+	   { ∨ >< _ } 1- 1- ;%;				        \ ( rd'#-1 )
 
 % 1+       { | ∨?∧ } ;% { >< _ } ;%;				\ 			Increment and decrement do not change register allocation
 % 1-       { | ∨?∧ } ;% { >< _ } ;%;				\			Although, a new register is allocated if the destination is aliased
 
-% c!       ;% ⊻ ⊻ ;%;			 		\ ( rs rd # -- #-2 )
+% c!       ;% ⊻ ⊻ ;%;			 			\ ( rs rd # -- #-2 )
 
 								\\ Stubs to ignore debug output words in the optimizer for now
 % ,        ⊻ %;							\ ( r # -- #-1 )	Frees the parameter
@@ -447,7 +450,30 @@ $ <
 
 	} $;
 
-$ sar	{ } $;
+$ sar								\ ( rd-orig rd-alloc rshift # -- <unchanged> )
+	{
+	.((
+		.--- ." 0"
+		<<<  .--- ." 1"					\ ( rshift rd-orig rd-alloc )
+		|| <> .--- ." 2"  if
+		|| .--- .mov.rr ."  3"
+		else
+		.--- ." A"
+		then
+		>>> .--- ." B"					\ ( rd-orig rd-alloc rshift )
+		| rcx <> if
+		| .--- rcx .mov.rr
+		else
+		.--- ." C"
+		then
+
+
+		
+		|| >< .--- " sar" .inst .r, _ rcx .r.b
+	).(
+		
+	))
+	} $;
 
 $ +
 	{ >>> >|>| - if <<< >|>| -				\ ( rs1 rs2 rd )	Assemble +
@@ -809,7 +835,7 @@ $ (repeat-post) $;
            ( :xt )
            :xt opt-definition !
 
-           0 opt-debug !
+           1 opt-debug !
 
 	   cr white ." PASS=0 Register allocation" norm
 	   OPT-PASS-INITCODEGEN opt-pass !
