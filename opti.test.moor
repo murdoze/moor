@@ -3,9 +3,7 @@
 \\
 
 \\ TODO
-\ uemit3 -- wrong result
-\ uemit1 -- wrong result and crash
-\ if3, if4 -- make different paths and compare optimized and non-optimized code
+\ [!] uemit1 -- crash
 
 : optimize!
 	( :#params :xt )
@@ -29,7 +27,14 @@
 : if0		0 if then ;
 : if1		1 2 - if 0 else 1 then 30 + emit cr ;
 : if2		1 2 < if 0 else 1 then 30 + emit cr ;
-: if3		1 if 2 else 3 if 4 else 5 then then _ ;
+: if3		
+  | 1 and if 41 else 
+  | 2 and if 44 else 
+  45 then then emit cr _ ;
+: if4
+  | if 41 else 
+  | if 44 else 
+  45 then then emit cr _ ;
 : iflong1	0 if 
 			41 emit 41 emit 41 emit 41 emit 41 emit 41 emit 41 emit 41 emit 41 emit 41 emit 41 emit 41 emit 
 			41 emit 41 emit 41 emit 41 emit 41 emit 41 emit 41 emit 41 emit 41 emit 41 emit 41 emit 41 emit 
@@ -64,10 +69,6 @@
   | 10000 < if 43 else
   | 110000 < if 44 else
   45 then then then then emit cr ;
-: if4 1		
-  | if 1 else 
-  | if 4 else 
-  5 then then 30 + emit _ ;
 
 
 : opti-fib	1 ['] fib	optimize! ;
@@ -94,8 +95,8 @@
 : opti-if0	0 ['] if0	optimize! ;
 : opti-if1	0 ['] if1	optimize! ;
 : opti-if2	0 ['] if2	optimize! ;
-: opti-if3	0 ['] if3	optimize! ;
-: opti-if4	0 ['] if4	optimize! ;
+: opti-if3	1 ['] if3	optimize! ;
+: opti-if4	1 ['] if4	optimize! ;
 : opti-iflong1	0 ['] iflong1	optimize! ;
 : opti-for1	1 ['] for1	optimize! ;
 : opti-for2	1 ['] for2	optimize! ;
@@ -104,6 +105,8 @@
 : opti-fill4	3 ['] fill4	optimize! ;
 
 : type-fill2	~Adr ~Number ~Number ['] fill2 typecheck ;
+: type-if3	~Number ['] if3 typecheck ;
+: type-if4	~Number ['] if4 typecheck ;
 
 maze
 : opti-MAZE	0 ['] MAZE	optimize! ;
