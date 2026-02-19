@@ -16,10 +16,12 @@
 
 : Texit		compile typechecking!! compile exit ; immediate
 
-interpretation ' exit 	        behavior typechecking ' exit           does
-interpretation ' interpreting!  behavior typechecking ' interpreting!  does
-interpretation ' (interpreting) behavior typechecking ' (interpreting) does
-interpretation ' typechecking!!  behavior typechecking ' typechecking!!  does
+interpretation ' (beginning) 	behavior  typechecking ' (beginning)    does
+interpretation ' exit  	        behavior  typechecking ' exit           does \\ TODO: need to understand how exit and (ending) cooperate
+interpretation ' exit 		behavior  typechecking ' (ending)       does
+interpretation ' interpreting!  behavior  typechecking ' interpreting!  does
+interpretation ' (interpreting) behavior  typechecking ' (interpreting) does
+interpretation ' typechecking!! behavior  typechecking ' typechecking!! does
 
 								\\ Type registration
 :: TMASK	88_00_00_00 val
