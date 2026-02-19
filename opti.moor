@@ -188,6 +188,14 @@ interpretation ' exit behavior REGALLOCING ' exit does
 interpretation ' exit behavior ASSEMBLING ' exit does
 interpretation ' exit behavior DEALLOCING ' exit does
 
+interpretation ' (beginning) behavior REGALLOCING ' (beginning) does
+interpretation ' (beginning) behavior ASSEMBLING ' (beginning) does
+interpretation ' (beginning) behavior DEALLOCING ' (beginning) does
+
+interpretation ' (ending) behavior REGALLOCING ' (ending) does
+interpretation ' (ending) behavior ASSEMBLING ' (ending) does
+interpretation ' (ending) behavior DEALLOCING ' (ending) does
+
 interpretation ' interpreting! behavior REGALLOCING ' interpreting! does
 interpretation ' interpreting! behavior ASSEMBLING ' interpreting! does
 interpretation ' interpreting! behavior DEALLOCING ' interpreting! does
