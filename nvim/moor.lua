@@ -553,8 +553,6 @@ vim.keymap.set("n", "LL", function()
   vim.cmd("wqa")
 end)
 
-hex = require'hex'
-
 --
 -- MOOR API
 --
