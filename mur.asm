@@ -215,6 +215,9 @@ _do_trace:
 	lea	rtmp, [rip + _beginning_]
 	cmp	rwork, rtmp
 	je	99f
+	lea	rtmp, [rip + _ending_]
+	cmp	rwork, rtmp
+	je	99f
 	lea	rtmp, [rip + exit]
 	cmp	rwork, rtmp
 	je	99f
