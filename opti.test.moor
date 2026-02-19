@@ -32,9 +32,9 @@
   | 2 and if 44 else 
   45 then then emit cr _ ;
 : if4
-  | if 41 else 
-  | if 44 else 
-  45 then then emit cr _ ;
+  | 1 < if 41 else 
+  | 2 < if 42 else 
+  43 then then emit cr _ ;
 : iflong1	0 if 
 			41 emit 41 emit 41 emit 41 emit 41 emit 41 emit 41 emit 41 emit 41 emit 41 emit 41 emit 41 emit 
 			41 emit 41 emit 41 emit 41 emit 41 emit 41 emit 41 emit 41 emit 41 emit 41 emit 41 emit 41 emit 
@@ -68,7 +68,29 @@
   | 800 < if 42 else
   | 10000 < if 43 else
   | 110000 < if 44 else
-  45 then then then then emit cr ;
+  45 then then then then emit _ cr ;
+
+: uemit4
+  | 80 < if _ 41 emit  else
+  | 800 < if _ 42 43 emit emit 41 emit 41 emit 41 emit 41 emit 41 emit 41 emit 41 emit 41 emit 41 emit 41 emit 41 emit 41 emit else
+  | 10000 < if _ 43 44 45 emit emit emit 41 emit 41 emit 41 emit 41 emit 41 emit 41 emit 41 emit 41 emit 41 emit 41 emit 41 emit 41 emit else
+  | 110000 < if _ 44 45 46 47 emit emit emit emit 41 emit 41 emit 41 emit 41 emit 41 emit 41 emit 41 emit 41 emit 41 emit 41 emit 41 emit 41 emit else
+  _ 45 emit then then then then cr ;
+
+: 6lsb0 | 3f and >< 2/ 2/ 2/ 2/ 2/ 2/ ;
+: 6lsb1 | >< 2/ ;
+: ++ 1 + ;
+: uemit0
+  | 80 < if _ 41 emit else
+  | 800 < if _ 42 emit else
+  | 10000 < if _ 43 emit else
+  | 110000 < if | >< ++ emit emit else
+  _ 30 emit then 31 emit then 32 emit then 33 emit then cr ;
+
+\\ TODO: branch offsets wrong !!!
+: if5	| if ++ then 30 + emit cr ;
+: if6	| if 1+ then 30 + emit cr ;
+
 
 
 : opti-fib	1 ['] fib	optimize! ;
@@ -91,12 +113,16 @@
 : opti-u2emit1	0 ['] u2emit1	optimize! ;
 : opti-u2emit2	0 ['] u2emit2	optimize! ;
 : opti-uemit3	1 ['] uemit3	optimize! ;
+: opti-uemit4	1 ['] uemit4	optimize! ;
+: opti-uemit0	1 ['] uemit0	optimize! ;
 
 : opti-if0	0 ['] if0	optimize! ;
 : opti-if1	0 ['] if1	optimize! ;
 : opti-if2	0 ['] if2	optimize! ;
 : opti-if3	1 ['] if3	optimize! ;
 : opti-if4	1 ['] if4	optimize! ;
+: opti-if5	1 ['] if5	optimize! ;
+: opti-if6	1 ['] if6	optimize! ;
 : opti-iflong1	0 ['] iflong1	optimize! ;
 : opti-for1	1 ['] for1	optimize! ;
 : opti-for2	1 ['] for2	optimize! ;

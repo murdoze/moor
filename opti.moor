@@ -81,7 +81,7 @@ interpretation latest behavior REGALLOCING latest does
 								\\ Variables
 :: opt-definition   0 var					\ Definition currently being optimized
 :: opt-debug        0 var					\ Specifies whether debug output is enabled
-:: opt-index        0 var					\ Index inside current word, for branch visualization
+:: opt-index        0 var					\ Index inside current word
 :: opt-index-word   0 var					\ Index of the beginning of the word
 :: opt-index-last   0 var					\ Last index in the current register allocation and assembling invocation
 :: opt-lit          0 var					\ Holds 1-cell literal, offset or other data between regallocing and assembling
