@@ -14,10 +14,10 @@
 
 : typechecking!!	typechecking state!! ;
 
-: Texit		compile typechecking!! compile exit ; immediate
+: Texit		compile typechecking!! compile exit compile (ending) ; immediate
 
 interpretation ' (beginning) 	behavior  typechecking ' (beginning)    does
-interpretation ' exit  	        behavior  typechecking ' exit           does \\ TODO: need to understand how exit and (ending) cooperate
+interpretation ' dummy	        behavior  typechecking ' exit           does \\ TODO: need to understand how exit and (ending) cooperate
 interpretation ' exit 		behavior  typechecking ' (ending)       does
 interpretation ' interpreting!  behavior  typechecking ' interpreting!  does
 interpretation ' (interpreting) behavior  typechecking ' (interpreting) does
@@ -318,4 +318,10 @@ T: s>		?Tstack ?T ~Adr ...;T
 	TEST" 📝 Val1"	['] test-val1 typecheck ?SUCCEEDED
 	TEST" 📝 Adr1"	['] test-adr1 typecheck ?SUCCEEDED 
 ;
+
+: t-emit1 31 emit ;
+: t-emit2 emit ;
+
+: type-emit1 ['] t-emit1 typecheck ;
+: type-emit2 ~Number ['] t-emit2 typecheck ;
 
