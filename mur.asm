@@ -212,6 +212,9 @@ _do_trace:
 	lea	rtmp, [rip + _interpreting__]
 	cmp	rwork, rtmp
 	je	99f
+	lea	rtmp, [rip + _beginning_]
+	cmp	rwork, rtmp
+	je	99f
 	lea	rtmp, [rip + exit]
 	cmp	rwork, rtmp
 	je	99f
@@ -889,7 +892,7 @@ word	thread,,, thread, thread
 
 # EXIT
 # Exit current Forth word and return the the caller
-word	exit,,, exit, exit, _decomp_exit, 0, _exit_regalloc, 0
+word	exit,,, exit, exit,,, _exit_regalloc, 0
 _exit_regalloc:
 	jmp	_exit
 
@@ -2126,7 +2129,7 @@ _create:
 	.quad	does
 
 	.quad	lit, 0
-	.quad	lit, _decomp
+	.quad	lit, _decomp_code
 	.quad	lit, DECOMPILING
 	.quad	latest
 	.quad	does
@@ -2209,12 +2212,23 @@ _does1:
 
 	ret
 
+# (beginning)
+# Marker of the beginning of a word
+word _beginning_, "(beginning)"
+	ret
+
+# (ending)
+# Marker of the ending of a word
+word _ending_, "(ending)",,,,_decomp_exit, 0, _exit_regalloc, 0
+	ret
+
 # : ( "<name>" -- )
 # Creates a Forth word
 word	colon, ":",, forth
 _colon:
 	.quad	header
 	.quad	forthword
+	.quad	compile, _beginning_
 	.quad	bracket_close
 	.quad	exit
 
@@ -2224,6 +2238,7 @@ word	semicolon, "\x3b", immediate, forth
 _semicolon:
 	.quad	qcomp
 	.quad	compile, exit
+	.quad	compile, _ending_
 	.quad	bracket_open
 	.quad	exit
 
