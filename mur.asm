@@ -3,6 +3,11 @@
 
 	.globl _start
 
+.ifdef	DYNAMIC
+	.extern dlopen
+	.extern dlsym
+.endif
+
 .text	
 	.equ	STATES, 16	/* Number of possible address interpreter states */
 	.equ	INTERPRETING, 0
@@ -19,7 +24,6 @@
 	.equ	rhere, rdi	/* Do not change! STOSx instructions are used */
 	.equ	rindex, r10	/* Loop end and index values */
 				/* R11 is clobbered by syscalls ix x64 Linux ABI */
-	.equ	rend, r12
 	.equ	rnext, r13
 	.equ	rstack0, r15
 
@@ -31,6 +35,7 @@
 	.align	4096
 _start:
 	jmp	_start1
+
 
 # Baremetal API
 	RUNMODE_LINUXUSR	= 0
@@ -212,12 +217,14 @@ _do_trace:
 	lea	rtmp, [rip + _interpreting__]
 	cmp	rwork, rtmp
 	je	99f
+	/*
 	lea	rtmp, [rip + _beginning_]
 	cmp	rwork, rtmp
 	je	99f
 	lea	rtmp, [rip + _ending_]
 	cmp	rwork, rtmp
 	je	99f
+	*/
 	lea	rtmp, [rip + exit]
 	cmp	rwork, rtmp
 	je	99f
@@ -689,7 +696,7 @@ _sigsegv_restorer:
 #
 	latest_word	= 0
 
-.macro	reserve_cfa does, reserve=(STATES - 3)
+.macro	reserve_cfa does, reserve=(STATES - 4)
 	# Execution semantics can be either code or Forth word
 
 	# Compilation semantics inside Forth words is the same: compile adress of XT
@@ -716,6 +723,16 @@ _sigsegv_restorer:
 	.quad	latest_word	/* LFA */
 
 	reserve_cfa
+
+	# DECOMPILING
+.ifc "\regalloc", ""
+	.quad	_state_notimpl
+	.quad	0
+.else
+	.quad	\regalloc
+	.quad	\regalloc_param
+.endif
+
 
 	# DECOMPILING
 .ifc "\decomp", ""
@@ -2217,13 +2234,34 @@ _does1:
 
 # (beginning)
 # Marker of the beginning of a word
-word _beginning_, "(beginning)"
+word _beginning_, "(beginning)",,,,,, _beginning_regalloc, 0
 	ret
+_beginning_regalloc:
+	call	_dup
+	lea	rtop, qword ptr [rip + .L_errm222]
+	call	_count
+	call	_type
+	jmp	rnext
+.L_errm222:
+	.byte .L_errm222$ - .L_errm222 - 1
+	.ascii	"\r\n\x1b[31mBEGINNING! \x1b[0m\x1b[33m \x1b[1m\x1b[7m { \x1b[0m "
+.L_errm222$:
 
 # (ending)
 # Marker of the ending of a word
-word _ending_, "(ending)",,,,_decomp_exit, 0, _exit_regalloc, 0
+word _ending_, "(ending)",,,,,, _ending_regalloc, 0
 	ret
+_ending_regalloc:
+	call	_dup
+	lea	rtop, qword ptr [rip + .L_errm111]
+	call	_count
+	call	_type
+	jmp	rnext
+.L_errm111:
+	.byte .L_errm111$ - .L_errm111 - 1
+	.ascii	"\r\n\x1b[31m   ENDING! \x1b[0m\x1b[33m \x1b[1m\x1b[7m } \x1b[0m \r\n"
+.L_errm111$:
+
 
 # : ( "<name>" -- )
 # Creates a Forth word
@@ -2240,8 +2278,8 @@ _colon:
 word	semicolon, "\x3b", immediate, forth
 _semicolon:
 	.quad	qcomp
-	.quad	compile, exit
 	.quad	compile, _ending_
+	.quad	compile, exit
 	.quad	bracket_open
 	.quad	exit
 
@@ -3286,6 +3324,45 @@ word	vimloop,,, forth
 
 .endif
 
+.ifdef	DYNAMIC
+
+.macro	save_moor_regs
+	push	rsi
+	push	rdi
+	push	r8
+	push	r10
+
+	mov	rax, rsp
+	and	rax, 15
+	sub	rsp, rax
+	push	rax
+	push	rax
+.endm
+
+.macro	restore_moor_regs
+	pop	rax
+	pop	rax
+	add	rsp, rax 
+
+	pop	r10
+	pop	r8
+	pop	rdi
+	pop	rsi
+.endm
+
+# DLOPEN ( "<dl-name>\0" -- Handle|0 )
+# Open dynamic library
+word	__dlopen, "dlopen"
+	save_moor_regs
+
+	mov	rdi, rtop
+	mov	rsi, 1	# RTLD_LAZY
+	call	dlopen
+	mov	rtop, rax
+
+	restore_moor_regs
+	ret
+.endif
 
 # LATEST
 	.endfunc
