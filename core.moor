@@ -43,7 +43,6 @@
 : rindex   0a ;							\ r10 = rindex
 : r10      0a ;							\ r10 = rindex
 : r11      0b ;							\ r11
-: rend     0c ;							\ r12 = rend
 : rnext    0d ;							\ r13 = rnext
 : rstack0  0f ;							\ r15 = rstack0
 
@@ -399,7 +398,7 @@
 :: negate  code rtop neg, ret,
 
 : syscall, 0f ` 05 ` ;
-:: syscall code rax rtop mov, syscall, rtop rax mov, ret,
+:: syscall code rax rtop mov, syscall, rtop rax mov, ret,	\\ TODO: save R8, R10 and other registers except RBX, RBP and R12-R15
 :: syscall1 code rdi push,
             rax rtop mov, _, rdi rtop mov,
             syscall,
