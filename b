@@ -34,6 +34,11 @@ ld mur.o -N -o mur
 mv mur moorst
 
 rm mur.o
+as mur.asm --defsym ORG=0 --defsym TRACE=1 --defsym BOOT_SOURCE=1 --defsym DYNAMIC=1 -n -g -O0 --64 -am -amhls=mur.lst -o mur.o
+ld -T mur.ld mur.o -o mur --dynamic-linker=/lib64/ld-linux-x86-64.so.2 -L/lib/x86_64-linux-gnu -L/usr/lib/x86_64-linux-gnu -lc -lGL
+mv mur moorlst
+
+rm mur.o
 as mur.asm --defsym ORG=0 --defsym DEBUG=1 --defsym TRACE=1 --defsym BOOT_SOURCE=1 -n -g -O0 --64 -am -amhls=mur.lst -o mur.o
 ld mur.o -N -o mur
 mv mur moorsdt
