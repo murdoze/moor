@@ -14,14 +14,14 @@
 
 : typechecking!!	typechecking state!! ;
 
-: Texit		compile typechecking!! compile exit compile (ending) ; immediate
-
 interpretation ' (beginning) 	behavior  typechecking ' (beginning)    does
-interpretation ' dummy	        behavior  typechecking ' exit           does \\ TODO: need to understand how exit and (ending) cooperate
+interpretation ' dummy	        behavior  typechecking ' exit           does
 interpretation ' exit 		behavior  typechecking ' (ending)       does
 interpretation ' interpreting!  behavior  typechecking ' interpreting!  does
 interpretation ' (interpreting) behavior  typechecking ' (interpreting) does
 interpretation ' typechecking!! behavior  typechecking ' typechecking!! does
+
+: Texit		compile typechecking!! compile (ending) ; immediate
 
 								\\ Type registration
 :: TMASK	88_00_00_00 val
