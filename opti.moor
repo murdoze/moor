@@ -263,13 +263,11 @@ interpretation ' interpreting! behavior DEALLOCING ' interpreting! does
 interpretation ' trace behavior REGALLOCING ' trace does
 
 :: opt-index-stack 8 stack
-\ : >opt-index	opt-index @ opt-index-stack >s 0 opt-index ! ;
-\ : opt-index>	opt-index-stack s> | opt-index ! opt-index-word ! ;
-: >opt-index	opt-index @ opt-index-stack >s ;
-: opt-index>	opt-index-stack s> _ ;
+: >opt-index	opt-index @ opt-index-stack >s 0 opt-index ! ;
+: opt-index>	opt-index-stack s> opt-index ! ;
 
-here exec REGALLOCING ' (beginning) ] interpreting! cr ." BEGINNING" cr >opt-index REGALLOCING state!! xexit [ does
-here exec REGALLOCING ' (ending)    ] interpreting! cr ."    ENDING" cr opt-index> r> _ REGALLOCING state!! xexit [ does
+here exec REGALLOCING ' (beginning) ] interpreting! >opt-index      REGALLOCING state!! xexit [ does
+here exec REGALLOCING ' (ending)    ] interpreting! opt-index> r> _ REGALLOCING state!! xexit [ does
 
 \\ \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
@@ -697,7 +695,7 @@ $ (if)     { | |
 	   } $;
 $ (if-post) $;
 
-$ ?branch  ." AAAA"  opt-branch @ opt-index @ +
+$ ?branch  opt-branch @ opt-index @ +
            .(( " jz " .inst .label
 	   ).(
 	   opt-pass @
@@ -705,19 +703,16 @@ $ ?branch  ." AAAA"  opt-branch @ opt-index @ +
 	   	0 .z lj, branch-mark
 	   else
 	   | OPT-PASS-BRANCHLEN = if _
-	   	." 111"
-	   	| label-offset@ ." 222"
-		ofs-is-long if ." 333" label-offset@ here 6 + start-adr @ - - .z lj, 
+	   	| label-offset@ 
+		ofs-is-long if label-offset@ here 6 + start-adr @ - - .z lj, 
 		else
-		." 444"
-		opt-index-word @ | . branch-is-short@ | . if else ." 555" -4 opt-index-word @ 1+ ." 666" shift-label-offsets ." 777" opt-index-word @ branch-is-short! ." 888" then
-		label-offset@ ." 999"
+		opt-index-word @ branch-is-short@ if else -4 opt-index-word @ 1+ shift-label-offsets opt-index-word @ branch-is-short! then
+		label-offset@ 
 		here 2 + start-adr @ - - .z j, 
 		then
 	   then 
 	   then 
 	   ))
-	   ." BBB"
 	   $;
 
 $ -?branch opt-branch @ opt-index @ +

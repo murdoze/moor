@@ -88,8 +88,14 @@
   _ 30 emit then 31 emit then 32 emit then 33 emit then cr ;
 
 \\ TODO: branch offsets wrong !!!
-: if5	| if ++ then 30 + emit cr ;
-: if6	| if 1+ then 30 + emit cr ;
+: if5	| if ++ then 30 + emit cr noop ;
+: if6	| if 1+ then 30 + emit cr noop ;
+: if7   | if if5 else 41 + emit cr then noop ;
+: if8   | if | if ++ then 30 + emit cr noop else 30 + emit cr then noop ;
+
+: if90  | if 5 else 6 then ;
+: if9   | if if90 else 9 then 30 + emit ;
+
 : noop1 ++ ;
 : noop2 noop ;
 : noop3 ;
@@ -125,6 +131,9 @@
 : opti-if4	1 ['] if4	optimize! ;
 : opti-if5	1 ['] if5	optimize! ;
 : opti-if6	1 ['] if6	optimize! ;
+: opti-if7	1 ['] if7	optimize! ;
+: opti-if8	1 ['] if8	optimize! ;
+: opti-if9	1 ['] if9	optimize! ;
 : opti-noop1	1 ['] noop1	optimize! ;
 : opti-noop2	1 ['] noop2	optimize! ;
 : opti-noop3	1 ['] noop3	optimize! ;
