@@ -597,6 +597,7 @@ decompilation ' branch behavior  decompilation ' (-leave) does
 								\\ Memory									_memory
 : fill     <<< for >|>| c! 1+ over _ _ ;			\ ( a n c -- )		Fill N bytes from address A with character C
 : 1+!      | @ 1+ >< ! ;				 	\ ( a -- )		Increment variable at A
+: 1-!      | @ 1- >< ! ;				 	\ ( a -- )		Decrement variable at A
 : >2^	   1-							\ ( n -- n' )		Align N up to nearest power of 2
            | 1 sar or | 2 sar or | 4 sar or
 	   | 8 sar or | 10 sar or | 20 sar or
