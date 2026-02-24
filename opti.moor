@@ -9,14 +9,14 @@
 ' : : :		[ compile, ] 
 		interpretation latest behavior REGALLOCING latest does ;
 
-: REGALLOCING!! REGALLOCING state!! ;
+: REGALLOCING!! REGALLOCING state!! xexit [			\ ';' is not used to avoid execution of (ending)
 interpretation latest behavior REGALLOCING latest does
 interpretation latest behavior ASSEMBLING  latest does
 
-: ASSEMBLING!! ASSEMBLING state!! ;
+: ASSEMBLING!! ASSEMBLING state!! xexit [
 interpretation latest behavior REGALLOCING latest does
 
-: DEALLOCING!! DEALLOCING state!! ;
+: DEALLOCING!! DEALLOCING state!! xexit [
 interpretation latest behavior REGALLOCING latest does
 
 : regalloc 							\ ( xt -- )		Run XT in REGALLOCING state
@@ -28,8 +28,10 @@ interpretation latest behavior REGALLOCING latest does
 :: used-regs adr #regs allot					\ Used registers
 :: save-regs adr #regs allot					\ Save registers
 : #r       regs + c@ ;						\ ( r -- #r )		Returns number of references for a register
-: ^        | regs + | c@ 1+ >< c!  used-regs + 1 >< c! ;	\ ( r -- )		Increments reference count for a register. TODO: Add overflow/underflow checks
-: v        regs + | c@ | if 1- >< c!				\ ( r -- )		Decrements reference count for a register. TODO: Or just use cells, not bytes
+: ^        | #regs >= if . abort" invalid register" then
+           | regs + | c@ 1+ >< c!  used-regs + 1 >< c! ;	\ ( r -- )		Increments reference count for a register. TODO: Add overflow/underflow checks
+: v        | #regs >= if . abort" invalid register" then
+           regs + | c@ | if 1- >< c!				\ ( r -- )		Decrements reference count for a register. TODO: Or just use cells, not bytes
            else a11a501 .abort then ;
 : v^       regs + | c@ | if 1- | if >< c! 0 else _ _ 1 then 	\ ( r -- 1|0 )		If register is not aliased, then it can be reused
            else a11a502 .abort then ;
@@ -182,33 +184,18 @@ interpretation latest behavior REGALLOCING latest does
            here exec ASSEMBLING ' does
 	   compile interpreting!
 	   ] ;
-: $;       compile ASSEMBLING!! compile exit [compile] [ ; immediate
-
-interpretation ' exit behavior REGALLOCING ' exit does
-interpretation ' exit behavior ASSEMBLING ' exit does
-interpretation ' exit behavior DEALLOCING ' exit does
-
-interpretation ' (beginning) behavior REGALLOCING ' (beginning) does
-interpretation ' (beginning) behavior ASSEMBLING ' (beginning) does
-interpretation ' (beginning) behavior DEALLOCING ' (beginning) does
-
-interpretation ' (ending) behavior REGALLOCING ' (ending) does
-interpretation ' (ending) behavior ASSEMBLING ' (ending) does
-interpretation ' (ending) behavior DEALLOCING ' (ending) does
-
-interpretation ' interpreting! behavior REGALLOCING ' interpreting! does
-interpretation ' interpreting! behavior ASSEMBLING ' interpreting! does
-interpretation ' interpreting! behavior DEALLOCING ' interpreting! does
+: $;       compile ASSEMBLING!! compile xexit [compile] [ ; immediate
 
 : assm     ;
 $ assm     $;
 
-: %        here exec REGALLOCING ' | >r does 			\ ( "<name>" --  )	Creates new semantics for register allocation state,
+: %        
+           here exec REGALLOCING ' | >r does 			\ ( "<name>" --  )	Creates new semantics for register allocation state,
            ASSEMBLING     ['] assm behavior ASSEMBLING r> | >r does
            interpretation ['] assm behavior DEALLOCING r> | >r does r>
            compile interpreting! 				\			which equals to execution semantics of its constituents
+	   \ compile (beginning)
 	   | opt-xt !
-
 	   compile label-offset! 
 	   compile opt-index-word! 
 
@@ -234,7 +221,9 @@ $ assm     $;
 
 	   compile REGALLOCING!!
 
-	   compile exit [compile] [ ; immediate
+	   compile xexit 
+	   [compile] [
+; immediate
 
 : ;%								\			Finish REGALLOCING definition and start DEALLOCING definition
            [compile] %;
@@ -245,10 +234,45 @@ $ assm     $;
 : ;%;
 	   compile REGALLOCING!!
 
-	   compile exit [compile] [ ; immediate
+	   compile xexit [compile] [ ; immediate
 
-% noop %;
 	   							\\ Register allocation primitives
+% noop %;
+
+								\\ Nested words
+interpretation ' noop behavior REGALLOCING ' exit does
+interpretation ' noop behavior ASSEMBLING ' exit does
+interpretation ' noop behavior DEALLOCING ' exit does
+
+interpretation ' exit behavior REGALLOCING ' xexit does
+interpretation ' exit behavior ASSEMBLING ' xexit does
+interpretation ' exit behavior DEALLOCING ' xexit does
+
+\ interpretation ' (beginning) behavior REGALLOCING ' (beginning) does
+interpretation ' (beginning) behavior ASSEMBLING ' (beginning) does
+interpretation ' (beginning) behavior DEALLOCING ' (beginning) does
+
+\ interpretation ' (ending) behavior REGALLOCING ' (ending) does
+\ interpretation ' exit behavior ASSEMBLING ' (ending) does
+interpretation ' exit behavior DEALLOCING ' (ending) does
+
+interpretation ' interpreting! behavior REGALLOCING ' interpreting! does
+interpretation ' interpreting! behavior ASSEMBLING ' interpreting! does
+interpretation ' interpreting! behavior DEALLOCING ' interpreting! does
+
+interpretation ' trace behavior REGALLOCING ' trace does
+
+:: opt-index-stack 8 stack
+\ : >opt-index	opt-index @ opt-index-stack >s 0 opt-index ! ;
+\ : opt-index>	opt-index-stack s> | opt-index ! opt-index-word ! ;
+: >opt-index	opt-index @ opt-index-stack >s ;
+: opt-index>	opt-index-stack s> _ ;
+
+here exec REGALLOCING ' (beginning) ] interpreting! cr ." BEGINNING" cr >opt-index REGALLOCING state!! xexit [ does
+here exec REGALLOCING ' (ending)    ] interpreting! cr ."    ENDING" cr opt-index> r> _ REGALLOCING state!! xexit [ does
+
+\\ \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
 								\\ Register allocation
 % |        1+ { | ∧ } %;					\ ( r # -- r r #+1 )	Duplicates register (creates an alias)
 % _        ⊻ %;							\ ( r # -- #-1)
@@ -673,7 +697,7 @@ $ (if)     { | |
 	   } $;
 $ (if-post) $;
 
-$ ?branch  opt-branch @ opt-index @ +
+$ ?branch  ." AAAA"  opt-branch @ opt-index @ +
            .(( " jz " .inst .label
 	   ).(
 	   opt-pass @
@@ -681,16 +705,19 @@ $ ?branch  opt-branch @ opt-index @ +
 	   	0 .z lj, branch-mark
 	   else
 	   | OPT-PASS-BRANCHLEN = if _
-	   	| label-offset@
-		ofs-is-long if label-offset@ here 6 + start-adr @ - - .z lj, 
+	   	." 111"
+	   	| label-offset@ ." 222"
+		ofs-is-long if ." 333" label-offset@ here 6 + start-adr @ - - .z lj, 
 		else
-		opt-index-word @ branch-is-short@ if else -4 opt-index-word @ 1+ shift-label-offsets opt-index-word @ branch-is-short! then
-		label-offset@
+		." 444"
+		opt-index-word @ | . branch-is-short@ | . if else ." 555" -4 opt-index-word @ 1+ ." 666" shift-label-offsets ." 777" opt-index-word @ branch-is-short! ." 888" then
+		label-offset@ ." 999"
 		here 2 + start-adr @ - - .z j, 
 		then
 	   then 
 	   then 
 	   ))
+	   ." BBB"
 	   $;
 
 $ -?branch opt-branch @ opt-index @ +
@@ -829,7 +856,7 @@ $ (repeat-post) $;
 	   0 opt-index-word !
            cr %.S
 	   ' regalloc
-	   ['] exit %.debug %.S %.used-regs
+	   \\ ['] exit %.debug %.S %.used-regs
 ;
 
 : optimize 
@@ -846,7 +873,7 @@ $ (repeat-post) $;
 	   :xt regalloc
 	   opt-index-word @ 1+ opt-index-last !
 	   fixup-branches
-	   ['] exit %.debug %.S cr %.used-regs cr %.S
+	   ['] noop %.debug %.S cr %.used-regs cr %.S
 	   cr .dump
 
            1 opt-debug !
@@ -861,7 +888,7 @@ $ (repeat-post) $;
 	   cr %.S
 	   start-adr @ here!
 	   :xt regalloc
-	   ['] exit %.debug %.S %.used-regs
+	   \\ ['] exit %.debug %.S %.used-regs
 	   cr .dump
 	
            0 opt-debug !
@@ -875,7 +902,7 @@ $ (repeat-post) $;
 	   cr %.S
 	   start-adr @ here!
 	   :xt regalloc
-	   ['] exit %.debug %.S %.used-regs
+	   \\ ['] exit %.debug %.S %.used-regs
 	   cr .dump
 	
 
@@ -899,7 +926,7 @@ $ (repeat-post) $;
 	   :xt regalloc
 	   cr %.S
 	   epilogue,
-	   ['] exit %.debug %.S %.used-regs
+	   \\ ['] exit %.debug %.S %.used-regs
 	   cr .dump
 
            return

@@ -90,7 +90,9 @@
 \\ TODO: branch offsets wrong !!!
 : if5	| if ++ then 30 + emit cr ;
 : if6	| if 1+ then 30 + emit cr ;
-
+: noop1 ++ ;
+: noop2 noop ;
+: noop3 ;
 
 
 : opti-fib	1 ['] fib	optimize! ;
@@ -123,6 +125,10 @@
 : opti-if4	1 ['] if4	optimize! ;
 : opti-if5	1 ['] if5	optimize! ;
 : opti-if6	1 ['] if6	optimize! ;
+: opti-noop1	1 ['] noop1	optimize! ;
+: opti-noop2	1 ['] noop2	optimize! ;
+: opti-noop3	1 ['] noop3	optimize! ;
+
 : opti-iflong1	0 ['] iflong1	optimize! ;
 : opti-for1	1 ['] for1	optimize! ;
 : opti-for2	1 ['] for2	optimize! ;

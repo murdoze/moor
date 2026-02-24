@@ -912,13 +912,13 @@ word	thread,,, thread, thread
 
 # EXIT
 # Exit current Forth word and return the the caller
-word	exit,,, exit, exit,,, _exit_regalloc, 0
+word	exit,,, exit, exit,,,,
 _exit_regalloc:
 	jmp	_exit
 
 # XEXIT
 # Exit current Forth word and return the the caller, but w/o decompilation semantics
-word	xexit,,, xexit, xexit,,, _exit_regalloc, 0
+word	xexit,,, xexit, xexit,,,,
 _xexit:
 	jmp	_exit
 
