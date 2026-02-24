@@ -86,7 +86,7 @@ syn keyword forthSP DEPTH
 syn keyword forthSP FP!  FP@ LP!  LP@ RP!  RP@ SP!  SP@
 
 " address operations {{{2
-syn keyword forthMemory !  +!  1+! 2! 4! @ 2@ 4@ C!  C@ .@ .!
+syn keyword forthMemory !  +!  1+! 1-! 2! 4! @ 2@ 4@ C!  C@ .@ .!
 syn keyword forthAdrArith ALIGN ALIGNED ALLOT CELL+ CELLS CHAR+ CHARS
 syn keyword forthMemBlks  FILL MOVE
   " extension words
