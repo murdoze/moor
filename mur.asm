@@ -2556,6 +2556,20 @@ word	dot0, ".0"
 	call	_dot
 	ret
 
+# .bl ( n -- )
+# Prints number with a leading space, if it's < 10h (for beauty)
+word	dotbl, ".bl"
+	cmp	rtop, 0x10
+	jnb	3f
+	
+	call	_dup
+	mov	rtop, 0x20
+	call	_emit
+
+	3:
+	call	_dot
+	ret
+
 # .S ( -- )
 # Prints stacks
 word	dot_s, ".S"
