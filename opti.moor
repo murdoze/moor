@@ -121,11 +121,12 @@ interpretation latest behavior REGALLOCING latest does
 	  - | if for
 	  	| @ | 1+ if >>| + >< | <<< ! else _ then cell+
 	  over _ else _ _ then _ ;
-: shift-offsets?							\ ( shift -- ) 		Shift label offsets starting with 
-          opt-index-word @ branch-is-short@ if _ else
-          opt-index-word @ 1+ shift-label-offsets 
-	  opt-index-word @ branch-is-short! then ;  
-: ofs-is-long ffffffffffffff80 and | if ffffffffffffff80 - then ;	\ ( ofs -- 1|0)	Return 0 if ofs is [-128d, 127d]
+: shift-offsets?						\ ( shift -- ) 		Shift label offsets starting with 
+          opt-index-thru @ branch-is-short@ if _ else
+          opt-index-thru @ 1+ | ." SHIFT " . shift-label-offsets 
+	  opt-index-thru @ branch-is-short! then ;  
+: ofs-is-long 							\ ( ofs -- 1|0)	Return 0 if ofs is [-128d, 127d]
+          ffffffffffffff80 and | if ffffffffffffff80 - then ;
 
 : .dump
   cr ." ==== " opt-definition @ .name cr
@@ -174,7 +175,7 @@ interpretation latest behavior REGALLOCING latest does
            1b emit 5b emit 31 emit 32 emit 36 emit 47 emit
            ." ¦ "
            1b emit 5b emit 31 emit 32 emit 38 emit 47 emit
-	   .(( ).( label-offset opt-index-word @ cells + @ .0 here .. ))
+	   .(( ).( opt-index-thru @ green .0 label-offset opt-index-thru @ cells + @ white .0 here .. ))
 	   \ )) 
 	   ;
 
@@ -400,7 +401,7 @@ here exec REGALLOCING ' (ending)    ] interpreting!  opt-index+  opt-nest-level 
 								\          Deallocing semantics should set up the stack properly, if needed
 
 : .---     cr %.S ;
-: .label   yellow opt-nest-level @ .bl purple . norm ;
+: .label   yellow opt-nest-level @ .bl bs purple .bl bs norm ;
 : .inst    green count type norm tab ;				\ ( str -- )		Print instruction string
 : .lit     blue . norm ;
 
@@ -872,7 +873,7 @@ $ (repeat-post) $;
 	   tmp-stack dirupload
 	   cr %.S
 	   :xt regalloc
-	   opt-index-word @ 1+ opt-index-last !
+	   opt-index-thru @ opt-index-last !
 	   fixup-branches
 	   ['] noop %.debug %.S cr %.used-regs cr %.S
 	   cr .dump
