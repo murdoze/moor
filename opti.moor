@@ -121,6 +121,10 @@ interpretation latest behavior REGALLOCING latest does
 	  - | if for
 	  	| @ | 1+ if >>| + >< | <<< ! else _ then cell+
 	  over _ else _ _ then _ ;
+: shift-offsets?							\ ( shift -- ) 		Shift label offsets starting with 
+          opt-index-word @ branch-is-short@ if _ else
+          opt-index-word @ 1+ shift-label-offsets 
+	  opt-index-word @ branch-is-short! then ;  
 : ofs-is-long ffffffffffffff80 and | if ffffffffffffff80 - then ;	\ ( ofs -- 1|0)	Return 0 if ofs is [-128d, 127d]
 
 : .dump
@@ -145,12 +149,12 @@ interpretation latest behavior REGALLOCING latest does
 : %.debug  \ .((							\ ( xt -- )		Debug print word name and stack
            cr
 	   opt-index-thru @ green .bl bs
-	   opt-nest-level @ yellow . bs
+	   opt-nest-level @ yellow .bl bs
 	   opt-index @ purple .bl norm
            1b emit 5b emit 30 emit 39 emit 47 emit
            >name count white type norm
 
-           1b emit 5b emit 31 emit 35 emit 47 emit
+           1b emit 5b emit 31 emit 37 emit 47 emit
 	   \ ).( _ )) 
 	   ;
 
@@ -396,7 +400,7 @@ here exec REGALLOCING ' (ending)    ] interpreting!  opt-index+  opt-nest-level 
 								\          Deallocing semantics should set up the stack properly, if needed
 
 : .---     cr %.S ;
-: .label   yellow opt-nest-level @ . bs purple . norm ;
+: .label   yellow opt-nest-level @ .bl purple . norm ;
 : .inst    green count type norm tab ;				\ ( str -- )		Print instruction string
 : .lit     blue . norm ;
 
@@ -712,7 +716,7 @@ $ ?branch  opt-branch @ opt-index @ +
 	   	| label-offset@ 
 		ofs-is-long if label-offset@ here 6 + start-adr @ - - .z lj, 
 		else
-		opt-index-word @ branch-is-short@ if else -4 opt-index-word @ 1+ shift-label-offsets opt-index-word @ branch-is-short! then
+		-4 shift-offsets?
 		label-offset@ 
 		here 2 + start-adr @ - - .z j, 
 		then
@@ -732,7 +736,7 @@ $ -?branch opt-branch @ opt-index @ +
 	   	| label-offset@
 		ofs-is-long if label-offset@ here 6 + start-adr @ - - .nz lj, 
 		else
-		opt-index-word @ branch-is-short@ if else -4 opt-index-word @ 1+ shift-label-offsets opt-index-word @ branch-is-short! then
+		-4 shift-offsets?
 		label-offset@
 		here 2 + start-adr @ - - .nz j, 
 		then
@@ -752,7 +756,7 @@ $ branch   opt-branch @ opt-index @ +
 	   	| label-offset@
 		ofs-is-long if label-offset@ here 5 + start-adr @ - - ljmp, 
 		else
-		opt-index-word @ branch-is-short@ if else -3 opt-index-word @ 1+ shift-label-offsets opt-index-word @ branch-is-short! then
+		-3 shift-offsets?
 		label-offset@
 		here 2 + start-adr @ - - sjmp, 
 		then
@@ -783,7 +787,7 @@ $ (over)
 	   	| label-offset@
 		ofs-is-long if label-offset@ here 6 + start-adr @ - - .z lj, 
 		else
-		opt-index-word @ branch-is-short@ if else -4 opt-index-word @ 1+ shift-label-offsets opt-index-word @ branch-is-short! then
+		-4 shift-offsets?
 		label-offset@
 		here 2 + start-adr @ - - .z j, 
 		then
@@ -806,13 +810,7 @@ $ (over)
 			label-offset@ here 5 + start-adr @ - - ljmp,
 		else
 		\\ This code is never executed now, jump back is always long
-		\ A dirty hack here. Since we have two jumps at one index, second jump adds 1 to word index to store short/long branch flag
-		\ Thankfully, (over) occupies two indexes because it also stores branch offset
-		\ TODO: Think how to do it properly. This might not work well for ELSE
-		\ -3 is the difference between long and short jump instruction sizes
-		opt-index-word @ 1+ branch-is-short@ if else -3 opt-index-word @ 1+ 1+ shift-label-offsets opt-index-word @ 1+ branch-is-short! then
-		label-offset@
-		here 2 + start-adr @ - - sjmp, 
+		abort" (over) short branch optimization should never be performed"
 		then
 	   then
 	   then
