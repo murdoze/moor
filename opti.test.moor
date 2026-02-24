@@ -79,7 +79,7 @@
 
 : 6lsb0 | 3f and >< 2/ 2/ 2/ 2/ 2/ 2/ ;
 : 6lsb1 | >< 2/ ;
-: ++ 1 + ;
+: ++ 1 + 1+ 1+ ;
 : uemit0
   | 80 < if _ 41 emit else
   | 800 < if _ 42 emit else

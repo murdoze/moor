@@ -84,8 +84,10 @@ interpretation latest behavior REGALLOCING latest does
 :: opt-definition   0 var					\ Definition currently being optimized
 :: opt-debug        0 var					\ Specifies whether debug output is enabled
 :: opt-index        0 var					\ Index inside current word
+:: opt-index-thru   0 var					\ Index throughtout whole optimization process
 :: opt-index-word   0 var					\ Index of the beginning of the word
 :: opt-index-last   0 var					\ Last index in the current register allocation and assembling invocation
+:: opt-nest-level   0 var					\ Word nesting level
 :: opt-lit          0 var					\ Holds 1-cell literal, offset or other data between regallocing and assembling
 :: opt-xt           0 var					\ Holds XT of the currently executing REGALLOCING/ASEMBLING word
 :: opt-branch       0 var					\ Holds latest branch offset
@@ -106,6 +108,7 @@ interpretation latest behavior REGALLOCING latest does
 :: start-adr-prologue 0 var					\ Address of the prologue, which is compiled before the word
 :: start-adr 0 var						\ Address of the beginning of compiled word (16-bytes aligned preferably)
 : opt-index-word!  opt-index @ opt-index-word ! ;
+: opt-index+	opt-index 1+! opt-index-thru 1+! ;
 : label-offset@ cells label-offset + @ ; 			\ ( index -- ofs )
 : label-offset! opt-pass @ OPT-PASS-INITCODEGEN = if
 		  start-adr @ here >< - 
@@ -129,7 +132,7 @@ interpretation latest behavior REGALLOCING latest does
 : bfx>    bfx-stack s> ;
 
 : branch-adr cells label-offset + @ start-adr @ + ;		\ ( index -- adr )	Returns absolute address for the index
-: branch-mark  | purple . norm >bfx here >bfx ;			\ ( branch-index -- )	Puts current code address and branch index onto the branch fixup stack
+: branch-mark  opt-nest-level @ yellow . bs | purple . norm >bfx here >bfx ;			\ ( branch-index -- )	Puts current code address and branch index onto the branch fixup stack
 : branch-resolve branch-adr >| - >< 4 - 4! ;			\ ( addr index -- )	Fixes branch offset at ADDR-4, generating offset pointing to branch-index
 : branch-offset	 branch-adr here - ;				\ ( index -- )		Computes offset in bytes between HERE and byte offset of instruction at index
 : fixup-branches begin bfx> bfx> | 1+ while branch-resolve  repeat _ _ ;
@@ -141,16 +144,18 @@ interpretation latest behavior REGALLOCING latest does
 								\\ Debug output
 : %.debug  \ .((							\ ( xt -- )		Debug print word name and stack
            cr
-	   opt-index @ purple . norm
-           1b emit 5b emit 30 emit 34 emit 47 emit
+	   opt-index-thru @ green .bl bs
+	   opt-nest-level @ yellow . bs
+	   opt-index @ purple .bl norm
+           1b emit 5b emit 30 emit 39 emit 47 emit
            >name count white type norm
 
-           1b emit 5b emit 31 emit 33 emit 47 emit
+           1b emit 5b emit 31 emit 35 emit 47 emit
 	   \ ).( _ )) 
 	   ;
 
 : %.S      \ .((
-           1b emit 5b emit 31 emit 39 emit 47 emit
+           1b emit 5b emit 32 emit 33 emit 47 emit
            ..S
            1b emit 5b emit 33 emit 39 emit 47 emit
 	   blue .regs norm
@@ -216,8 +221,7 @@ $ assm     $;
 	   compile,
 	   compile interpreting!
 
-	   compile opt-index
-	   compile 1+!
+	   compile opt-index+
 
 	   compile REGALLOCING!!
 
@@ -266,8 +270,10 @@ interpretation ' trace behavior REGALLOCING ' trace does
 : >opt-index	opt-index @ opt-index-stack >s 0 opt-index ! ;
 : opt-index>	opt-index-stack s> opt-index ! ;
 
-here exec REGALLOCING ' (beginning) ] interpreting! >opt-index      REGALLOCING state!! xexit [ does
-here exec REGALLOCING ' (ending)    ] interpreting! opt-index> r> _ REGALLOCING state!! xexit [ does
+
+
+here exec REGALLOCING ' (beginning) ] interpreting!  opt-index+  opt-nest-level 1+!  >opt-index       REGALLOCING state!! xexit [ does
+here exec REGALLOCING ' (ending)    ] interpreting!  opt-index+  opt-nest-level 1-!  opt-index> r> _  REGALLOCING state!! xexit [ does
 
 \\ \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
@@ -292,11 +298,11 @@ here exec REGALLOCING ' (ending)    ] interpreting! opt-index> r> _ REGALLOCING 
 % #l!		@skip >< 1- { | #ret! ∨ } %;
 
 
-% lit      @skip | opt-lit ! opt-index 1+! .(( .. ).( _ )) 1+ { ?∧ } %;	\ ( # -- r #+1 )	Allocates new register
+% lit      @skip | opt-lit ! opt-index+ .(( .. ).( _ )) 1+ { ?∧ } %;	\ ( # -- r #+1 )	Allocates new register
 
-% branch   @skip 1+ | opt-branch ! opt-index 1+! .(( .. ).( _ )) %;		\ ( -- )
-% ?branch  @skip 1+ | opt-branch ! opt-index 1+! .(( .. ).( _ )) ⊻ %;		\ ( r # -- #-1 )
-% -?branch @skip 1+ | opt-branch ! opt-index 1+! .(( .. ).( _ )) ⊻ %;		\ ( r # -- #-1 )
+% branch   @skip 1+ | opt-branch ! opt-index+ .(( .. ).( _ )) %;		\ ( -- )
+% ?branch  @skip 1+ | opt-branch ! opt-index+ .(( .. ).( _ )) ⊻ %;		\ ( r # -- #-1 )
+% -?branch @skip 1+ | opt-branch ! opt-index+ .(( .. ).( _ )) ⊻ %;		\ ( r # -- #-1 )
 
 % (if)     >< { 1- phi-stack revupload } >< 1+ %;		\			Upload stack as if after ?BRANCH
 % (if-post) %;
@@ -321,7 +327,7 @@ here exec REGALLOCING ' (ending)    ] interpreting! opt-index> r> _ REGALLOCING 
 	   tmp-stack onload
 	   phi-stack revupload #_
 	   phi-stack revupload #_ } >< 1+
-           @skip | opt-branch ! opt-index 1+! .. ⊻ %;
+           @skip | opt-branch ! opt-index+ .. ⊻ %;
 % (repeat-pre)
            phi-stack download
 	   tmp-stack revoffload %;
@@ -335,7 +341,7 @@ here exec REGALLOCING ' (ending)    ] interpreting! opt-index> r> _ REGALLOCING 
            { _ ∨ } ;%;
 % (for-post) %;
 % I        1+ { cyc> ∧ | >cyc } %;
-% (over)   @skip | opt-branch ! opt-index 1+! .. ;%
+% (over)   @skip | opt-branch ! opt-index+ .. ;%
            { cyc> ∨ } ;%;
 % (over-post) %;
 
@@ -390,7 +396,7 @@ here exec REGALLOCING ' (ending)    ] interpreting! opt-index> r> _ REGALLOCING 
 								\          Deallocing semantics should set up the stack properly, if needed
 
 : .---     cr %.S ;
-: .label   purple . norm ;
+: .label   yellow opt-nest-level @ . bs purple . norm ;
 : .inst    green count type norm tab ;				\ ( str -- )		Print instruction string
 : .lit     blue . norm ;
 
@@ -862,7 +868,9 @@ $ (repeat-post) $;
 	   cr white ." PASS=0a Register allocation" norm
 	   OPT-PASS-INITCODEGEN opt-pass !
 	   0 opt-index !
+	   0 opt-index-thru !
 	   0 opt-index-word !
+	   0 opt-nest-level !
 	   tmp-stack dirupload
 	   cr %.S
 	   :xt regalloc
@@ -875,7 +883,9 @@ $ (repeat-post) $;
 	   cr white ." PASS=1a Initial code generation DEBUG" norm
 	   OPT-PASS-BRANCHLEN opt-pass !
 	   0 opt-index !
+	   0 opt-index-thru !
 	   0 opt-index-word !
+	   0 opt-nest-level !
 	   offload
 	   cr %.S
 	   tmp-stack download
@@ -890,7 +900,9 @@ $ (repeat-post) $;
 	   cr white ." PASS=1b Branch length optimization" norm
 	   OPT-PASS-BRANCHLEN opt-pass !
 	   0 opt-index !
+	   0 opt-index-thru !
 	   0 opt-index-word !
+	   0 opt-nest-level !
 	   offload
 	   tmp-stack download
 	   tmp-stack dirupload
@@ -905,7 +917,9 @@ $ (repeat-post) $;
 	   cr white ." PASS=2 Final code generation" norm
 	   OPT-PASS-BRANCHLEN opt-pass !
 	   0 opt-index !
+	   0 opt-index-thru !
 	   0 opt-index-word !
+	   0 opt-nest-level !
 	   offload
 	   cr %.S
 	   tmp-stack download
