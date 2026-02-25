@@ -588,6 +588,8 @@ decompilation ' branch behavior  decompilation ' (-leave) does
 : #_       | if for _ over else _ then ;			\ ( a1 ... an n -- )	Drops N elelemns off stack (including count)
 : empty-stack	
            depth #_ ;
+								\\ Debug output
+: .cells for | @ . cell+ over _ ; 				\ ( a n -- )
 
 : >|>|>|   { >|>| } | { <<< } ; 				\ ( a b c -- a b c a b c ) 3OVER
 
