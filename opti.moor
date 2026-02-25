@@ -175,7 +175,7 @@ interpretation latest behavior REGALLOCING latest does
            1b emit 5b emit 31 emit 32 emit 36 emit 47 emit
            ." ¦ "
            1b emit 5b emit 31 emit 32 emit 38 emit 47 emit
-	   .(( ).( opt-index-thru @ green .0 label-offset opt-index-thru @ cells + @ white .0 here .. ))
+	   .(( ).( opt-index-thru @ green .0 label-offset opt-index-thru @ | 0 = if _ _ -1 else 1- cells + @ then white .0 here .. ))
 	   \ )) 
 	   ;
 
@@ -204,7 +204,6 @@ $ assm     $;
            ASSEMBLING     ['] assm behavior ASSEMBLING r> | >r does
            interpretation ['] assm behavior DEALLOCING r> | >r does r>
            compile interpreting! 				\			which equals to execution semantics of its constituents
-	   \ compile (beginning)
 	   | opt-xt !
 	   compile label-offset! 
 	   compile opt-index-word! 
@@ -303,11 +302,11 @@ here exec REGALLOCING ' (ending)    ] interpreting!  opt-index+  opt-nest-level 
 % #l!		@skip >< 1- { | #ret! ∨ } %;
 
 
-% lit      @skip | opt-lit ! opt-index+ .(( .. ).( _ )) 1+ { ?∧ } %;	\ ( # -- r #+1 )	Allocates new register
+% lit      @skip | opt-lit ! .(( .. ).( _ )) 1+ { ?∧ } ;% opt-index+ ;%;	\ ( # -- r #+1 )	Allocates new register
 
-% branch   @skip 1+ | opt-branch ! opt-index+ .(( .. ).( _ )) %;		\ ( -- )
-% ?branch  @skip 1+ | opt-branch ! opt-index+ .(( .. ).( _ )) ⊻ %;		\ ( r # -- #-1 )
-% -?branch @skip 1+ | opt-branch ! opt-index+ .(( .. ).( _ )) ⊻ %;		\ ( r # -- #-1 )
+% branch   @skip 1+ | opt-branch ! .(( .. ).( _ ))   ;% opt-index+ ;%;		\ ( -- )
+% ?branch  @skip 1+ | opt-branch ! .(( .. ).( _ )) ⊻ ;% opt-index+ ;%;		\ ( r # -- #-1 )
+% -?branch @skip 1+ | opt-branch ! .(( .. ).( _ )) ⊻ ;% opt-index+ ;%;		\ ( r # -- #-1 )
 
 % (if)     >< { 1- phi-stack revupload } >< 1+ %;		\			Upload stack as if after ?BRANCH
 % (if-post) %;
@@ -332,7 +331,7 @@ here exec REGALLOCING ' (ending)    ] interpreting!  opt-index+  opt-nest-level 
 	   tmp-stack onload
 	   phi-stack revupload #_
 	   phi-stack revupload #_ } >< 1+
-           @skip | opt-branch ! opt-index+ .. ⊻ %;
+           @skip | opt-branch ! .. ⊻ ;% opt-index+ ;%;
 % (repeat-pre)
            phi-stack download
 	   tmp-stack revoffload %;
@@ -346,7 +345,7 @@ here exec REGALLOCING ' (ending)    ] interpreting!  opt-index+  opt-nest-level 
            { _ ∨ } ;%;
 % (for-post) %;
 % I        1+ { cyc> ∧ | >cyc } %;
-% (over)   @skip | opt-branch ! opt-index+ .. ;%
+% (over)   @skip | opt-branch ! .. ;% opt-index+
            { cyc> ∨ } ;%;
 % (over-post) %;
 
@@ -706,7 +705,7 @@ $ (if)     { | |
 	   } $;
 $ (if-post) $;
 
-$ ?branch  opt-branch @ opt-index-thru @ 1- +
+$ ?branch  opt-branch @ opt-index-thru @ +
            .(( " jz " .inst .label
 	   ).(
 	   opt-pass @
@@ -726,7 +725,7 @@ $ ?branch  opt-branch @ opt-index-thru @ 1- +
 	   ))
 	   $;
 
-$ -?branch opt-branch @ opt-index-thru 1- @ +
+$ -?branch opt-branch @ opt-index-thru @ +
            .(( " jnz" .inst .label
 	   ).(
 	   opt-pass @
@@ -746,7 +745,7 @@ $ -?branch opt-branch @ opt-index-thru 1- @ +
 	   ))
 	   $;
 
-$ branch   opt-branch @ opt-index-thru @ 1- +
+$ branch   opt-branch @ opt-index-thru @ +
            .(( " jmp" .inst .label
 	   ).( 
 	   opt-pass @
@@ -777,7 +776,7 @@ $ (over)
 	   cyc> | >cyc
 	   .(( " dec" .inst .r .---
 	   ).( dec, ))
-           opt-index-thru @
+           opt-index-thru @ 1+
 	   .(( " jz" .inst .label .---
 	   ).(
 	   opt-pass @
