@@ -81,21 +81,22 @@ interpretation latest behavior REGALLOCING latest does
 : phi>    phi-stack s> ;
 
 								\\ Variables
-:: opt-definition   0 var					\ Definition currently being optimized
-:: opt-debug        0 var					\ Specifies whether debug output is enabled
-:: opt-index        0 var					\ Index inside current word
-:: opt-index-thru   0 var					\ Index throughtout whole optimization process
-:: opt-index-word   0 var					\ Index of the beginning of the word
-:: opt-index-last   0 var					\ Last index in the current register allocation and assembling invocation
-:: opt-nest-level   0 var					\ Word nesting level
-:: opt-lit          0 var					\ Holds 1-cell literal, offset or other data between regallocing and assembling
-:: opt-xt           0 var					\ Holds XT of the currently executing REGALLOCING/ASEMBLING word
-:: opt-branch       0 var					\ Holds latest branch offset
-:: opt-phi-move     0 var					\ Flag indicating whether φ requires moving regiters
-:: opt-phi-temp-reg 0 var					\ Temporary register for φ moves
-:: opt-phi-save-reg 0 var					\ Saved register for φ moves
-:: opt-phi-dest-reg 0 var					\ Register to be assigned from the saved register
-:: opt-phi-forward  0 var					\ Flag indicating whether the φ-junction is forward or backward
+:: opt-definition     0 var					\ Definition currently being optimized
+:: opt-debug          0 var					\ Specifies whether debug output is enabled
+:: opt-index          0 var					\ Index inside current word
+:: opt-index-thru     0 var					\ Index throughtout whole optimization process
+:: opt-index-word     0 var					\ Index of the beginning of the word
+:: opt-index-last     0 var					\ Last index in the current register allocation and assembling invocation
+:: opt-nest-level     0 var					\ Word nesting level
+:: opt-nest-level-max 0 var
+:: opt-lit            0 var					\ Holds 1-cell literal, offset or other data between regallocing and assembling
+:: opt-xt             0 var					\ Holds XT of the currently executing REGALLOCING/ASEMBLING word
+:: opt-branch         0 var					\ Holds latest branch offset
+:: opt-phi-move       0 var					\ Flag indicating whether φ requires moving regiters
+:: opt-phi-temp-reg   0 var					\ Temporary register for φ moves
+:: opt-phi-save-reg   0 var					\ Saved register for φ moves
+:: opt-phi-dest-reg   0 var					\ Register to be assigned from the saved register
+:: opt-phi-forward    0 var					\ Flag indicating whether the φ-junction is forward or backward
 
 :: opt-pass         0 var					\ Optimization pass
 :: OPT-PASS-INITCODEGEN 0 val					\ 0 = Initial code generation
@@ -105,8 +106,24 @@ interpretation latest behavior REGALLOCING latest does
 :: #labels 1000 val						\ TODO: Check if running out of label space. Need '>' to be implemented			
 :: label-offset adr #labels cells allot	
 :: branch-size adr #labels allot
+
+:: #nest-levels 20 val						\ Number of nest levels; increase as needed
+:: thru-indexes adr #nest-levels #labels * cells allot		\ Mapping from (opt-nest-level, opt-index) to opt-index-thru
+: thru-indexes-clear
+	thru-indexes
+	#nest-levels #labels * cells 
+	0 fill ;
+: 'thru-index-of						\ ( opt-nest-level opt-index -- 'opt-index-thru )	Get offset inside the thru index array
+	>< 1- #labels * + cells thru-indexes + ;
+: thru-index-of	 'thru-index-of @ ;				\ ( opt-nest-level opt-index -- opt-index-thru )	Get thru index based on nest level and local index
+: thru-index-of! 'thru-index-of ! ;				\ ( opt-index-thru opt-nest-level opt-index --  )	Set thru index based on nest level and local index
+: opt-thru-index-of!
+	opt-index-thru @ opt-nest-level @ opt-index @ 
+	thru-index-of! ;
+
 :: start-adr-prologue 0 var					\ Address of the prologue, which is compiled before the word
 :: start-adr 0 var						\ Address of the beginning of compiled word (16-bytes aligned preferably)
+
 : opt-index-word!  opt-index @ opt-index-word ! ;
 : opt-index+	opt-index 1+! opt-index-thru 1+! ;
 : label-offset@ cells label-offset + @ ; 			\ ( index -- ofs )
@@ -128,9 +145,6 @@ interpretation latest behavior REGALLOCING latest does
 : ofs-is-long 							\ ( ofs -- 1|0)	Return 0 if ofs is [-128d, 127d]
           ffffffffffffff80 and | if ffffffffffffff80 - then ;
 
-: .dump
-  cr ." ==== " opt-definition @ .name cr
-  start-adr @ | here >< - 22 emit dump 22 emit cr ;
 
 :: bfx-stack 100 stack						\ Branch fixup stack
 : >bfx    bfx-stack >s ;
@@ -147,6 +161,26 @@ interpretation latest behavior REGALLOCING latest does
 : ))      [compile] then ; immediate
 
 								\\ Debug output
+: .dump
+  cr ." ==== " opt-definition @ .name cr
+  start-adr @ | here >< - 22 emit dump 22 emit cr ;
+
+: .dump-thru-indexes
+	."     " purple
+	opt-index-last @ | if for | opt-index-last @ I -
+		.bl
+	over else _ then 
+	norm cr
+	opt-nest-level-max @ | if for opt-nest-level-max @ I - 1+
+		| yellow .bl bs norm ." : " green
+		opt-index-last @ | if for | opt-index-last @ I - 
+			\ >< .bl .bl ." - " 
+			thru-index-of | 0 <> if .bl else _ ."    " then
+		over _ else _ then
+		norm cr
+	over else _ then
+;
+
 : %.debug  \ .((							\ ( xt -- )		Debug print word name and stack
            cr
 	   opt-index-thru @ green .bl bs
@@ -206,7 +240,8 @@ $ assm     $;
            compile interpreting! 				\			which equals to execution semantics of its constituents
 	   | opt-xt !
 	   compile label-offset! 
-	   compile opt-index-word! 
+	   compile opt-index-word!
+	   compile opt-thru-index-of!
 
 	   [compile] literal
 	   compile %.debug
@@ -276,8 +311,8 @@ interpretation ' trace behavior REGALLOCING ' trace does
 
 
 
-here exec REGALLOCING ' (beginning) ] interpreting!  opt-index+  opt-nest-level 1+!  >opt-index       REGALLOCING state!! xexit [ does
-here exec REGALLOCING ' (ending)    ] interpreting!  opt-index+  opt-nest-level 1-!  opt-index> r> _  REGALLOCING state!! xexit [ does
+here exec REGALLOCING ' (beginning) ] interpreting!  opt-index+  opt-nest-level 1+!  opt-nest-level @ opt-nest-level-max !  >opt-index       REGALLOCING state!! xexit [ does
+here exec REGALLOCING ' (ending)    ] interpreting!  opt-index+  opt-nest-level 1-!                                         opt-index> r> _  REGALLOCING state!! xexit [ does
 
 \\ \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
@@ -705,7 +740,7 @@ $ (if)     { | |
 	   } $;
 $ (if-post) $;
 
-$ ?branch  opt-branch @ opt-index-thru @ +
+$ ?branch  opt-branch @ opt-index @ 1+ +
            .(( " jz " .inst .label
 	   ).(
 	   opt-pass @
@@ -725,7 +760,7 @@ $ ?branch  opt-branch @ opt-index-thru @ +
 	   ))
 	   $;
 
-$ -?branch opt-branch @ opt-index-thru @ +
+$ -?branch opt-branch @ opt-index @ 1+ +
            .(( " jnz" .inst .label
 	   ).(
 	   opt-pass @
@@ -745,7 +780,7 @@ $ -?branch opt-branch @ opt-index-thru @ +
 	   ))
 	   $;
 
-$ branch   opt-branch @ opt-index-thru @ +
+$ branch   opt-branch @ opt-index @ 1+ +
            .(( " jmp" .inst .label
 	   ).( 
 	   opt-pass @
@@ -797,7 +832,7 @@ $ (over)
 	   }
            <φ
            { .---
-           opt-branch @ opt-index-thru @ +
+           opt-branch @ opt-index @ 1+ +
 	   .(( " jmp" .inst .label
 	   ).(
 	   opt-pass @
@@ -861,6 +896,9 @@ $ (repeat-post) $;
 : optimize 
            ( :xt )
            :xt opt-definition !
+
+           thru-indexes-clear
+           0 opt-nest-level-max !
 
            0 opt-debug !
 	   cr white ." PASS=0a Register allocation" norm
