@@ -167,7 +167,7 @@ interpretation latest behavior REGALLOCING latest does
 
 : .dump-thru-indexes
 	."     " purple
-	opt-index-last @ | if for | opt-index-last @ I -
+	opt-index-last @ | if for opt-index-last @ I -
 		.bl
 	over else _ then 
 	norm cr
@@ -435,7 +435,9 @@ here exec REGALLOCING ' (ending)    ] interpreting!  opt-index+  opt-nest-level 
 								\          Deallocing semantics should set up the stack properly, if needed
 
 : .---     cr %.S ;
-: .label   yellow opt-nest-level @ .bl bs purple .bl bs norm ;
+: .label   opt-nest-level @ |
+           yellow .bl bs purple >< | .bl bs 
+	   thru-index-of green .bl norm ;
 : .inst    green count type norm tab ;				\ ( str -- )		Print instruction string
 : .lit     blue . norm ;
 
@@ -912,8 +914,9 @@ $ (repeat-post) $;
 	   :xt regalloc
 	   opt-index-thru @ opt-index-last !
 	   fixup-branches
-	   ['] noop %.debug %.S cr %.used-regs cr %.S
+	   cr %.used-regs %.S
 	   cr .dump
+           cr .dump-thru-indexes
 
            1 opt-debug !
 	   cr white ." PASS=1a Initial code generation DEBUG" norm
@@ -931,7 +934,7 @@ $ (repeat-post) $;
 	   :xt regalloc
 	   \\ ['] exit %.debug %.S %.used-regs
 	   cr .dump
-	
+
            0 opt-debug !
 	   cr white ." PASS=1b Branch length optimization" norm
 	   OPT-PASS-BRANCHLEN opt-pass !
