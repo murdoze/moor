@@ -49,7 +49,7 @@
 		then ;
 : for1		3 for | uemit over _ cr ;
 : for2		( :c ) 1 for :c emit over return ;
-: fill		<<< for >|>| c! 1+ over _ _ ;
+: fill0		<<< for >|>| c! 1+ over _ _ ;
 : fill2		( :a :n :c ) :a :n for | :c >< c! 1+ over _ return ;
 : fill3		( :a :n :c ) :n for :c emit over return ;
 : fill4		( :a :n :c ) :n if :c emit then return ;
@@ -79,7 +79,7 @@
 
 : 6lsb0 | 3f and >< 2/ 2/ 2/ 2/ 2/ 2/ ;
 : 6lsb1 | >< 2/ ;
-: ++ 1 + 1+ 1+ ;
+: ++ 1+ 1+ ;
 : uemit0
   | 80 < if _ 41 emit else
   | 800 < if _ 42 emit else
@@ -88,8 +88,8 @@
   _ 30 emit then 31 emit then 32 emit then 33 emit then cr ;
 
 \\ TODO: branch offsets wrong !!!
-: if5	| if ++ then 30 + emit cr noop ;
-: if6	| if 1+ then 30 + emit cr noop ;
+: if5	| if ++ then     | if ++ then ;
+: if6	| if 1+ 1+ then  | if 1+ 1+ then ;
 : if7   | if if5 else 41 + emit cr then noop ;
 : if8   | if | if ++ then 30 + emit cr noop else 30 + emit cr then noop ;
 
