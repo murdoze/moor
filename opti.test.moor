@@ -44,6 +44,7 @@
 			42 emit 42 emit 42 emit 42 emit 42 emit 42 emit 42 emit 42 emit 42 emit 42 emit 42 emit 42 emit 
 			42 emit 42 emit 42 emit 42 emit 42 emit 42 emit 42 emit 42 emit 42 emit 42 emit 42 emit 42 emit 
 		then ;
+: sar0		70 | 1 sar emit emit ;
 : for1		3 for | uemit cr over _ cr ;
 : for11		3 for | emit over _ cr ;
 : for2		( :c ) 1 for :c emit over return ;
@@ -137,6 +138,7 @@
 : opti-noop3	1 ['] noop3	optimize! ;
 
 : opti-iflong1	0 ['] iflong1	optimize! ;
+: opti-sar0	0 ['] sar0	optimize! ;
 : opti-for1	1 ['] for1	optimize! ;
 : opti-for11	1 ['] for11	optimize! ;
 : opti-for2	1 ['] for2	optimize! ;
