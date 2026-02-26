@@ -2,9 +2,6 @@
 \\ Optimizer tests
 \\
 
-\\ TODO
-\ [!] uemit1 -- crash
-
 : optimize!
 	( :#params :xt )
 	here | ." CODE at " .
@@ -47,7 +44,8 @@
 			42 emit 42 emit 42 emit 42 emit 42 emit 42 emit 42 emit 42 emit 42 emit 42 emit 42 emit 42 emit 
 			42 emit 42 emit 42 emit 42 emit 42 emit 42 emit 42 emit 42 emit 42 emit 42 emit 42 emit 42 emit 
 		then ;
-: for1		3 for | uemit over _ cr ;
+: for1		3 for | uemit cr over _ cr ;
+: for11		3 for | emit over _ cr ;
 : for2		( :c ) 1 for :c emit over return ;
 : fill0		<<< for >|>| c! 1+ over _ _ ;
 : fill2		( :a :n :c ) :a :n for | :c >< c! 1+ over _ return ;
@@ -140,6 +138,7 @@
 
 : opti-iflong1	0 ['] iflong1	optimize! ;
 : opti-for1	1 ['] for1	optimize! ;
+: opti-for11	1 ['] for11	optimize! ;
 : opti-for2	1 ['] for2	optimize! ;
 : opti-fill2	3 ['] fill2	optimize! ;
 : opti-fill3	3 ['] fill3	optimize! ;

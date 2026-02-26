@@ -1,6 +1,6 @@
 \\ Unicode characters
 
-: 6lsb | 3f and >< 2/ 2/ 2/ 2/ 2/ 2/ ;
+: 6lsb | 3f and >< 6 sar ;
 
 : u2emit c0 or emit 80 or emit ;
 : u3emit e0 or emit 80 or emit 80 or emit ;

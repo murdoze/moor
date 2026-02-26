@@ -211,7 +211,7 @@ interpretation latest behavior REGALLOCING latest does
            1b emit 5b emit 31 emit 32 emit 38 emit 47 emit
 	   \ .(( ).( 
 	   	\ opt-index-thru @ green .0 label-offset opt-index-thru @ | 0 = if _ _ -1 else 1- cells + @ then white .0 here .. 
-	   	opt-index-thru @ green .0 label-offset opt-index-thru @ | .  cells + @ white .0 here .. 
+	   	opt-index-thru @ green .0 label-offset opt-index-thru @ cells + @ white .0 here .. 
            \ ))
 	   \ )) 
 	   ;
@@ -314,8 +314,8 @@ interpretation ' trace behavior REGALLOCING ' trace does
 
 
 
-here exec REGALLOCING ' (beginning) ] interpreting!              opt-nest-level 1+!  opt-nest-level @ opt-nest-level-max !  >opt-index       REGALLOCING state!! xexit [ does
-here exec REGALLOCING ' (ending)    ] interpreting!  opt-index+  opt-nest-level 1-!                                         opt-index> r> _  REGALLOCING state!! xexit [ does
+here exec REGALLOCING ' (beginning) ] interpreting!                opt-nest-level 1+!  opt-nest-level @ opt-nest-level-max !  >opt-index                       REGALLOCING state!! xexit [ does
+here exec REGALLOCING ' (ending)    ] interpreting! opt-index+     opt-nest-level 1-!                                         opt-index> opt-index 1+!   r> _  REGALLOCING state!! xexit [ does
 
 \\ \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
