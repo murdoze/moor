@@ -129,7 +129,7 @@ interpretation latest behavior REGALLOCING latest does
 : label-offset@ cells label-offset + @ ; 			\ ( index -- ofs )
 : label-offset! opt-pass @ OPT-PASS-INITCODEGEN = if
 		  start-adr @ here >< - 
-		  label-offset opt-index-thru @ 1- cells + !
+		  label-offset opt-index-thru @ cells + !
 	        then ;
 : branch-is-short@ branch-size + c@ ;				\ ( index -- 1|0 )	Returns whether the compiled branch at index is short (1) or long (0)
 : branch-is-short! branch-size + 1 >< c! ;			\ ( index -- )		Marks branch as short
@@ -210,7 +210,8 @@ interpretation latest behavior REGALLOCING latest does
            ." ¦ "
            1b emit 5b emit 31 emit 32 emit 38 emit 47 emit
 	   \ .(( ).( 
-	   	opt-index-thru @ green .0 label-offset opt-index-thru @ | 0 = if _ _ -1 else 1- cells + @ then white .0 here .. 
+	   	\ opt-index-thru @ green .0 label-offset opt-index-thru @ | 0 = if _ _ -1 else 1- cells + @ then white .0 here .. 
+	   	opt-index-thru @ green .0 label-offset opt-index-thru @ | .  cells + @ white .0 here .. 
            \ ))
 	   \ )) 
 	   ;
@@ -313,7 +314,7 @@ interpretation ' trace behavior REGALLOCING ' trace does
 
 
 
-here exec REGALLOCING ' (beginning) ] interpreting!  opt-index+  opt-nest-level 1+!  opt-nest-level @ opt-nest-level-max !  >opt-index       REGALLOCING state!! xexit [ does
+here exec REGALLOCING ' (beginning) ] interpreting!              opt-nest-level 1+!  opt-nest-level @ opt-nest-level-max !  >opt-index       REGALLOCING state!! xexit [ does
 here exec REGALLOCING ' (ending)    ] interpreting!  opt-index+  opt-nest-level 1-!                                         opt-index> r> _  REGALLOCING state!! xexit [ does
 
 \\ \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
@@ -745,7 +746,7 @@ $ (if)     { | |
 $ (if-post) $;
 
 $ ?branch  
-           opt-branch @ opt-index @ +
+           opt-branch @ opt-index @ + 1+
            .(( " jz " .inst .label
 	   ).(
 	   opt-pass @
@@ -767,7 +768,7 @@ $ ?branch
 	   $;
 
 $ -?branch 
-           opt-branch @ opt-index @ +
+           opt-branch @ opt-index @ + 1+
            .(( " jnz" .inst .label
 	   ).(
 	   opt-pass @
@@ -789,7 +790,7 @@ $ -?branch
 	   $;
 
 $ branch   
-           opt-branch @ opt-index @ +
+           opt-branch @ opt-index @ + 1+
            .(( " jmp" .inst .label
 	   ).( 
 	   opt-pass @
@@ -821,7 +822,7 @@ $ (over)
 	   cyc> | >cyc
 	   .(( " dec" .inst .r .---
 	   ).( dec, ))
-           opt-index-thru @ 1+
+           opt-index-thru @ 2+
 	   .(( " jz" .inst .label .---
 	   ).(
 	   opt-pass @
@@ -842,7 +843,7 @@ $ (over)
 	   }
            <φ
            { .---
-           opt-branch @ opt-index @ +
+           opt-branch @ opt-index @ + 1+
 	   .(( " jmp" .inst .label
 	   ).(
 	   opt-pass @
@@ -850,7 +851,7 @@ $ (over)
 	   	0 ljmp, branch-mark
 	   else
 	   | OPT-PASS-BRANCHLEN = if _
-	        opt-nest-level @ >< thru-index-of
+	        opt-nest-level @ >< 1+ thru-index-of
 	   	| label-offset@
 		ofs-is-long _ 1 if		\ TODO: Dirty hack, jz above does not know if this branch will be short or long and generates wrong target. 
 			label-offset@ here 5 + start-adr @ - - ljmp,
