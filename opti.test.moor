@@ -152,12 +152,16 @@
 : opti-fill3	3 ['] fill3	optimize! ;
 : opti-fill4	3 ['] fill4	optimize! ;
 
+: opti-baremetal? 0 ['] baremetal? optimize! ;
+
+
 : type-fill2	~Adr ~Number ~Number ['] fill2 typecheck ;
 : type-if3	~Number ['] if3 typecheck ;
 : type-if4	~Number ['] if4 typecheck ;
 
 maze
 : opti-MAZE	0 ['] MAZE	optimize! ;
+: opti-.M	0 ['] .M	optimize! ;
 
 
 :: zzz adr 100 allot

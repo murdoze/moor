@@ -405,7 +405,19 @@ here exec REGALLOCING ' (ending)    ] interpreting! opt-index+     opt-nest-leve
 % or       { %alloc-rd } 1+ ;%					\ ( rs1 rs2 # -- rs1 rs2 rd #+1 )
 	   { { _ _ } } 1- 1- ;%;				\ ( -- rd #-1 )
 
+% =        { %alloc-rd } 1+ ;%					\ ( rs1 rs2 # -- rs1 rs2 rd #+1 )
+	   { { _ _ } } 1- 1- ;%;				\ ( -- rd #-1 )
+
 % <        { %alloc-rd } 1+ ;%					\ ( rs1 rs2 # -- rs1 rs2 rd #+1 )
+	   { { _ _ } } 1- 1- ;%;				\ ( -- rd #-1 )
+
+% >        { %alloc-rd } 1+ ;%					\ ( rs1 rs2 # -- rs1 rs2 rd #+1 )
+	   { { _ _ } } 1- 1- ;%;				\ ( -- rd #-1 )
+
+% >=       { %alloc-rd } 1+ ;%					\ ( rs1 rs2 # -- rs1 rs2 rd #+1 )
+	   { { _ _ } } 1- 1- ;%;				\ ( -- rd #-1 )
+
+% <=       { %alloc-rd } 1+ ;%					\ ( rs1 rs2 # -- rs1 rs2 rd #+1 )
 	   { { _ _ } } 1- 1- ;%;				\ ( -- rd #-1 )
 
 % sar      							\ ( rd rshift # -- rd rd' rshift #+1 )
@@ -417,9 +429,13 @@ here exec REGALLOCING ' (ending)    ] interpreting! opt-index+     opt-nest-leve
 
 % c!       ;% ⊻ ⊻ ;%;			 			\ ( rs rd # -- #-2 )
 
+% emit     ;% ⊻ ;%;						\ ( r # -- #-1 )	Frees the parameter
+
+% baremetal?
+	baremetal? opt-lit ! 1+ { ?∧ } %;			\ ( # -- r #+1 )	Allocates new register
+
 								\\ Stubs to ignore debug output words in the optimizer for now
 % ,        ⊻ %;							\ ( r # -- #-1 )	Frees the parameter
-% emit     ;% ⊻ ;%;						\ ( r # -- #-1 )	Frees the parameter
 
 % ??       %;							\ ( r # -- #-1 )	Frees the parameter
 % ..       ⊻ %;							\ ( r # -- #-1 )	Frees the parameter
@@ -512,20 +528,29 @@ $ c!	{ || .(( .--- .mov.b.mr
 	))
 	>>>
 ;
-
-$ <
+: $comp									\ ( inst-str flag -- )
+	( :inst-str :flag )
 	{
 	$compare
 	|
 	.((
-		| .---  " setf.l" .inst .r.b
+		| .---  :inst-str .inst .r.b
 		| .---  " movzx" .inst .r, .r.b
 	).(
-		| .l setf,
+		| :flag setf,
 		| movzx,
 	))
 
-	} $;
+	} 
+	return
+;
+
+$ =	" setf.e"  .e   $comp $;
+$ <>	" setf.ne" .ne  $comp $;
+$ <	" setf.l"  .l   $comp $;
+$ >	" setf.g"  .g   $comp $;
+$ <=	" setf.le" .le  $comp $;
+$ >=	" setf.ge" .ge  $comp $;
 
 $ sar								\ ( rd-orig rd-alloc rshift # -- <unchanged> )
 	{
@@ -641,6 +666,8 @@ $ lit
 	.(( .mov .r, .lit
 	).( ¦ mov.i, ))
 	} $;
+
+ASSEMBLING ' lit behavior  ASSEMBLING ' baremetal? does
 
 :: <emit>	\ ( c=rdi )
 	code
