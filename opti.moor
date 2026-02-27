@@ -409,9 +409,7 @@ here exec REGALLOCING ' (ending)    ] interpreting! opt-index+     opt-nest-leve
 	   { { _ _ } } 1- 1- ;%;				\ ( -- rd #-1 )
 
 % sar      							\ ( rd rshift # -- rd rd' rshift #+1 )
-           { { 
-	   | | rcx = if ∨?∧ then
-	   } } 1+ ;%
+           { { | ∨?∧ } } 1+ ;%
 	   { ∨ >< _ } 1- 1- ;%;				        \ ( rd'#-1 )
 
 % 1+       { | ∨?∧ } ;% { >< _ } ;%;				\ 			Increment and decrement do not change register allocation

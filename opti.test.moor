@@ -44,7 +44,6 @@
 			42 emit 42 emit 42 emit 42 emit 42 emit 42 emit 42 emit 42 emit 42 emit 42 emit 42 emit 42 emit 
 			42 emit 42 emit 42 emit 42 emit 42 emit 42 emit 42 emit 42 emit 42 emit 42 emit 42 emit 42 emit 
 		then ;
-: sar0		70 | 1 sar emit emit ;
 : for1		3 for | uemit cr over _ cr ;
 : for11		3 for | emit over _ cr ;
 : for2		( :c ) 1 for :c emit over return ;
@@ -53,8 +52,12 @@
 : fill3		( :a :n :c ) :n for :c emit over return ;
 : fill4		( :a :n :c ) :n if :c emit then return ;
 : emit1		41 42 43 emit emit emit cr ;
+
+: sar0		70 | 1 sar emit emit ;
+: sar01		1 70 | >>> sar emit emit ;
 : sar1		200 3 sar emit cr ;
 : sar2		1 200 | { 3 sar } + 201 - emit cr ;
+
 : andor1	1 3 and 2 or 40 + emit ;
 : orand1	1 3 or 2 and 40 + emit ;
 : pp1		1 3 + 2 + 40 + emit ;
@@ -110,8 +113,12 @@
 : opti-cset	0 ['] cset	optimize! ;
 : opti-fill	3 ['] fill	optimize! ;
 : opti-emit1	0 ['] emit1	optimize! ;
+
+: opti-sar0	0 ['] sar0	optimize! ;
+: opti-sar01	0 ['] sar01	optimize! ;
 : opti-sar1	0 ['] sar1	optimize! ;
 : opti-sar2	0 ['] sar2	optimize! ;
+
 : opti-andor1	0 ['] andor1	optimize! ;
 : opti-orand1	0 ['] orand1	optimize! ;
 : opti-pp1	0 ['] pp1	optimize! ;
@@ -138,7 +145,6 @@
 : opti-noop3	1 ['] noop3	optimize! ;
 
 : opti-iflong1	0 ['] iflong1	optimize! ;
-: opti-sar0	0 ['] sar0	optimize! ;
 : opti-for1	1 ['] for1	optimize! ;
 : opti-for11	1 ['] for11	optimize! ;
 : opti-for2	1 ['] for2	optimize! ;
