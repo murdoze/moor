@@ -349,7 +349,8 @@ here exec REGALLOCING ' (ending)    ] interpreting! opt-index+     opt-nest-leve
            opt-str-size @ for opt-index+ over ;%;
 
 % count    1+ { ?∧ } %;
-% type     %;
+% emit     ;% ⊻ ;%;						\ ( r # -- #-1 )	Frees the parameter
+% type     ;% ⊻ ⊻ ;%;
 
 % branch   @skip 1+ | opt-branch ! .(( .. ).( _ ))   ;% opt-index+ ;%;		\ ( -- )
 % ?branch  @skip 1+ | opt-branch ! .(( .. ).( _ )) ⊻ ;% opt-index+ ;%;		\ ( r # -- #-1 )
@@ -437,8 +438,6 @@ here exec REGALLOCING ' (ending)    ] interpreting! opt-index+     opt-nest-leve
 % 1-       { | ∨?∧ } ;% { >< _ } ;%;				\			Although, a new register is allocated if the destination is aliased
 
 % c!       ;% ⊻ ⊻ ;%;			 			\ ( rs rd # -- #-2 )
-
-% emit     ;% ⊻ ;%;						\ ( r # -- #-1 )	Frees the parameter
 
 % baremetal?
 	baremetal? opt-lit ! 1+ { ?∧ } %;			\ ( # -- r #+1 )	Allocates new register
@@ -682,6 +681,13 @@ $ (")
 	).( ¦ mov.i, ))
 	} $;
 $;
+
+$ count								\ ( r-adr r-count )
+	{ ||
+	.(( .---  " movzx.b" .inst .r, norm ." byte ptr [" norm .r norm ." ]"
+	).( movzx.m, ))
+	} $;
+
 
 ASSEMBLING ' lit behavior  ASSEMBLING ' baremetal? does
 
