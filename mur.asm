@@ -1144,11 +1144,13 @@ _quot__decomp:
 	jmp	rnext
 
 # (")-skip
+# ( -- start end )
 # Skips counted string, needed for other states
 word	_quot_skip, "(\")-skip"
 	call	_dup
 	pop	rtmp
 	pop	rtop
+	call	_dup
 	movzx	rax, byte ptr [rtop]
 	inc	rtop
 	add	rtop, rax
@@ -1156,7 +1158,7 @@ word	_quot_skip, "(\")-skip"
 	and	rtop, -16
 	push	rtop
 	push	rtmp
-	call	_drop
+	#call	_drop
 	ret
 
 # " ( "ccc" -- )

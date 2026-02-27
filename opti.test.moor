@@ -102,6 +102,10 @@
 : noop2 noop ;
 : noop3 ;
 
+: .str1	noop ." STRING111" cr ;
+:: 'str1 adr 31 c, 32 c, 33 c, 41 c, 42 c, 43 c, 0a c,
+: type1	[ 'str1 literal ] 7 type ;
+
 
 : opti-fib	1 ['] fib	optimize! ;
 : opti-nup	2 ['] nup	optimize! ;
@@ -154,6 +158,8 @@
 
 : opti-baremetal? 0 ['] baremetal? optimize! ;
 
+: opti-.str1	0 ['] .str1	optimize! ;
+: opti-type1	0 ['] type1	optimize! ;
 
 : type-fill2	~Adr ~Number ~Number ['] fill2 typecheck ;
 : type-if3	~Number ['] if3 typecheck ;

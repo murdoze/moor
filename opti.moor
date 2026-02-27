@@ -90,6 +90,8 @@ interpretation latest behavior REGALLOCING latest does
 :: opt-nest-level     0 var					\ Word nesting level
 :: opt-nest-level-max 0 var
 :: opt-lit            0 var					\ Holds 1-cell literal, offset or other data between regallocing and assembling
+:: opt-str-adr        0 var					\ Address of the latest compiled string
+:: opt-str-size       0 var					\ Size, in cells, of the latest compiled string
 :: opt-xt             0 var					\ Holds XT of the currently executing REGALLOCING/ASEMBLING word
 :: opt-branch         0 var					\ Holds latest branch offset
 :: opt-phi-move       0 var					\ Flag indicating whether φ requires moving regiters
@@ -341,6 +343,13 @@ here exec REGALLOCING ' (ending)    ] interpreting! opt-index+     opt-nest-leve
 
 
 % lit      @skip | opt-lit ! .(( .. ).( _ )) 1+ { ?∧ } ;% opt-index+ ;%;	\ ( # -- r #+1 )	Allocates new register
+
+% (")      (")-skip >< | opt-str-adr ! - cell/ opt-str-size ! 
+           1+ { ?∧ } ;%
+           opt-str-size @ for opt-index+ over ;%;
+
+% count    1+ { ?∧ } %;
+% type     %;
 
 % branch   @skip 1+ | opt-branch ! .(( .. ).( _ ))   ;% opt-index+ ;%;		\ ( -- )
 % ?branch  @skip 1+ | opt-branch ! .(( .. ).( _ )) ⊻ ;% opt-index+ ;%;		\ ( r # -- #-1 )
@@ -667,6 +676,13 @@ $ lit
 	).( ¦ mov.i, ))
 	} $;
 
+$ (")
+	{ |  opt-str-adr @ ><					\ ( rd )
+	.(( .mov .r, .lit
+	).( ¦ mov.i, ))
+	} $;
+$;
+
 ASSEMBLING ' lit behavior  ASSEMBLING ' baremetal? does
 
 :: <emit>	\ ( c=rdi )
@@ -678,7 +694,6 @@ ASSEMBLING ' lit behavior  ASSEMBLING ' baremetal? does
 	rsi push,
 	rdi push,
 
-	\ rdi 39 mov.i,
 	rdi push,
 	rsi rsp mov,
 	rax 1 mov.i,
@@ -695,8 +710,35 @@ ASSEMBLING ' lit behavior  ASSEMBLING ' baremetal? does
 	r11 pop,
 	ret,
 
-$ emit
-	{ |							\ ( rs )
+:: <type>	\ ( adr=rdi count=rsi )
+	code
+	r11 push,
+	rax push,
+	rcx push,
+	rdx push,
+	rsi push,
+	rdi push,
+
+	rdi push,
+
+	rax 1 mov.i,
+	rdx rsi mov,
+	rsi rdi mov,
+	rdi rax mov,
+	syscall,
+
+	rdi pop,
+
+	rdi pop,
+	rsi pop,
+	rdx pop,
+	rcx pop,
+	rax pop,
+	r11 pop,
+	ret,
+
+$ emit								\ ( rs )
+	{ |
 	.(( " emit" .inst .r
 	).(
 	| rdi <> if
@@ -710,8 +752,32 @@ $ emit
 	_
 	))
 	} $;
+$ type								\ ( r-adr r-count )
+	{ ||
+	.(( " type" .inst >< .r, .r
+	).(
 
-								\ φ-junction
+	rdi push,
+	rsi push,
+
+	push,
+	push,
+	rdi pop,
+	rsi pop,
+
+	['] <type> here 5 + - lcall,
+
+	rsi pop,
+	rdi pop,
+	))
+	} $;
+
+
+
+								\\
+								\\ φ-junction
+								\\
+
 : φ
            1 opt-phi-move !
 	   -1 opt-phi-save-reg !

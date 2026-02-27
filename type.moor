@@ -137,7 +137,7 @@ T: abort	;T
 T: bl		~Number ;T
 T: emit		1 ?D ~Number ?T ;T
 T: .		1 ?D ~Number ?T ;T
-T: (")		(")-skip ~'#Str ;T
+T: (")		(")-skip _ _ ~'#Str ;T
 T: count 	1 ?D ~'#Str ?T ~Str ~Number ;T
 T: type 	2 ?D ~Number ?T ~Str ?T ;T
 
