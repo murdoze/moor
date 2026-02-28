@@ -253,8 +253,8 @@
 :: test-result		0 var
 : test-failed	0 test-result ! ;
 
-: (abort)	abort ;
-: abort		testing @ if 0 test-result ! raise else (abort) then ;
+: doabort	abort ;
+: abort		testing @ if 0 test-result ! raise else doabort then ;
 
 : .abort   red . . norm cr abort ;				\ ( code message -- )	Prints code and message as hexadecimal numbers and aborts
 								

@@ -304,7 +304,12 @@ $ assm     $;
 
 
 	   							\\ Register allocation primitives
+
+								\\ Service words
 % noop %;
+
+% raise %;							\\ TODO: ABORT?
+% doabort %;					
 
 								\\ Nested words
 interpretation ' noop behavior REGALLOCING ' exit does
@@ -752,7 +757,7 @@ $ count								\ ( r-adr r-count )
 	} $;
 
 
-ASSEMBLING ' lit behavior  
+ASSEMBLING ' lit behavior
 	||	ASSEMBLING ' baremetal?		does
 	||	ASSEMBLING ' bl			does
 	||	ASSEMBLING ' testing		does
@@ -846,7 +851,19 @@ $ type								\ ( r-adr r-count )
 	))
 	} $;
 
+$ doabort
+	.(( " abort" .inst
+	).(
+	(abort) here 5 + - ljmp,
+	))
+$;
 
+$ raise
+	.(( " raise" .inst
+	).(
+	(abort) here 5 + - ljmp,
+	))
+$;
 
 								\\
 								\\ φ-junction

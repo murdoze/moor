@@ -13,7 +13,7 @@
 	return
 ;
 
-
+								\\ Tests
 : fib		| if 0 1 >>> for >| + >< over _ then ;
 : nup		>r _ r> ;
 : swap2		0 <<< <<< nup ;
@@ -98,6 +98,9 @@
 : if90  | if 5 else 6 then ;
 : if9   | if if90 else 9 then 30 + emit ;
 
+: (if11) if 41 else 42 then ;
+: if11	1 (if11) emit 0 (if11) emit cr ;
+
 : noop1 ++ ;
 : noop2 noop ;
 : noop3 ;
@@ -113,6 +116,12 @@
 
 :: (val) 42 val
 : val0	(val) emit ;
+
+: abort0	red 41 emit green 42 emit norm cr ;
+: abort1	abort" Optimized abort" ;
+: raise1	raise ;
+
+								\\ Optimizations
 
 : opti-fib	1 ['] fib	optimize! ;
 : opti-nup	2 ['] nup	optimize! ;
@@ -151,6 +160,8 @@
 : opti-if7	1 ['] if7	optimize! ;
 : opti-if8	1 ['] if8	optimize! ;
 : opti-if9	1 ['] if9	optimize! ;
+: opti-if11	1 ['] if11	optimize! ;
+
 : opti-noop1	1 ['] noop1	optimize! ;
 : opti-noop2	1 ['] noop2	optimize! ;
 : opti-noop3	1 ['] noop3	optimize! ;
@@ -173,9 +184,10 @@
 : opti-var1	0 ['] var1	optimize! ;
 : opti-val0	0 ['] val0	optimize! ;
 
-: type-fill2	~Adr ~Number ~Number ['] fill2 typecheck ;
-: type-if3	~Number ['] if3 typecheck ;
-: type-if4	~Number ['] if4 typecheck ;
+: opti-abort0	0 ['] abort0	optimize! ;
+: opti-abort1	0 ['] abort1	optimize! ;
+: opti-raise1	0 ['] raise1	optimize! ;
+
 
 maze
 : opti-MAZE	0 ['] MAZE	optimize! ;
