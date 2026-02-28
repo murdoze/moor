@@ -457,10 +457,14 @@ here exec REGALLOCING ' (ending)    ] interpreting! opt-index+     opt-nest-leve
 % 1-       { | ∨?∧ } ;% { >< _ } ;%;				\			Although, a new register is allocated if the destination is aliased
 
 % c!       ;% ⊻ ⊻ ;%;			 			\ ( rs rd # -- #-2 )
+% !        ;% ⊻ ⊻ ;%;			 			\ ( rs rd # -- #-2 )
 % @	   1+ { | ∨?∧ } ;% { >< _ } 1- ;%;
 
-% baremetal?
-	baremetal? opt-lit ! 1+ { ?∧ } %;			\ ( # -- r #+1 )	Allocates new register
+: %val     opt-lit ! 1+ { ?∧ } ;				\ ( # -- r #+1 )	Allocates new register for the value
+% baremetal?	baremetal?	%val %;
+% bl	   	bl		%val %;
+% testing  	testing		%val %;
+% test-result   test-result	%val %;
 
 								\\ Stubs to ignore debug output words in the optimizer for now
 % ,        ⊻ %;							\ ( r # -- #-1 )	Frees the parameter
@@ -576,6 +580,10 @@ $ noop	.(( " nop" .inst ).( nop, )) $;
 $ @									\ ( rs rd )
 	{ || .(( .--- .mov.rm
 	).(  ¦ mov.rm, ))
+	} $;
+
+$ !	{ || .(( .--- .mov.mr
+	).( ¦ mov.mr, ))
 	} $;
 
 $ c!	{ || .(( .--- .mov.b.mr
@@ -744,7 +752,12 @@ $ count								\ ( r-adr r-count )
 	} $;
 
 
-ASSEMBLING ' lit behavior  ASSEMBLING ' baremetal? does
+ASSEMBLING ' lit behavior  
+	||	ASSEMBLING ' baremetal?		does
+	||	ASSEMBLING ' bl			does
+	||	ASSEMBLING ' testing		does
+	||	ASSEMBLING ' test-result	does
+	__
 
 :: <emit>	\ ( c=rdi )
 	code
