@@ -107,6 +107,12 @@
 : type1	[ 'str1 literal ] 1+ 7 type ;
 : type2	[ 'str1 literal ] count type ;
 
+:: (var) 42 var
+: var0	(var) ;
+: var1	(var) @ emit cr ;
+
+:: (val) 42 val
+: val0	(val) emit ;
 
 : opti-fib	1 ['] fib	optimize! ;
 : opti-nup	2 ['] nup	optimize! ;
@@ -162,6 +168,10 @@
 : opti-.str1	0 ['] .str1	optimize! ;
 : opti-type1	0 ['] type1	optimize! ;
 : opti-type2	0 ['] type2	optimize! ;
+
+: opti-var0	0 ['] var0	optimize! ;
+: opti-var1	0 ['] var1	optimize! ;
+: opti-val0	0 ['] val0	optimize! ;
 
 : type-fill2	~Adr ~Number ~Number ['] fill2 typecheck ;
 : type-if3	~Number ['] if3 typecheck ;

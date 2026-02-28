@@ -45,8 +45,8 @@ interpretation latest behavior REGALLOCING latest does
 : ∨∧       | v^ ;						\ ( r -- r 1|0 )	Free register and reallocate it, if it's not aliased. If aliased, returns 1
 : ?∧       ?^ ;
 : ⊻        1- { ∨ } ;						\ ( r # -- #-1 )	Frees a register
-: &^       | #r 1- if _ ?^ then ;				\ ( r -- r|r` )         Returns the same register if it has exactly one reference, or a new one
-: &∧       &^ ;
+\ : &^       | #r 1- if _ ?^ then ;				\ ( r -- r|r` )         Returns the same register if it has exactly one reference, or a new one
+\ : &∧       &^ ;
 : ∨?∧      ∨∧ if else _ ?∧ then ;				\ ( r -- r|r')		Allocates new register, if R is aliased
 
 : .regs    regs #regs for | c@ . 1+ over _ ;
@@ -284,6 +284,25 @@ $ assm     $;
 
 	   compile xexit [compile] [ ; immediate
 
+								\\ DOES> for optimization
+:: opt-does-xt	0 var
+
+: optimization-does<	
+	REGALLOCING does<
+	| opt-does-xt ! 
+	compile label-offset!
+	compile opt-index-word!
+	compile opt-thru-index-of!
+	compile | compile %.debug
+; immediate
+
+: >optimization-does
+	compile opt-index+
+	compile REGALLOCING!!
+	>does 
+; immediate
+
+
 	   							\\ Register allocation primitives
 % noop %;
 
@@ -438,6 +457,7 @@ here exec REGALLOCING ' (ending)    ] interpreting! opt-index+     opt-nest-leve
 % 1-       { | ∨?∧ } ;% { >< _ } ;%;				\			Although, a new register is allocated if the destination is aliased
 
 % c!       ;% ⊻ ⊻ ;%;			 			\ ( rs rd # -- #-2 )
+% @	   1+ { | ∨?∧ } ;% { >< _ } 1- ;%;
 
 % baremetal?
 	baremetal? opt-lit ! 1+ { ?∧ } %;			\ ( # -- r #+1 )	Allocates new register
@@ -511,7 +531,7 @@ here exec REGALLOCING ' (ending)    ] interpreting! opt-index+     opt-nest-leve
 	cr %.S
 	over else _ then
 
-	used-regs #regs + 1- #regs for | c@ if		\			Push all pushed registers (not parameters and outputs)
+	used-regs #regs + 1- #regs for | c@ if			\			Push all pushed registers (not parameters and outputs)
 	" pop" .inst | used-regs - | .r pop,
 	cr { %.S }
 	then 1- over _
@@ -521,7 +541,42 @@ here exec REGALLOCING ' (ending)    ] interpreting! opt-index+     opt-nest-leve
 	" ret" .inst ret, cr %.S
 ;
 
+								\\ Assembling
+
+' var : var [ compile, ] 
+	optimization-does< 
+		{ 1+ { ?∧ } 
+			%.S
+		}
+		{ >| }
+		.((
+			>< .mov .r, ..
+		).(
+			mov.i, 
+		))
+	>optimization-does
+;
+
+' val : val [ compile, ] 
+	optimization-does< 
+		{ 1+ { ?∧ } 
+			%.S
+		}
+		@ { >| }
+		.((
+			>< .mov .r, ..
+		).(
+			mov.i, 
+		))
+	>optimization-does
+;
+
 $ noop	.(( " nop" .inst ).( nop, )) $;
+
+$ @									\ ( rs rd )
+	{ || .(( .--- .mov.rm
+	).(  ¦ mov.rm, ))
+	} $;
 
 $ c!	{ || .(( .--- .mov.b.mr
 	).( ¦ mov.b.mr, ))
