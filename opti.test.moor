@@ -4,6 +4,7 @@
 
 : optimize!
 	( :#params :xt )
+	here 10 aligned here!
 	here | ." CODE at " .
 	{
 	regalloc-init :#params | if for ?^ over else _ then 
@@ -24,7 +25,7 @@
 : if0		0 if then ;
 : if1		1 2 - if 0 else 1 then 30 + emit cr ;
 : if2		1 2 < if 0 else 1 then 30 + emit cr ;
-: if3		
+: if3								\\ TODO: crash
   | 1 and if 41 else 
   | 2 and if 44 else 
   45 then then emit cr _ ;
@@ -91,8 +92,12 @@
 
 \\ TODO: branch offsets wrong !!!
 : if5	| if ++ then     | if ++ then ;
+: if50  | if ++ else ++ then ;
+: if51  | if if50 else if50 then ;
+: if52  | if 1+ else 1+ then ;
+: if53  | if 1+ 1+ else 1+ 1+ then ;
 : if6	| if 1+ 1+ then  | if 1+ 1+ then ;
-: if7   | if if5 else 41 + emit cr then noop ;
+: if7   | if if5 else then 41 + emit cr  ;
 : if8   | if | if ++ then 30 + emit cr noop else 30 + emit cr then noop ;
 
 : if90  | if 5 else 6 then ;
@@ -158,6 +163,10 @@
 : opti-if3	1 ['] if3	optimize! ;
 : opti-if4	1 ['] if4	optimize! ;
 : opti-if5	1 ['] if5	optimize! ;
+: opti-if50	1 ['] if50	optimize! ;
+: opti-if51	1 ['] if51	optimize! ;
+: opti-if52	1 ['] if52	optimize! ;
+: opti-if53	1 ['] if53	optimize! ;
 : opti-if6	1 ['] if6	optimize! ;
 : opti-if7	1 ['] if7	optimize! ;
 : opti-if8	1 ['] if8	optimize! ;

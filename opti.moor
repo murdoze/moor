@@ -89,7 +89,6 @@ interpretation latest behavior REGALLOCING latest does
 :: opt-index-word     0 var					\ Index of the beginning of the word
 :: opt-index-last     0 var					\ Last index in the current register allocation and assembling invocation
 :: opt-nest-level     0 var					\ Word nesting level
-:: opt-nest-level-max 0 var
 :: opt-lit            0 var					\ Holds 1-cell literal, offset or other data between regallocing and assembling
 :: opt-str-adr        0 var					\ Address of the latest compiled string
 :: opt-str-size       0 var					\ Size, in cells, of the latest compiled string
@@ -352,8 +351,10 @@ interpretation ' trace behavior REGALLOCING ' trace does
 
 
 
-here exec REGALLOCING ' (beginning) ] interpreting! opt-index+     opt-nest-level 1+!  opt-nest-level @ opt-nest-level-max !  >opt-index                       REGALLOCING state!! xexit [ does
-here exec REGALLOCING ' (ending)    ] interpreting! opt-index+     opt-nest-level 1-!                                         opt-index> opt-index 1+!   r> _  REGALLOCING state!! xexit [ does
+here exec REGALLOCING ' (beginning) ] interpreting!    opt-index+ opt-nest-level 1+!  >opt-index ['] (beginning) %.debug %.S          REGALLOCING state!! xexit [ does
+here exec DEALLOCING  ' (beginning) ] interpreting! 	DEALLOCING state!! xexit [ does
+
+here exec REGALLOCING ' (ending)    ] interpreting! ['] (ending)    %.debug %.S             opt-nest-level 1-!  opt-index> opt-index+                         r> _   REGALLOCING state!! xexit [ does
 
 \\ \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
@@ -1109,7 +1110,6 @@ $ (repeat-post) $;
            :xt opt-definition !
 
            thru-indexes-clear
-           0 opt-nest-level-max !
 
            0 opt-debug !
 	   cr white ." PASS=0a Register allocation" norm
