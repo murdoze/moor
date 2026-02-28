@@ -98,8 +98,9 @@
 : if90  | if 5 else 6 then ;
 : if9   | if if90 else 9 then 30 + emit ;
 
-: (if11) if 41 else 42 then ;
-: if11	1 (if11) emit 0 (if11) emit cr ;
+: (if111)	if 41 else 42 then ;
+: (if11) 	| if (if111) else (if111) then ;
+: if11		1 (if11) 0 (if11) >< emit emit cr ;
 
 : noop1 ++ ;
 : noop2 noop ;
@@ -109,6 +110,7 @@
 :: 'str1 adr 07 c, 31 c, 32 c, 33 c, 41 c, 42 c, 43 c, 0a c,
 : type1	[ 'str1 literal ] 1+ 7 type ;
 : type2	[ 'str1 literal ] count type ;
+: type3 ." 01234567890123456789012345678901234567890123456789" cr ;
 
 :: (var) 42 var
 : var0	(var) ;
@@ -160,7 +162,7 @@
 : opti-if7	1 ['] if7	optimize! ;
 : opti-if8	1 ['] if8	optimize! ;
 : opti-if9	1 ['] if9	optimize! ;
-: opti-if11	1 ['] if11	optimize! ;
+: opti-if11	0 ['] if11	optimize! ;
 
 : opti-noop1	1 ['] noop1	optimize! ;
 : opti-noop2	1 ['] noop2	optimize! ;
@@ -179,6 +181,7 @@
 : opti-.str1	0 ['] .str1	optimize! ;
 : opti-type1	0 ['] type1	optimize! ;
 : opti-type2	0 ['] type2	optimize! ;
+: opti-type3	0 ['] type3	optimize! ;
 
 : opti-var0	0 ['] var0	optimize! ;
 : opti-var1	0 ['] var1	optimize! ;

@@ -84,7 +84,8 @@ interpretation latest behavior REGALLOCING latest does
 :: opt-definition     0 var					\ Definition currently being optimized
 :: opt-debug          0 var					\ Specifies whether debug output is enabled
 :: opt-index          0 var					\ Index inside current word
-:: opt-index-thru     0 var					\ Index throughtout whole optimization process
+:: opt-index-thru     0 var					\ Index throughout whole optimization process
+:: opt-index-thru-max 0 var					\ Max thru index for current optimization
 :: opt-index-word     0 var					\ Index of the beginning of the word
 :: opt-index-last     0 var					\ Last index in the current register allocation and assembling invocation
 :: opt-nest-level     0 var					\ Word nesting level
@@ -109,19 +110,35 @@ interpretation latest behavior REGALLOCING latest does
 :: label-offset adr #labels cells allot	
 :: branch-size adr #labels allot
 
-:: #nest-levels 20 val						\ Number of nest levels; increase as needed
-:: thru-indexes adr #nest-levels #labels * cells allot		\ Mapping from (opt-nest-level, opt-index) to opt-index-thru
+								\\ 
+								\ Mapping from (opt-nest-level, opt-index) to opt-index-thru
+:: nest-levels adr	#labels cells allot
+:: local-indexes adr	#labels cells allot
+
 : thru-indexes-clear
-	thru-indexes
-	#nest-levels #labels * cells 
-	0 fill ;
-: 'thru-index-of						\ ( opt-nest-level opt-index -- 'opt-index-thru )	Get offset inside the thru index array
-	>< 1- #labels * + cells thru-indexes + ;
-: thru-index-of	 'thru-index-of @ ;				\ ( opt-nest-level opt-index -- opt-index-thru )	Get thru index based on nest level and local index
-: thru-index-of! 'thru-index-of ! ;				\ ( opt-index-thru opt-nest-level opt-index --  )	Set thru index based on nest level and local index
+	nest-levels	#labels cells 0 fill
+	local-indexes	#labels cells 0 fill
+;
+: thru-index-of							\ ( opt-nest-level opt-index -- opt-index-thru )	Get thru index
+	( :nest :local )
+	opt-index-thru @
+	begin
+		| opt-index-thru-max @ > if cr yellow :nest . purple :local . abort" : thru index not found" then 
+		| cells nest-levels + @ :nest = ><
+		| cells local-indexes + @ :local = >>>
+		and 0 =
+	while
+		1+
+	repeat
+
+	return
+;
+
 : opt-thru-index-of!
-	opt-index-thru @ opt-nest-level @ opt-index @ 
-	thru-index-of! ;
+	opt-index-thru @ cells
+	| nest-levels	+ opt-nest-level @	>< !
+	| local-indexes	+ opt-index @		>< !
+	_ ;
 
 :: start-adr-prologue 0 var					\ Address of the prologue, which is compiled before the word
 :: start-adr 0 var						\ Address of the beginning of compiled word (16-bytes aligned preferably)
@@ -168,19 +185,14 @@ interpretation latest behavior REGALLOCING latest does
   start-adr @ | here >< - 22 emit dump 22 emit cr ;
 
 : .dump-thru-indexes
-	."     " purple
-	opt-index-last @ | if for opt-index-last @ I -
-		.bl
-	over else _ then 
-	norm cr
-	opt-nest-level-max @ | if for opt-nest-level-max @ I - 1+
-		| yellow .bl bs norm ." : " green
-		opt-index-last @ | if for | opt-index-last @ I - 
-			\ >< .bl .bl ." - " 
-			thru-index-of | 0 <> if .bl else _ ."    " then
-		over _ else _ then
-		norm cr
-	over else _ then
+	opt-index-thru-max @ for
+		opt-index-thru @ I - |
+		cr green .
+		| cells nest-levels	+ @ yellow .
+		| cells local-indexes	+ @ purple .
+		_
+	over
+	cr
 ;
 
 : %.debug  \ .((							\ ( xt -- )		Debug print word name and stack
@@ -340,7 +352,7 @@ interpretation ' trace behavior REGALLOCING ' trace does
 
 
 
-here exec REGALLOCING ' (beginning) ] interpreting!                opt-nest-level 1+!  opt-nest-level @ opt-nest-level-max !  >opt-index                       REGALLOCING state!! xexit [ does
+here exec REGALLOCING ' (beginning) ] interpreting! opt-index+     opt-nest-level 1+!  opt-nest-level @ opt-nest-level-max !  >opt-index                       REGALLOCING state!! xexit [ does
 here exec REGALLOCING ' (ending)    ] interpreting! opt-index+     opt-nest-level 1-!                                         opt-index> opt-index 1+!   r> _  REGALLOCING state!! xexit [ does
 
 \\ \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
@@ -752,8 +764,13 @@ $;
 
 $ count								\ ( r-adr r-count )
 	{ ||
-	.(( .---  " movzx.b" .inst .r, norm ." byte ptr [" norm .r norm ." ]"
-	).( movzx.m, ))
+	.((
+		.--- " movzx.b" .inst .r, norm ." byte ptr [" norm | .r norm ." ]"
+		.--- " inc " .inst .r 
+	).( 
+		>| >< movzx.m,
+		inc,
+	))
 	} $;
 
 
@@ -1105,6 +1122,7 @@ $ (repeat-post) $;
 	   cr %.S
 	   :xt regalloc
 	   opt-index-thru @ opt-index-last !
+	   opt-index-thru @ opt-index-thru-max !
 	   fixup-branches
 	   cr %.used-regs %.S
 	   cr .dump
