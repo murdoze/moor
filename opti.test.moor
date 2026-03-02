@@ -82,20 +82,23 @@
 
 : 6lsb0 | 3f and >< 2/ 2/ 2/ 2/ 2/ 2/ ;
 : 6lsb1 | >< 2/ ;
-: ++ 1+ 1+ ;
 : uemit0
   | 80 < if _ 41 emit else
   | 800 < if _ 42 emit else
   | 10000 < if _ 43 emit else
-  | 110000 < if | >< ++ emit emit else
+  | 110000 < if | >< 1+ emit emit else
   _ 30 emit then 31 emit then 32 emit then 33 emit then cr ;
 
 \\ TODO: branch offsets wrong !!!
+: ++ 1+ 1+ ;
+
 : if5	| if ++ then     | if ++ then ;
 
-: if50  | if 1+ 1+ else 1+ 1+ then ;
-: if51  | if 1+ ++ ++ else then ;			\\ TODO: FAILS. Add more ++ for further shift back
-: if52  | if 1- ++ if51 else then ;
+: if50  | if 1+ 1+ 1+ else 1+ 1+ then ;
+: if51  | if ++ ++ 1+ else 1+ 1+ then ;			\\ TODO: FAILS. Add more ++ for further shift back
+: if52  | if if50 else 1+ 1+ then ;
+: if53  | if if51 else 1+ 1+ then ;
+: if55  | if ++ ++ else ++ then ;
 
 : if59  | if 1+ else 1+ then ;
 : if6	| if 1+ 1+ then  | if 1+ 1+ then ;
@@ -106,8 +109,8 @@
 : if9   | if if90 else 9 then 30 + emit ;
 
 : (if111)	if 41 else 42 then ;
-: (if11) 	| if (if111) else (if111) then ;
-: if11		1 (if11) 0 (if11) >< emit emit cr ;
+: if110 	| if (if111) else (if111) then ;
+: if11		1 if110 0 if110 >< emit emit cr ;
 
 : noop1 ++ ;
 : noop2 noop ;
@@ -168,11 +171,14 @@
 : opti-if50	1 ['] if50	optimize! ;
 : opti-if51	1 ['] if51	optimize! ;
 : opti-if52	1 ['] if52	optimize! ;
+: opti-if53	1 ['] if53	optimize! ;
+: opti-if55	1 ['] if55	optimize! ;
 : opti-if59	1 ['] if59	optimize! ;
 : opti-if6	1 ['] if6	optimize! ;
 : opti-if7	1 ['] if7	optimize! ;
 : opti-if8	1 ['] if8	optimize! ;
 : opti-if9	1 ['] if9	optimize! ;
+: opti-if110	1 ['] if110	optimize! ;
 : opti-if11	0 ['] if11	optimize! ;
 
 : opti-noop1	1 ['] noop1	optimize! ;
