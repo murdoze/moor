@@ -89,7 +89,6 @@ interpretation latest behavior REGALLOCING latest does
 :: opt-index-word     0 var					\ Index of the beginning of the word
 :: opt-index-last     0 var					\ Last index in the current register allocation and assembling invocation
 :: opt-nest-level     0 var					\ Word nesting level
-:: opt-nested-words   0 var					\ Number of nested words at current index
 :: opt-lit            0 var					\ Holds 1-cell literal, offset or other data between regallocing and assembling
 :: opt-str-adr        0 var					\ Address of the latest compiled string
 :: opt-str-size       0 var					\ Size, in cells, of the latest compiled string
@@ -113,12 +112,10 @@ interpretation latest behavior REGALLOCING latest does
 								\\ 
 								\ Mapping from (opt-nest-level, opt-index) to opt-index-thru
 :: nest-levels adr	#labels cells allot
-:: nested-words adr	#labels cells allot
 :: local-indexes adr	#labels cells allot
 
 : thru-indexes-clear
 	nest-levels	#labels cells 0 fill
-	nested-words	#labels cells 0 fill
 	local-indexes	#labels cells 0 fill
 ;
 : thru-index-of							\ ( opt-nest-level opt-index -- opt-index-thru )	Get thru index
@@ -135,13 +132,10 @@ interpretation latest behavior REGALLOCING latest does
 
 	return
 ;
-: nested-words-at						\ ( opt-index-thru -- nested-words )
-	cells nested-words + @ ;
 
 : opt-thru-index-of!
 	opt-index-thru @ cells
 	| nest-levels	+ opt-nest-level @	>< !
-	| nested-words	+ opt-nested-words @	>< !
 	| local-indexes	+ opt-index @		>< !
 	_ ;
 
@@ -193,7 +187,6 @@ interpretation latest behavior REGALLOCING latest does
 	opt-index-thru-max @ for
 		opt-index-thru @ I - |
 		cr green .
-		| cells nested-words	+ @ navy .
 		| cells nest-levels	+ @ yellow .
 		| cells local-indexes	+ @ purple .
 		_
@@ -204,7 +197,6 @@ interpretation latest behavior REGALLOCING latest does
 : %.debug  \ .((							\ ( xt -- )		Debug print word name and stack
            cr
 	   opt-index-thru @ green .bl bs
-	   opt-nested-words @ navy .bl bs
 	   opt-nest-level @ yellow .bl bs
 	   opt-index @ purple .bl norm
            1b emit 5b emit 31 emit 30 emit 47 emit
@@ -365,7 +357,6 @@ here exec REGALLOCING ' (beginning) ] interpreting!
 	['] (beginning) %.debug %.S  
 	
 	opt-nest-level 1+! 
-	opt-nested-words 1+!  
 	>opt-index           
 
 	REGALLOCING state!! xexit [ does
@@ -528,11 +519,9 @@ here exec REGALLOCING ' (ending)    ] interpreting!
 								\          Deallocing semantics should set up the stack properly, if needed
 : .---     cr %.S ;
 : .label   opt-nest-level @ |
-	   opt-nested-words @ navy .bl bs
            yellow .bl bs
 	   purple >< | .bl bs 
-	   thru-index-of | green .bl
-	   nested-words-at navy .bl
+	   thru-index-of green .bl
 	   norm ;
 : .inst    green count type norm tab ;				\ ( str -- )		Print instruction string
 : .lit     blue . norm ;
@@ -984,8 +973,7 @@ $ ?branch
 	   else
 	   | OPT-PASS-BRANCHLEN = if _
 	        opt-nest-level @ >< thru-index-of
-		\ | nested-words-at opt-index-thru @ nested-words-at - ><
-	   	| label-offset@ \ +
+	   	| label-offset@
 		ofs-is-long if label-offset@ here 6 + start-adr @ - - .z lj, 
 		else
 		-4 shift-offsets?
@@ -1148,7 +1136,6 @@ $ (repeat-post) $;
 	   0 opt-index-thru !
 	   0 opt-index-word !
 	   0 opt-nest-level !
-	   0 opt-nested-words !
 	   tmp-stack dirupload
 	   cr %.S
 	   :xt regalloc
@@ -1166,7 +1153,6 @@ $ (repeat-post) $;
 	   0 opt-index-thru !
 	   0 opt-index-word !
 	   0 opt-nest-level !
-	   0 opt-nested-words !
 	   offload
 	   cr %.S
 	   tmp-stack download
@@ -1184,7 +1170,6 @@ $ (repeat-post) $;
 	   0 opt-index-thru !
 	   0 opt-index-word !
 	   0 opt-nest-level !
-	   0 opt-nested-words !
 	   offload
 	   tmp-stack download
 	   tmp-stack dirupload
@@ -1202,7 +1187,6 @@ $ (repeat-post) $;
 	   0 opt-index-thru !
 	   0 opt-index-word !
 	   0 opt-nest-level !
-	   0 opt-nested-words !
 	   offload
 	   cr %.S
 	   tmp-stack download
