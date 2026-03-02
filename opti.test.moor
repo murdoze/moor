@@ -92,10 +92,12 @@
 
 \\ TODO: branch offsets wrong !!!
 : if5	| if ++ then     | if ++ then ;
-: if50  | if ++ else ++ then ;
-: if51  | if if50 else if50 then ;
-: if52  | if 1+ else 1+ then ;
-: if53  | if 1+ 1+ else 1+ 1+ then ;
+
+: if50  | if 1+ 1+ else 1+ 1+ then ;
+: if51  | if 1+ ++ ++ else then ;			\\ TODO: FAILS. Add more ++ for further shift back
+: if52  | if 1- ++ if51 else then ;
+
+: if59  | if 1+ else 1+ then ;
 : if6	| if 1+ 1+ then  | if 1+ 1+ then ;
 : if7   | if if5 else then 41 + emit cr  ;
 : if8   | if | if ++ then 30 + emit cr noop else 30 + emit cr then noop ;
@@ -166,7 +168,7 @@
 : opti-if50	1 ['] if50	optimize! ;
 : opti-if51	1 ['] if51	optimize! ;
 : opti-if52	1 ['] if52	optimize! ;
-: opti-if53	1 ['] if53	optimize! ;
+: opti-if59	1 ['] if59	optimize! ;
 : opti-if6	1 ['] if6	optimize! ;
 : opti-if7	1 ['] if7	optimize! ;
 : opti-if8	1 ['] if8	optimize! ;

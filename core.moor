@@ -236,6 +236,7 @@
 : yellow   baremetal? if 01 emit 0e emit else 1b emit 5b emit 33 emit 33 emit 6d emit then ;
 : blue     baremetal? if 01 emit 09 emit else 1b emit 5b emit 33 emit 34 emit 6d emit then ;
 : purple   baremetal? if 01 emit 05 emit else 1b emit 5b emit 33 emit 35 emit 6d emit then ;
+: navy     baremetal? if 01 emit 01 emit else 1b emit 5b emit 33 emit 36 emit 6d emit then ;
 : white    baremetal? if 01 emit 0f emit else 1b emit 5b emit 33 emit 37 emit 6d emit then ;
 : .\       0 word count blue type norm 0a emit ;
 : .(       29 word count purple type norm ; immediate
