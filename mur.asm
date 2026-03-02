@@ -1363,6 +1363,30 @@ word	stop
 	.include "key.asm"
 .endif
 
+# INKEY ( -- c|0 )
+# Reads one character from input
+word	inkey
+	call	_dup
+
+	push	rbx
+	push	rsi
+	push	rdi
+	push	r8
+
+	call	kbd_enter_raw_nb
+
+	call	kbd_getch_nb
+	push	rcx
+	call	kbd_leave_raw
+	pop	rcx
+
+	pop	r8
+	pop	rdi
+	pop	rsi
+	pop	rbx
+
+	ret
+
 # KEY ( -- c )
 # Reads one character from input
 word	key

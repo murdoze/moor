@@ -72,8 +72,8 @@ kbd__enter_raw_common:
     mov dword ptr [rip + kbd_new_termios + OFF_c_lflag], eax
 
     /* new.c_cc[VTIME]=0; new.c_cc[VMIN]=r8b */
-    //mov byte ptr [rip + kbd_new_termios + OFF_c_cc + IDX_VTIME], 0
-    //mov byte ptr [rip + kbd_new_termios + OFF_c_cc + IDX_VMIN],  r8b
+    mov byte ptr [rip + kbd_new_termios + OFF_c_cc + IDX_VTIME], 0
+    mov byte ptr [rip + kbd_new_termios + OFF_c_cc + IDX_VMIN],  r8b
 
     /* ioctl(STDIN, TCSETS, &new) */
     mov eax, SYS_ioctl
@@ -84,7 +84,7 @@ kbd__enter_raw_common:
 	test	rax, rax
 	js	8f
 
-    mov dword ptr [rip + kbd_is_raw], 1
+    #mov dword ptr [rip + kbd_is_raw], 1
 	7:
     xor eax, eax
 	8:
@@ -182,6 +182,7 @@ kbd_getch_nb:
 	test	rax, rax
 	js	6f             /* -errno */
 
+	mov	ecx, 0
 	cmp	rax, 1
 	jne	5f	           /* 0 => no data available (with VMIN=0) or EOF */
 
