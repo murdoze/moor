@@ -1367,6 +1367,7 @@ word	stop
 # Reads one character from input
 word	inkey
 	call	_dup
+.ifndef	BAREMETAL
 
 	push	rbx
 	push	rsi
@@ -1384,7 +1385,30 @@ word	inkey
 	pop	rdi
 	pop	rsi
 	pop	rbx
+.else
+	mov	rcx, 0	
+.endif
 
+	ret
+
+# NANOSLEEP ( ns -- )
+# Sleep
+word	nanosleep
+.ifndef	BAREMETAL
+	push	rbx
+	push	rsi
+	push	rdi
+	push	r8
+
+	call	sleep_ns
+	call	_drop
+
+	pop	r8
+	pop	rdi
+	pop	rsi
+	pop	rbx
+	
+.endif
 	ret
 
 # KEY ( -- c )

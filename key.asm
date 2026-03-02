@@ -228,3 +228,32 @@ kbd_getch_blocking:
     add rsp, 8
     ret
 
+
+/* Nanosleep */
+
+.equ SYS_nanosleep, 35
+
+sleep_ns:
+    /* Reserve 32 bytes: rqtp (16) + rmtp (16) */
+    sub     rsp, 32
+
+    /* Convert RCX nanoseconds into (sec, nsec) */
+    mov     rax, rcx                /* dividend in RAX */
+    xor     rdx, rdx
+    mov     r8, 1000000000          /* 1e9 */
+    div     r8                      /* RAX = sec, RDX = nsec */
+
+    /* Store rqtp */
+    mov     qword ptr [rsp + 0], rax   /* tv_sec */
+    mov     qword ptr [rsp + 8], rdx   /* tv_nsec */
+
+    /* rmtp is optional; pass NULL to keep it simple */
+    mov     eax, SYS_nanosleep
+    lea     rdi, [rsp + 0]          /* rqtp */
+    xor     esi, esi                /* rmtp = NULL */
+    syscall
+
+    /* Restore stack and return */
+    add     rsp, 32
+    ret
+
