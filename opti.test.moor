@@ -60,6 +60,10 @@
 : orand1	1 3 or 2 and 40 + emit ;
 : pp1		1 3 + 2 + 40 + emit ;
 : less1		| 35 < if 1+ else 1- then emit cr ;
+
+: mul1		2 3 * ;
+
+
 : uemit1	4351 uemit cr ;
 : u2emit1	7 9 u2emit cr ;
 : u2emit2	407 6lsb u2emit cr ;
@@ -156,6 +160,10 @@
 : opti-orand1	0 ['] orand1	optimize! ;
 : opti-pp1	0 ['] pp1	optimize! ;
 : opti-less1	1 ['] less1	optimize! ;
+
+: opti-mul1	0 ['] mul1	optimize! ;
+
+
 : opti-uemit1	0 ['] uemit1	optimize! ;
 : opti-u2emit1	0 ['] u2emit1	optimize! ;
 : opti-u2emit2	0 ['] u2emit2	optimize! ;
@@ -213,6 +221,7 @@
 maze
 : opti-MAZE	0 ['] MAZE	optimize! ;
 : opti-.M	0 ['] .M	optimize! ;
+: opti-.M0	0 ['] .M0	optimize! ;
 
 
 :: zzz adr 100 allot

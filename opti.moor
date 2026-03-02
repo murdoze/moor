@@ -477,6 +477,9 @@ here exec REGALLOCING ' (ending)    ] interpreting!
 % -        { %alloc-rd } 1+ ;%					\ ( rs1 rs2 # -- rs1 rs2 rd #+1 )
 	   { { _ _ } } 1- 1- ;%;				\ ( -- rd #-1 )
 
+% *        { %alloc-rd } 1+ ;%					\ ( rs1 rs2 # -- rs1 rs2 rd #+1 )
+	   { { _ _ } } 1- 1- ;%;				\ ( -- rd #-1 )
+
 % and      { %alloc-rd } 1+ ;%					\ ( rs1 rs2 # -- rs1 rs2 rd #+1 )
 	   { { _ _ } } 1- 1- ;%;				\ ( -- rd #-1 )
 
@@ -499,6 +502,10 @@ here exec REGALLOCING ' (ending)    ] interpreting!
 	   { { _ _ } } 1- 1- ;%;				\ ( -- rd #-1 )
 
 % sar      							\ ( rd rshift # -- rd rd' rshift #+1 )
+           { { | ∨?∧ } } 1+ ;%
+	   { ∨ >< _ } 1- 1- ;%;				        \ ( rd'#-1 )
+
+% shl      							\ ( rd rshift # -- rd rd' rshift #+1 )
            { { | ∨?∧ } } 1+ ;%
 	   { ∨ >< _ } 1- 1- ;%;				        \ ( rd'#-1 )
 
@@ -618,6 +625,20 @@ here exec REGALLOCING ' (ending)    ] interpreting!
 	>optimization-does
 ;
 
+' adr : adr [ compile, ] 
+	optimization-does< 
+		{ 1+ { ?∧ } 
+			%.S
+		}
+		{ >| }
+		.((
+			>< .mov .r, ..
+		).(
+			mov.i, 
+		))
+	>optimization-does
+;
+
 ' val : val [ compile, ] 
 	optimization-does< 
 		{ 1+ { ?∧ } 
@@ -699,6 +720,25 @@ $ sar								\ ( rd-orig rd-alloc rshift # -- <unchanged> )
 
 	} $;
 
+$ shl								\ ( rd-orig rd-alloc rshift # -- <unchanged> )
+	{
+		<<<						\ ( rshift rd-orig rd-alloc )
+		|| <> if
+		|| .(( .--- .mov.rr ).( ¦ mov, ))
+		then
+		>>>						\ ( rd-orig rd-alloc rshift )
+		| rcx <> if
+		.(( .--- " push" .inst rcx .r ).( rcx push, ))
+		| .(( .--- rcx .mov.rr ).( rcx ¦ mov, ))
+		then
+		|| >< 
+		.(( .--- " sar" .inst .r, rcx .r.b ).( sar, ))
+		rcx <> if 
+		.(( .--- " pop" .inst rcx .r ).( rcx pop, ))
+		then
+
+	} $;
+
 $ +
 	{ >>> >|>| - if <<< >|>| -				\ ( rs1 rs2 rd )	Assemble +
 	if							\			RD <> RS1, RS2		mov rd, rs1	add rd, rs1
@@ -715,6 +755,24 @@ $ +
 	<<< >|>|
 	.(( .--- " add" .inst .rr
 	).( ¦ add, ))
+	then } $;
+
+$ *
+	{ >>> >|>| - if <<< >|>| -				\ ( rs1 rs2 rd )	Assemble +
+	if							\			RD <> RS1, RS2		mov rd, rs1	add rd, rs1
+	{ >|>| } | { <<< }
+	>>> >< >|
+	.(( .--- .mov.rr .--- " imul" .inst .rr
+	).( ¦ mov, ¦ imul, ))
+	else							\			RD = RS2
+	<<< >|>|
+	.(( .--- " imul" .inst .rr
+	).( ¦ imul, ))
+	then
+	else							\			RD = RS1
+	<<< >|>|
+	.(( .--- " imul" .inst .rr
+	).( ¦ imul, ))
 	then } $;
 
 $ and
