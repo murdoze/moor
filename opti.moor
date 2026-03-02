@@ -238,7 +238,7 @@ interpretation latest behavior REGALLOCING latest does
            1b emit 5b emit 31 emit 32 emit 38 emit 47 emit
 	   \ .(( ).( 
 	   	\ opt-index-thru @ green .0 label-offset opt-index-thru @ | 0 = if _ _ -1 else 1- cells + @ then white .0 here .. 
-	   	opt-index-thru @ green .0 label-offset opt-index-thru @ cells + @ white .0 here .. 
+	   	opt-index-thru @ green .0 label-offset opt-index-thru @ cells + @ white .0 here ..  bl emit
            \ ))
 	   \ )) 
 	   ;
@@ -1044,7 +1044,7 @@ $ (if-post) $;
 
 $ ?branch  
            opt-branch @ opt-index @ + 1+
-           .(( " jz " .inst .label-forward
+           .(( " jz  " .inst .label-forward
 	   ).(
 	   opt-pass @
 	   | OPT-PASS-INITCODEGEN = if _
@@ -1066,7 +1066,7 @@ $ ?branch
 
 $ -?branch 
            opt-branch @ opt-index @ + 1+
-           .(( " jnz" .inst .label-forward
+           .(( " jnz " .inst .label-forward
 	   ).(
 	   opt-pass @
 	   | OPT-PASS-INITCODEGEN = if _
@@ -1088,7 +1088,7 @@ $ -?branch
 
 $ branch   
            opt-branch @ opt-index @ + 1+
-           .(( " jmp" .inst .label-forward
+           .(( " jmp " .inst .label-forward
 	   ).( 
 	   opt-pass @
 	   | OPT-PASS-INITCODEGEN = if _
@@ -1120,7 +1120,7 @@ $ (over)
 	   .(( " dec" .inst .r .---
 	   ).( dec, ))
            opt-index @ 2+
-	   .(( " jz" .inst .label-forward .---
+	   .(( " jz " .inst .label-forward .---
 	   ).(
 	   opt-pass @
 	   | OPT-PASS-INITCODEGEN = if _
@@ -1141,7 +1141,7 @@ $ (over)
            <φ
            { .---
            opt-branch @ opt-index @ + 1+
-	   .(( " jmp" .inst .label-backward
+	   .(( " jmp " .inst .label-backward
 	   ).(
 	   opt-pass @
 	   | OPT-PASS-INITCODEGEN = if _
