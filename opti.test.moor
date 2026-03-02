@@ -45,9 +45,6 @@
 			42 emit 42 emit 42 emit 42 emit 42 emit 42 emit 42 emit 42 emit 42 emit 42 emit 42 emit 42 emit 
 			42 emit 42 emit 42 emit 42 emit 42 emit 42 emit 42 emit 42 emit 42 emit 42 emit 42 emit 42 emit 
 		then ;
-: for1		3 for | uemit cr over _ cr ;
-: for11		3 for | emit over _ cr ;
-: for2		( :c ) 1 for :c emit over return ;
 : fill0		<<< for >|>| c! 1+ over _ _ ;
 : fill2		( :a :n :c ) :a :n for | :c >< c! 1+ over _ return ;
 : fill3		( :a :n :c ) :n for :c emit over return ;
@@ -111,6 +108,10 @@
 : (if111)	if 41 else 42 then ;
 : if110 	| if (if111) else (if111) then ;
 : if11		1 if110 0 if110 >< emit emit cr ;
+
+: for1		3 for | uemit cr over _ cr ;
+: for11		3 for | emit cr over _ cr ;
+: for2		( :c ) 1 for :c emit over return ;
 
 : noop1 ++ ;
 : noop2 noop ;

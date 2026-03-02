@@ -118,11 +118,12 @@ interpretation latest behavior REGALLOCING latest does
 	nest-levels	#labels cells 0 fill
 	local-indexes	#labels cells 0 fill
 ;
-: thru-index-of							\ ( opt-nest-level opt-index -- opt-index-thru )	Get thru index
+
+: thru-index-of-forward						\ ( opt-nest-level opt-index -- opt-index-thru )	Get thru index searching forward
 	( :nest :local )
 	opt-index-thru @
 	begin
-		| opt-index-thru-max @ > if cr yellow :nest . purple :local . abort" : thru index not found" then 
+		| opt-index-thru-max @ > if cr yellow :nest . purple :local . abort" : thru index not found forward" then 
 		| cells nest-levels + @ :nest = ><
 		| cells local-indexes + @ :local = >>>
 		and 0 =
@@ -130,8 +131,21 @@ interpretation latest behavior REGALLOCING latest does
 		1+
 	repeat
 
-	return
-;
+	return ;
+
+: thru-index-of-backward					\ ( opt-nest-level opt-index -- opt-index-thru )	Get thru index searching backward
+	( :nest :local )
+	opt-index-thru @
+	begin
+		| 0 < if cr yellow :nest . purple :local . abort" : thru index not found backward" then 
+		| cells nest-levels + @ :nest = ><
+		| cells local-indexes + @ :local = >>>
+		and 0 =
+	while
+		1-
+	repeat
+
+	return ;
 
 : opt-thru-index-of!
 	opt-index-thru @ cells
@@ -518,11 +532,18 @@ here exec REGALLOCING ' (ending)    ] interpreting!
 								\ CAUTION! Assembling words should leave the stack as it was passed, do not add or drop items!
 								\          Deallocing semantics should set up the stack properly, if needed
 : .---     cr %.S ;
-: .label   opt-nest-level @ |
+: .label
+           ( :is-forward )
+           opt-nest-level @ |
            yellow .bl bs
 	   purple >< | .bl bs 
-	   thru-index-of green .bl
-	   norm ;
+	   :is-forward if thru-index-of-forward else thru-index-of-backward then
+	   green .bl
+	   norm 
+	   return ;
+: .label-forward 1 .label ;
+: .label-backward 0 .label ;
+
 : .inst    green count type norm tab ;				\ ( str -- )		Print instruction string
 : .lit     blue . norm ;
 
@@ -965,14 +986,14 @@ $ (if-post) $;
 
 $ ?branch  
            opt-branch @ opt-index @ + 1+
-           .(( " jz " .inst .label
+           .(( " jz " .inst .label-forward
 	   ).(
 	   opt-pass @
 	   | OPT-PASS-INITCODEGEN = if _
 	   	0 .z lj, branch-mark
 	   else
 	   | OPT-PASS-BRANCHLEN = if _
-	        opt-nest-level @ >< thru-index-of
+	        opt-nest-level @ >< thru-index-of-forward
 	   	| label-offset@
 		ofs-is-long if label-offset@ here 6 + start-adr @ - - .z lj, 
 		else
@@ -987,14 +1008,14 @@ $ ?branch
 
 $ -?branch 
            opt-branch @ opt-index @ + 1+
-           .(( " jnz" .inst .label
+           .(( " jnz" .inst .label-forward
 	   ).(
 	   opt-pass @
 	   | OPT-PASS-INITCODEGEN = if _
 	   	0 .nz lj, branch-mark
 	   else
 	   | OPT-PASS-BRANCHLEN = if _
-	        opt-nest-level @ >< thru-index-of
+	        opt-nest-level @ >< thru-index-of-forward
 	   	| label-offset@
 		ofs-is-long if label-offset@ here 6 + start-adr @ - - .nz lj, 
 		else
@@ -1009,14 +1030,14 @@ $ -?branch
 
 $ branch   
            opt-branch @ opt-index @ + 1+
-           .(( " jmp" .inst .label
+           .(( " jmp" .inst .label-forward
 	   ).( 
 	   opt-pass @
 	   | OPT-PASS-INITCODEGEN = if _
 	   	0 ljmp, branch-mark
 	   else
 	   | OPT-PASS-BRANCHLEN = if _
-	        opt-nest-level @ >< thru-index-of
+	        opt-nest-level @ >< thru-index-of-forward
 	   	| label-offset@
 		ofs-is-long if label-offset@ here 5 + start-adr @ - - ljmp, 
 		else
@@ -1040,8 +1061,8 @@ $ (over)
 	   cyc> | >cyc
 	   .(( " dec" .inst .r .---
 	   ).( dec, ))
-           opt-index-thru @ 2+
-	   .(( " jz" .inst .label .---
+           opt-index @ 2+
+	   .(( " jz" .inst .label-forward .---
 	   ).(
 	   opt-pass @
 	   | OPT-PASS-INITCODEGEN = if _
@@ -1062,14 +1083,14 @@ $ (over)
            <φ
            { .---
            opt-branch @ opt-index @ + 1+
-	   .(( " jmp" .inst .label
+	   .(( " jmp" .inst .label-backward
 	   ).(
 	   opt-pass @
 	   | OPT-PASS-INITCODEGEN = if _
 	   	0 ljmp, branch-mark
 	   else
 	   | OPT-PASS-BRANCHLEN = if _
-	        opt-nest-level @ >< 1+ thru-index-of
+	        opt-nest-level @ >< 1+ thru-index-of-backward
 	   	| label-offset@
 		ofs-is-long _ 1 if		\ TODO: Dirty hack, jz above does not know if this branch will be short or long and generates wrong target. 
 			label-offset@ here 5 + start-adr @ - - ljmp,
