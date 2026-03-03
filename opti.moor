@@ -456,9 +456,9 @@ here exec REGALLOCING ' (ending)    ] interpreting!
 	   tmp-stack download %;
 % (continue) %;
 % (break)  %;
-% (for)    1- { | ∧ | >cyc } 					\ ( r # -- #-1 )	Takes counter off the stack TODO: Save counter on another stack
+% (for)    1- { | ∨?∧ | >cyc } 					\ ( r # -- #-1 )	Takes counter off the stack TODO: Save counter on another stack
            <<< { { phi-stack revupload } } >>> ;%
-           { _ ∨ } ;%;
+           { _ _ } ;%;
 % (for-post) %;
 % I        1+ { cyc> ∧ | >cyc } %;
 % (over)   @skip | opt-branch ! .. ;% opt-index+
@@ -1127,6 +1127,7 @@ $ (over)
 	   	0 .z lj, branch-mark
 	   else
 	   | OPT-PASS-BRANCHLEN = if _
+		opt-nest-level @ >< 1+ thru-index-of-forward
 	   	| label-offset@
 		ofs-is-long if label-offset@ here 6 + start-adr @ - - .z lj, 
 		else
