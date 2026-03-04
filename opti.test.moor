@@ -122,7 +122,17 @@
 : for3		3 for 2 for 41 I + emit over over cr ;
 : for4		3 for I for 41 emit over cr over ;
 : for5		3 for I | for | I + 41 + emit over _ cr over ;
+: for6		3 for I | for | I - 41 + emit over _ cr over ;
 
+: for7	0 0 ( :row :col )
+	3 | for | I - :row!
+		3 | for | I - :col! 
+			:row :col + 30 + emit
+		over _
+		cr
+	over _
+	return
+;
 : plus1		1 | 2 | + + 41 + emit _ cr ;
 
 : noop1 ++ ;
@@ -212,6 +222,8 @@
 : opti-for3	0 ['] for3	optimize! ;
 : opti-for4	0 ['] for4	optimize! ;
 : opti-for5	0 ['] for5	optimize! ;
+: opti-for6	0 ['] for6	optimize! ;
+: opti-for7	0 ['] for7	optimize! ;
 
 : opti-plus1	0 ['] plus1	optimize! ;
 
