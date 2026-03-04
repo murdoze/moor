@@ -525,9 +525,9 @@ here exec REGALLOCING ' (ending)    ] interpreting!
 								\\ Stubs to ignore debug output words in the optimizer for now
 % ,        ⊻ %;							\ ( r # -- #-1 )	Frees the parameter
 
-% ??       %;							\ ( r # -- #-1 )	Frees the parameter
-% ..       ⊻ %;							\ ( r # -- #-1 )	Frees the parameter
-% .        ⊻ %;							\ ( r # -- #-1 )	Frees the parameter
+% ??       ;% ⊻ ;%;							\ ( r # -- #-1 )	Frees the parameter
+% ..       ;% ⊻ ;%;							\ ( r # -- #-1 )	Frees the parameter
+% .        ;% ⊻ ;%;							\ ( r # -- #-1 )	Frees the parameter
 % .S %;
 % yellow   %;
 % norm     %;
