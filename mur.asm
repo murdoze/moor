@@ -524,6 +524,7 @@ _sigsegv_handler:
 	# rdi = sig, rsi = siginfo_t , rdx = ucontext_t
 
 	mov	rax, qword ptr [rdx + 40 + 8 * 8]	# RDI, see <sys/ucontext.h>
+	add	rax, 8					# Maximum STOSQ
 	cmp	rax, [rip + _mem_reserved]
 	jnb	11f					# cause of fault is not ALLOT
 
