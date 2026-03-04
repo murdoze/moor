@@ -740,11 +740,11 @@ $ shl								\ ( rd-orig rd-alloc rshift # -- <unchanged> )
 	} $;
 
 $ +
-	{ >>> >|>| - if <<< >|>| -				\ ( rs1 rs2 rd )	Assemble +
-	if							\			RD <> RS1, RS2		mov rd, rs1	add rd, rs1
-	{ >|>| } | { <<< }
-	>>> >< >|
-	.(( .--- .mov.rr .--- " add" .inst .rr
+	{ cr .S >>> >|>| - if <<< >|>| -				\ ( rs1 rs2 rd )	Assemble +
+	if cr .S						\			RD <> RS1, RS2		mov rd, rs1	add rd, rs1
+	{ >|>| } | { <<< } cr .S 
+	>>> >| cr .S
+	.(( cr .S .--- .mov.rr .--- " add" .inst .rr
 	).( ¦ mov, ¦ add, ))
 	else							\			RD = RS2
 	<<< >|>|
