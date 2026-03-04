@@ -514,6 +514,7 @@ here exec REGALLOCING ' (ending)    ] interpreting!
 
 % c!       ;% ⊻ ⊻ ;%;			 			\ ( rs rd # -- #-2 )
 % !        ;% ⊻ ⊻ ;%;			 			\ ( rs rd # -- #-2 )
+% c@	   1+ { | ∨?∧ } ;% { >< _ } 1- ;%;
 % @	   1+ { | ∨?∧ } ;% { >< _ } 1- ;%;
 
 : %val     opt-lit ! 1+ { ?∧ } ;				\ ( # -- r #+1 )	Allocates new register for the value
@@ -660,6 +661,11 @@ $ @									\ ( rs rd )
 	).(  ¦ mov.rm, ))
 	} $;
 
+$ c@									\ ( rs rd )
+	{ || .(( .--- .mov.b.rm
+	).(  ¦ mov.b.rm, ))
+	} $;
+
 $ !	{ || .(( .--- .mov.mr
 	).( ¦ mov.mr, ))
 	} $;
@@ -761,7 +767,7 @@ $ *
 	{ >>> >|>| - if <<< >|>| -				\ ( rs1 rs2 rd )	Assemble +
 	if							\			RD <> RS1, RS2		mov rd, rs1	add rd, rs1
 	{ >|>| } | { <<< }
-	>>> >< >|
+	>>> >|
 	.(( .--- .mov.rr .--- " imul" .inst .rr
 	).( ¦ mov, ¦ imul, ))
 	else							\			RD = RS2
@@ -1129,11 +1135,11 @@ $ (over)
 	   | OPT-PASS-BRANCHLEN = if _
 		opt-nest-level @ >< thru-index-of-forward
 	   	| label-offset@
-		ofs-is-long if label-offset@ here 6 + start-adr @ - - .z lj, 
+		ofs-is-long _ 1 if label-offset@ here 6 + start-adr @ - - .z lj, 
 		else
 		-4 shift-offsets?
 		label-offset@
-		here 2 + start-adr @ - - .z j, 
+		here 5 + start-adr @ - - .z j, 
 		then
 	   then
 	   then
@@ -1259,7 +1265,6 @@ $ (repeat-post) $;
 	   \\ ['] exit %.debug %.S %.used-regs
 	   cr .dump
 	
-
            0 opt-debug !
 	   cr white ." PASS=2 Final code generation" norm
 	   OPT-PASS-BRANCHLEN opt-pass !

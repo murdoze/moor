@@ -119,7 +119,7 @@
 : for1		3 for | uemit cr over _ cr ;
 : for11		3 for | emit cr noop over _ cr ;
 : for2		( :c ) 1 for :c emit over return ;
-: for3		3 for 2 for 41 I + emit over over cr ;
+: for3		3 for 2 for 41 I + emit over cr over cr ;
 : for4		3 for I for 41 emit over cr over ;
 : for5		3 for I | for | I + 41 + emit over _ cr over ;
 : for6		3 for I | for | I - 41 + emit over _ cr over ;
@@ -142,6 +142,42 @@
 		cr
 	over 
 	return 
+;
+
+: for9  3 2 ( :row :col )
+	3 | for | I - :row!
+		3 | for | I 2 :col!
+			+ 41 + :col + emit
+		over _
+		cr
+	over _
+	cr
+	return 
+;
+
+
+:: rows91 3 var
+:: cols91 5 var
+: for91	0 0 ( :row :col )
+	rows91 @ | for | I - :row!
+		bl emit
+		cols91 @ | for | I - :col! 
+			:row :col + 30 + emit
+		over _
+		cr
+	over _
+	return
+;
+
+: .M0_	0 0 ( :row :col )
+	M-total-rows @ | for | I - :row!
+		bl emit
+		M-total-cols @ | for | I - :col! 
+			:row :col 'M c@ emit
+		over _
+		cr
+	over _
+	return
 ;
 
 
@@ -240,6 +276,8 @@
 : opti-for6	0 ['] for6	optimize! ;
 : opti-for7	0 ['] for7	optimize! ;
 : opti-for8	0 ['] for8	optimize! ;
+: opti-for9	0 ['] for9	optimize! ;
+: opti-for91	0 ['] for91	optimize! ;
 
 : opti-plus1	0 ['] plus1	optimize! ;
 : opti-plus2	0 ['] plus2	optimize! ;
