@@ -180,18 +180,6 @@
 	return
 ;
 
-: .M0_	0 0 ( :row :col )
-	M-total-rows @ | for | I - :row!
-		bl emit
-		M-total-cols @ | for | I - :col! 
-			:row :col 'M c@ emit
-		over _
-		cr
-	over _
-	return
-;
-
-
 : plus1		1 | 2 | + + 41 + emit _ cr ;
 : plus2		41 | 1+ emit emit cr ;
 
@@ -216,6 +204,7 @@
 
 : abort0	red 41 emit green 42 emit norm cr ;
 : abort1	abort" Optimized abort" ;
+: abort2	0 ( :flag )  :flag if abort" Optimized abort 2" then 30 emit cr return ;
 : raise1	raise ;
 
 								\\ Optimizations
@@ -313,18 +302,53 @@
 
 : opti-abort0	0 ['] abort0	optimize! ;
 : opti-abort1	0 ['] abort1	optimize! ;
+: opti-abort2	0 ['] abort2	optimize! ;
 : opti-raise1	0 ['] raise1	optimize! ;
 
 
 maze
-: opti-MAZE	0 ['] MAZE	optimize! ;
+
+: M-total-size!0
+	( :rows :cols )
+	 :rows 1 and 0 = 		if abort" A" then 
+	 :cols 1 and 0 = 		if abort" Number of cols must be odd" then 
+	\ :rows :cols * M-cells > 	if abort" Maze too big, increase buffer size" then
+	\ :cols M-total-cols !
+	\ :rows M-total-rows !
+	return ;
+
+
+: MAZE0
+	#19 #25 M-total-size!
+
+	\ cursoff
+	clrscr
+	curhome
+
+	M-init
+
+	#27 M-rows ! #20  M-top  !
+	#27 M-cols ! #20 M-left !
+	\ draw-borders
+	\ M-draw-gen-wall-order
+	\ draw-sequence
+
+	\ M-total-rows @ M-rows !
+	\ M-total-cols @ M-cols !
+	\ 0 M-top !
+	\ 0 M-left !
+	\ draw-borders
+	\ M-draw-gen-wall-order
+	\ draw-sequence
+
+	\ .M
+	\ cr
+	\ curson
+;
+
+
 : opti-.M	0 ['] .M	optimize! ;
-: opti-.M0	0 ['] .M0	optimize! ;
-
-
-:: zzz adr 100 allot
-: qqq zzz 10 31 fill2 ;
-
-
+: opti-MAZE	0 ['] MAZE	optimize! ;
+: opti-MAZE0	0 ['] MAZE0	optimize! ;
 
 
