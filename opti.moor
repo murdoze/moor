@@ -223,15 +223,15 @@ interpretation latest behavior REGALLOCING latest does
 : %.S      \ .((
            1b emit 5b emit 32 emit 33 emit 47 emit
            ..S
-           1b emit 5b emit 33 emit 39 emit 47 emit
+           1b emit 5b emit 34 emit 34 emit 47 emit
 	   blue .regs norm
-           1b emit 5b emit 37 emit 32 emit 47 emit
+           1b emit 5b emit 37 emit 36 emit 47 emit
 	   52 emit 3a emit bl emit ret-stack .stack
-           1b emit 5b emit 38 emit 32 emit 47 emit
-	   43 emit 3a emit bl emit cyc-stack .stack
            1b emit 5b emit 38 emit 38 emit 47 emit
+	   43 emit 3a emit bl emit cyc-stack .stack
+           1b emit 5b emit 39 emit 36 emit 47 emit
 	   cf emit 86 emit 3a emit bl emit phi-stack .stack
-           1b emit 5b emit 31 emit 30 emit 39 emit 47 emit
+           1b emit 5b emit 31 emit 31 emit 36 emit 47 emit
 	   54 emit 3a emit bl emit tmp-stack .stack
            1b emit 5b emit 31 emit 32 emit 36 emit 47 emit
            ." ¦ "
@@ -245,7 +245,7 @@ interpretation latest behavior REGALLOCING latest does
 
 : %.used-regs  \ .(( 
            cr
-           1b emit 5b emit 33 emit 39 emit 47 emit
+           1b emit 5b emit 34 emit 34 emit 47 emit
 	   yellow .used-regs norm cr
 	   \ )) 
 	   ;
@@ -502,12 +502,12 @@ here exec REGALLOCING ' (ending)    ] interpreting!
 	   { { _ _ } } 1- 1- ;%;				\ ( -- rd #-1 )
 
 % sar      							\ ( rd rshift # -- rd rd' rshift #+1 )
-           { { | ∨?∧ } } 1+ ;%
-	   { ∨ >< _ } 1- 1- ;%;				        \ ( rd'#-1 )
+           { { ?∧ } } 1+ ;%
+	   { ∨ >< ∨  } 1- 1- ;%;				\ ( rd' #-1 )
 
 % shl      							\ ( rd rshift # -- rd rd' rshift #+1 )
-           { { | ∨?∧ } } 1+ ;%
-	   { ∨ >< _ } 1- 1- ;%;				        \ ( rd'#-1 )
+           { { ?∧ } } 1+ ;%
+	   { ∨ >< ∨ } 1- 1- ;%;				        \ ( rd' #-1 )
 
 % 1+       { | ∨?∧ } ;% { >< _ } ;%;				\ 			Increment and decrement do not change register allocation
 % 1-       { | ∨?∧ } ;% { >< _ } ;%;				\			Although, a new register is allocated if the destination is aliased
@@ -709,6 +709,7 @@ $ >=	" setf.ge" .ge  $comp $;
 
 $ sar								\ ( rd-orig rd-alloc rshift # -- <unchanged> )
 	{
+		.---
 		<<<						\ ( rshift rd-orig rd-alloc )
 		|| <> if
 		|| .(( .--- .mov.rr ).( ¦ mov, ))
@@ -728,6 +729,7 @@ $ sar								\ ( rd-orig rd-alloc rshift # -- <unchanged> )
 
 $ shl								\ ( rd-orig rd-alloc rshift # -- <unchanged> )
 	{
+		.---
 		<<<						\ ( rshift rd-orig rd-alloc )
 		|| <> if
 		|| .(( .--- .mov.rr ).( ¦ mov, ))
@@ -738,7 +740,7 @@ $ shl								\ ( rd-orig rd-alloc rshift # -- <unchanged> )
 		| .(( .--- rcx .mov.rr ).( rcx ¦ mov, ))
 		then
 		|| >< 
-		.(( .--- " sar" .inst .r, rcx .r.b ).( sar, ))
+		.(( .--- " shl" .inst .r, rcx .r.b ).( shl, ))
 		rcx <> if 
 		.(( .--- " pop" .inst rcx .r ).( rcx pop, ))
 		then
@@ -833,6 +835,7 @@ $ -
 	<<< >|>|
 	.(( .--- " sub" .inst .rr
 	).( ¦ sub, ))
+	.---
 	then } $;
 
 $ 1+

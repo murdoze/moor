@@ -55,6 +55,7 @@
 : sar01		1 70 | >>> sar emit emit ;
 : sar1		200 3 sar emit cr ;
 : sar2		1 200 | { 3 sar } + 201 - emit cr ;
+: sar3		3 for 200 3 sar I +  emit over cr ;
 
 : andor1	1 3 and 2 or 40 + emit ;
 : orand1	1 3 or 2 and 40 + emit ;
@@ -158,11 +159,21 @@
 
 :: rows91 3 var
 :: cols91 5 var
+:: MM adr
+	41 , 42 , 43 , 44 , 45 ,
+	46 , 47 , 48 , 49 , 4a ,
+	4b , 4c , 4d , 4e , 4f ,
+: 'MM	( :row :col )
+	:row cols91 @ * :col + cells MM +		\\ CELLS is incorrect (SHL?)
+	return ;
+
+
 : for91	0 0 ( :row :col )
-	rows91 @ | for | I - :row!
+	rows91 @       | for | I - :row!
 		bl emit
-		cols91 @ | for | I - :col! 
-			:row :col + 30 + emit
+		cols91 @       | for | I - :col! 
+			\ bl emit :row 30 + emit :col 30 + emit
+			:row :col 'MM c@ emit
 		over _
 		cr
 	over _
@@ -184,7 +195,7 @@
 : plus1		1 | 2 | + + 41 + emit _ cr ;
 : plus2		41 | 1+ emit emit cr ;
 
-: loc1		30 ( :aaa ) 31 :aaa! :aaa emit cr return ;
+: loc1		30 ( :aaa ) 60 30 - :aaa! 60 60 - _ :aaa emit cr return ;
 
 : noop1 ++ ;
 : noop2 noop ;
@@ -224,6 +235,7 @@
 : opti-sar01	0 ['] sar01	optimize! ;
 : opti-sar1	0 ['] sar1	optimize! ;
 : opti-sar2	0 ['] sar2	optimize! ;
+: opti-sar3	0 ['] sar3	optimize! ;
 
 : opti-andor1	0 ['] andor1	optimize! ;
 : opti-orand1	0 ['] orand1	optimize! ;
@@ -278,6 +290,7 @@
 : opti-for8	0 ['] for8	optimize! ;
 : opti-for9	0 ['] for9	optimize! ;
 : opti-for91	0 ['] for91	optimize! ;
+: opti-'MM	2 ['] 'MM	optimize! ;
 
 : opti-plus1	0 ['] plus1	optimize! ;
 : opti-plus2	0 ['] plus2	optimize! ;
