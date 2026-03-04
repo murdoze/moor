@@ -178,7 +178,7 @@ interpretation latest behavior REGALLOCING latest does
           ffffffffffffff80 and | if ffffffffffffff80 - then ;
 
 
-:: bfx-stack 100 stack						\ Branch fixup stack
+:: bfx-stack 1000 stack						\ Branch fixup stack
 : >bfx    bfx-stack >s ;
 : bfx>    bfx-stack s> ;
 
@@ -486,7 +486,13 @@ here exec REGALLOCING ' (ending)    ] interpreting!
 % or       { %alloc-rd } 1+ ;%					\ ( rs1 rs2 # -- rs1 rs2 rd #+1 )
 	   { { _ _ } } 1- 1- ;%;				\ ( -- rd #-1 )
 
+% xor      { %alloc-rd } 1+ ;%					\ ( rs1 rs2 # -- rs1 rs2 rd #+1 )
+	   { { _ _ } } 1- 1- ;%;				\ ( -- rd #-1 )
+
 % =        { %alloc-rd } 1+ ;%					\ ( rs1 rs2 # -- rs1 rs2 rd #+1 )
+	   { { _ _ } } 1- 1- ;%;				\ ( -- rd #-1 )
+
+% <>       { %alloc-rd } 1+ ;%					\ ( rs1 rs2 # -- rs1 rs2 rd #+1 
 	   { { _ _ } } 1- 1- ;%;				\ ( -- rd #-1 )
 
 % <        { %alloc-rd } 1+ ;%					\ ( rs1 rs2 # -- rs1 rs2 rd #+1 )
@@ -522,6 +528,7 @@ here exec REGALLOCING ' (ending)    ] interpreting!
 % bl	   	bl		%val %;
 % testing  	testing		%val %;
 % test-result   test-result	%val %;
+% randseed	randseed	%val %;
 
 								\\ Stubs to ignore debug output words in the optimizer for now
 % ,        ⊻ %;							\ ( r # -- #-1 )	Frees the parameter
@@ -787,7 +794,7 @@ $ and
 	{ >>> >|>| - if <<< >|>| -				\ ( rs1 rs2 rd )	Assemble AND
 	if							\			RD <> RS1, RS2		mov rd, rs1	and rd, rs1
 	{ >|>| } | { <<< }
-	>>> >< >|
+	>>> >< >|						\\ TODO: Should >< be removed, as in '+'? To abstract out
 	.(( .--- .mov.rr .--- " and" .inst .rr
 	).( ¦ mov, ¦ and, ))
 	else							\			RD = RS2
@@ -817,6 +824,24 @@ $ or
 	<<< >|>|
 	.(( .--- " or" .inst .rr
 	).( ¦ or, ))
+	then } $;
+
+$ xor
+	{ >>> >|>| - if <<< >|>| -				\ ( rs1 rs2 rd )	Assemble AND
+	if							\			RD <> RS1, RS2		mov rd, rs1	and rd, rs1
+	{ >|>| } | { <<< }
+	>>> >< >|
+	.(( .--- .mov.rr .--- " xor" .inst .rr
+	).( ¦ mov, ¦ xor, ))
+	else							\			RD = RS2
+	<<< >|>|
+	.(( .--- " xor" .inst .rr
+	).( ¦ xor, ))
+	then
+	else							\			RD = RS1
+	<<< >|>|
+	.(( .--- " xor" .inst .rr
+	).( ¦ xor, ))
 	then } $;
 
 $ - 
@@ -1062,7 +1087,7 @@ $ ?branch
 	   | OPT-PASS-BRANCHLEN = if _
 	        opt-nest-level @ >< thru-index-of-forward
 	   	| label-offset@
-		ofs-is-long if label-offset@ here 6 + start-adr @ - - .z lj, 
+		ofs-is-long _ 1 if label-offset@ here 6 + start-adr @ - - .z lj, 
 		else
 		-4 shift-offsets?
 		label-offset@ 
