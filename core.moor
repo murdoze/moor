@@ -381,6 +381,8 @@
 :: jmp,    e0 ff instro						\ ( rd -- )		jmp	rd
 :: neg,    d8 f7 instro						\ ( rd -- )		neg	rd
 :: not,    d0 f7 instro						\ ( rd -- )		not	rd
+:: shl,    e0 d3 instro						\ ( rd -- )		shl	rd, cl
+:: sar,    f8 d3 instro						\ ( rd -- )		sar	rd, cl
 
 :: imul,   af 0f instrr2					\ ( rd rs -- )		imul	rd, rs
 
