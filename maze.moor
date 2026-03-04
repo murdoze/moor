@@ -9,7 +9,7 @@ maze definitions
 
 \ Maze entities
 :: EMPTY	3000 val
-:: WALL		1f9ee val
+:: WALL		1f9f1 val
 
 \ Generation order
 :: LEFT		char L val
