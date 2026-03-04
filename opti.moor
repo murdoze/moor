@@ -406,8 +406,8 @@ here exec REGALLOCING ' (ending)    ] interpreting!
 % locals(	%;
 % -locals-	%;
 % )locals	%;
-% #l@		@skip >< 1+ { #ret@ ∧ }   ;% opt-index+ ;%;
-% #l!		@skip >< 1- { | #ret! ∨ } ;% opt-index+ ;%;
+% #l@		@skip >< 1+ { #ret@ ∧ }       ;% opt-index+ ;%;
+% #l!		@skip >< 1- { | <<< #ret! ∨ } ;% opt-index+ ;%;
 
 
 % lit      @skip | opt-lit ! .(( .. ).( _ )) 1+ { ?∧ } ;% opt-index+ ;%;	\ ( # -- r #+1 )	Allocates new register
