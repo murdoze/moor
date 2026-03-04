@@ -1127,7 +1127,7 @@ $ (over)
 	   	0 .z lj, branch-mark
 	   else
 	   | OPT-PASS-BRANCHLEN = if _
-		opt-nest-level @ >< 1+ thru-index-of-forward
+		opt-nest-level @ >< thru-index-of-forward
 	   	| label-offset@
 		ofs-is-long if label-offset@ here 6 + start-adr @ - - .z lj, 
 		else

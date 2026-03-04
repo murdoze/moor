@@ -121,7 +121,9 @@
 : for2		( :c ) 1 for :c emit over return ;
 : for3		3 for 2 for 41 I + emit over over cr ;
 : for4		3 for I for 41 emit over cr over ;
+: for5		3 for I | for | I + 41 + emit over _ cr over ;
 
+: plus1		1 | 2 | + + 41 + emit _ cr ;
 
 : noop1 ++ ;
 : noop2 noop ;
@@ -209,6 +211,9 @@
 : opti-for2	1 ['] for2	optimize! ;
 : opti-for3	0 ['] for3	optimize! ;
 : opti-for4	0 ['] for4	optimize! ;
+: opti-for5	0 ['] for5	optimize! ;
+
+: opti-plus1	0 ['] plus1	optimize! ;
 
 : opti-fill2	3 ['] fill2	optimize! ;
 : opti-fill3	3 ['] fill3	optimize! ;
