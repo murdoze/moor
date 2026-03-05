@@ -796,7 +796,7 @@ $ and
 	{ >>> >|>| - if <<< >|>| -				\ ( rs1 rs2 rd )	Assemble AND
 	if							\			RD <> RS1, RS2		mov rd, rs1	and rd, rs1
 	{ >|>| } | { <<< }
-	>>> >< >|						\\ TODO: Should >< be removed, as in '+'? To abstract out
+	>>>  >|							\\ TODO: Should >< be removed, as in '+'? To abstract out
 	.(( .--- .mov.rr .--- " and" .inst .rr
 	).( ¦ mov, ¦ and, ))
 	else							\			RD = RS2
@@ -814,7 +814,7 @@ $ or
 	{ >>> >|>| - if <<< >|>| -				\ ( rs1 rs2 rd )	Assemble AND
 	if							\			RD <> RS1, RS2		mov rd, rs1	and rd, rs1
 	{ >|>| } | { <<< }
-	>>> >< >|
+	>>> >|
 	.(( .--- .mov.rr .--- " or" .inst .rr
 	).( ¦ mov, ¦ or, ))
 	else							\			RD = RS2
@@ -832,7 +832,7 @@ $ xor
 	{ >>> >|>| - if <<< >|>| -				\ ( rs1 rs2 rd )	Assemble AND
 	if							\			RD <> RS1, RS2		mov rd, rs1	and rd, rs1
 	{ >|>| } | { <<< }
-	>>> >< >|
+	>>> >|
 	.(( .--- .mov.rr .--- " xor" .inst .rr
 	).( ¦ mov, ¦ xor, ))
 	else							\			RD = RS2
@@ -886,7 +886,7 @@ $ 1-
 $ lit
 	{ |  opt-lit @ ><					\ ( rd )
 	.(( .mov .r, .lit
-	).( ¦ mov.i, ))
+	).( ¦ mov.i64, ))
 	} $;
 
 $ (")
@@ -913,6 +913,7 @@ ASSEMBLING ' lit behavior
 	||	ASSEMBLING ' bl			does
 	||	ASSEMBLING ' testing		does
 	||	ASSEMBLING ' test-result	does
+	||	ASSEMBLING ' randseed		does
 	__
 
 :: <emit>	\ ( c=rdi )
