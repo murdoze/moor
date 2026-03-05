@@ -387,6 +387,8 @@
 :: imul,   af 0f instrr2					\ ( rd rs -- )		imul	rd, rs
 
 :: mov.i,  00 c7 instroi4					\ ( rd imm32 -- )	mov	rd, imm32
+: mov.i64, >< | rexrd.q ` b8 or ` , ;		  		\ ( rd imm64 -- )	movabs	rd, imm64
+
 :: add.i,  c0 83 instroi1
 :: sub.i,  e8 83 instroi1
 
