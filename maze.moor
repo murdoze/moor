@@ -40,11 +40,9 @@ M-init
 :: M-cols	1 var
 :: M-rows	1 var
 
-: 'M0	( :row :col )
+: 'M	( :row :col )
 	:row M-total-cols @ * :col + cells M +
 	return ;
-
-: 'M	>< M-total-cols @ * >< + cells M + ;
 
 : M-total-size!	
 	( :rows :cols )
