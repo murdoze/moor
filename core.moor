@@ -222,11 +222,11 @@
 : else     ?comp compile (else-pre) compile branch >mark >< >resolve compile (else-post) ; immediate
 : then     ?comp compile (then) >resolve compile (then-post) ; immediate
 : begin    ?comp compile (begin) <mark ; immediate
-: until    ?comp compile (until) compile ?branch <resolve ; immediate
-: again    ?comp compile (again) compile branch <resolve ; immediate
+: until    ?comp compile (until) compile ?<branch <resolve ; immediate
+: again    ?comp compile (again) compile <branch <resolve ; immediate
 : ahead    ?comp compile (ahead) compile branch >mark ; immediate
 : while    ?comp compile (while) compile ?branch >mark compile (while-post) ; immediate
-: repeat   ?comp compile (repeat-pre) compile branch >< <resolve compile (repeat-post) >resolve ; immediate
+: repeat   ?comp compile (repeat-pre) compile <branch >< <resolve >resolve compile (repeat-post) ; immediate
 : continue ?comp compile (continue) compile -?branch | <resolve ; immediate
 : break    ?comp compile (break) compile -?branch >mark >< ; immediate
 
@@ -568,6 +568,7 @@
 		rwork push,
 		ret,
 decompilation ' branch behavior  decompilation ' (over) does
+decompilation ' branch behavior  decompilation ' <branch does
 
 :: (-leave) code 						\ ( f -- )		Leave FOR loop if the flag is false
            rtmp rtop mov,
