@@ -630,7 +630,7 @@ here exec REGALLOCING ' (ending)    ] interpreting!
 		.((
 			>< .mov .r, ..
 		).(
-			mov.i, 
+			mov.i64, 
 		))
 	>optimization-does
 ;
@@ -644,7 +644,7 @@ here exec REGALLOCING ' (ending)    ] interpreting!
 		.((
 			>< .mov .r, ..
 		).(
-			mov.i, 
+			mov.i64, 
 		))
 	>optimization-does
 ;
@@ -658,7 +658,7 @@ here exec REGALLOCING ' (ending)    ] interpreting!
 		.((
 			>< .mov .r, ..
 		).(
-			mov.i, 
+			mov.i64, 
 		))
 	>optimization-does
 ;
@@ -892,7 +892,7 @@ $ lit
 $ (")
 	{ |  opt-str-adr @ ><					\ ( rd )
 	.(( .mov .r, .lit
-	).( ¦ mov.i, ))
+	).( ¦ mov.i64, ))
 	} $;
 $;
 
