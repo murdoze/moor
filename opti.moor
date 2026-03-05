@@ -1139,7 +1139,7 @@ $ -?branch
 	   | OPT-PASS-BRANCHLEN = if _
 	        opt-nest-level @ >< thru-index-of-forward
 	   	| label-offset@
-		ofs-is-long if label-offset@ here 6 + start-adr @ - - .nz lj, 
+		ofs-is-long _ 1 if label-offset@ here 6 + start-adr @ - - .nz lj, 
 		else
 		-4 shift-offsets?
 		label-offset@
@@ -1161,7 +1161,7 @@ $ branch
 	   | OPT-PASS-BRANCHLEN = if _
 	        opt-nest-level @ >< thru-index-of-forward
 	   	| label-offset@
-		ofs-is-long if label-offset@ here 5 + start-adr @ - - ljmp, 
+		ofs-is-long _ 1 if label-offset@ here 5 + start-adr @ - - ljmp, 
 		else
 		-3 shift-offsets?
 		label-offset@
@@ -1183,7 +1183,7 @@ $ <branch
 	   | OPT-PASS-BRANCHLEN = if _
 	        opt-nest-level @ >< thru-index-of-backward
 	   	| label-offset@
-		ofs-is-long if label-offset@ here 5 + start-adr @ - - ljmp, 
+		ofs-is-long _ 1 if label-offset@ here 5 + start-adr @ - - ljmp, 
 		else
 		-3 shift-offsets?
 		label-offset@
