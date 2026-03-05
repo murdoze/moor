@@ -312,6 +312,18 @@
 : opti-raise1	0 ['] raise1	optimize! ;
 
 
+:: #seq1 3 val
+:: seq1 adr #seq1 cells allot
+: .seq1		seq1 #seq1 .seq cr ;
+: nseq1		seq1 #seq1 nseq ;
+: rseq1		seq1 #seq1 rseq ;
+: random1	a random 30 + emit cr ;
+
+: opti-nseq1	0 ['] nseq1	optimize! ;
+: opti-rseq1	0 ['] rseq1	optimize! ;
+: opti-random0	0 ['] random32	optimize! ;
+: opti-random1	0 ['] random1	optimize! ;
+
 maze
 
 : M-total-size!0
@@ -323,6 +335,28 @@ maze
 	\ :rows M-total-rows !
 	return ;
 
+
+: M-order0
+	\ Generate indices
+	M-row-indices M-rows @ 2- 2/ || nseq || rseq _ _  
+	\ M-col-indices M-cols @ 2- 2/ || nseq || rseq _ _
+
+	\ Generate drawing order
+	\ M-gen-order
+	\ M-rows @ | 1 and >< 1+ 2/ 2/ >< - 	for |  LEFT >< ! cell+ over
+	\ M-rows @ 2- 2/ 2/ 			for | RIGHT >< ! cell+ over
+	\ M-cols @ | 1 and >< 1+ 2/ 2/ >< -	for |    UP >< ! cell+ over
+	\ M-cols @ 2- 2/ 2/			for |  DOWN >< ! cell+ over
+	\ _
+
+	\ M-gen-order M-rows @ 2- 2/ 1- M-cols @ 2- 2/ 1- + rseq
+;
+
+	#19 #25 M-total-size!
+	M-total-rows @ M-rows !
+	M-total-cols @ M-cols !
+	0 M-top !
+	0 M-left !
 
 : MAZE0
 	#19 #25 M-total-size!
@@ -344,7 +378,7 @@ maze
 	0 M-top !
 	0 M-left !
 	draw-borders
-	\ M-draw-gen-wall-order
+	M-draw-gen-wall-order
 	\ draw-sequence
 
 	.M
@@ -354,6 +388,7 @@ maze
 
 
 : opti-'MM	2 ['] 'MM	optimize! ;
+: opti-M-order0 0 ['] M-order0 optimize! ;
 : opti-.M	0 ['] .M	optimize! ;
 : opti-MAZE	0 ['] MAZE	optimize! ;
 : opti-MAZE0	0 ['] MAZE0	optimize! ;
