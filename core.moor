@@ -287,9 +287,11 @@
 : rex.rd   >< rex? if 01 or then ;				\ ( rd rex' -- rex'' )	REX part with Rd bit set
 : rex.rs   >< rex? if 04 or then ;				\ ( rd rex' -- rex'' )	REX part with Rd bit set
 : rexrr.q  rex.q rex.rs rex.rd ;				\ ( rd rs -- rex )	Returns REX prefix for Rd and Rs
-: rexrr.b  rex.b rex.rs rex.rd ;				\ ( rd rs -- rex )	Returns REX prefix for Rd and Rs
+: rexrr.b  rex.b rex.rs rex.rd ;				\ ( rd rs -- rex )	Returns REX prefix for Rdb and Rsb
 : rexrd.q  rex.q rex.rd ;					\ ( rd -- rex )		Returns REX prefix for Rd
+: rexrd.b  rex.b rex.rd ;					\ ( rd -- rex )		Returns REX prefix for Rdb
 : rexrs.q  rex.q rex.rs ;					\ ( rs -- rex )		Returns REX prefix for Rs
+: rexrs.b  rex.b rex.rs ;					\ ( rs -- rex )		Returns REX prefix for Rsb
 : rd       07 and ;						\ ( rd -- modrm' )	Returns ModR/M byte part for Rd
 : rs       07 and 3 shl ;					\ ( rs -- modrm' )	Returns ModR/M byte part for Rs
 : rr       c0 ;							\ (  -- modrm' )	Returns ModR/M byte part for RR
@@ -343,7 +345,7 @@
 :: .g      0f val
 
 :: setf.op 90 val						\ SETcc opcode
-: setf,    rex.b ` 0f ` setf.op or ` rd rr or ` ;		\ ( rd cond -- )	set.cc rd
+: setf,    >< | rexrd.b ` >< 0f ` setf.op or ` rd rr or ` ;	\ ( rd cond -- )	set.cc rd
 
 :: j.op    70 val						\ Jcc opcode
 : j,       j.op or ` ` ;					\ ( offset cond -- )	j.cc	offset8
