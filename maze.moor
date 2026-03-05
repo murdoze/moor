@@ -40,9 +40,11 @@ M-init
 :: M-cols	1 var
 :: M-rows	1 var
 
-: 'M	( :row :col )
+: 'M0	( :row :col )
 	:row M-total-cols @ * :col + cells M +
 	return ;
+
+: 'M	>< M-total-cols @ * >< + cells M + ;
 
 : M-total-size!	
 	( :rows :cols )
@@ -100,7 +102,8 @@ M-init
 	| LEFT	= if left!	 0 Δcol-index !	 1 Δrow-index !	else
 	| RIGHT = if right!	 0 Δcol-index !	 1 Δrow-index !	else
 	| UP	= if up!	 1 Δcol-index !	 0 Δrow-index !	else
-	| DOWN	= if down!	 1 Δcol-index !	 0 Δrow-index !	else	abort" : invalid draw direction"
+	| DOWN	= if down!	 1 Δcol-index !	 0 Δrow-index !	else
+	| curson norm cr . abort" : invalid draw direction"
 	then then then then _ ; 
 
 : draw
