@@ -170,7 +170,6 @@
 	:row cols91 @ * :col + cells MM +		\\ CELLS is incorrect (SHL?)
 	return ;
 
-
 : for91	0 0 ( :row :col )
 	rows91 @       | for | I - :row!
 		bl emit
@@ -326,37 +325,78 @@
 
 maze
 
-: M-total-size!0
-	( :rows :cols )
-	 :rows 1 and 0 = 		if abort" A" then 
-	 :cols 1 and 0 = 		if abort" Number of cols must be odd" then 
-	\ :rows :cols * M-cells > 	if abort" Maze too big, increase buffer size" then
-	\ :cols M-total-cols !
-	\ :rows M-total-rows !
+: 'M00	( :row :col )
+	:row M-total-cols @ * :col + cells M +
 	return ;
 
+: 'M0	\ ( :row :col )
+	>< M-total-cols @ * >< + cells M +
+	;
 
-: M-order0
-	\ Generate indices
-	M-row-indices M-rows @ 2- 2/ || nseq || rseq _ _  
-	\ M-col-indices M-cols @ 2- 2/ || nseq || rseq _ _
+: draw00 
+	begin
+		0 0 'M0 @ _
+	1 break
+	again
+	then
 
-	\ Generate drawing order
-	\ M-gen-order
-	\ M-rows @ | 1 and >< 1+ 2/ 2/ >< - 	for |  LEFT >< ! cell+ over
-	\ M-rows @ 2- 2/ 2/ 			for | RIGHT >< ! cell+ over
-	\ M-cols @ | 1 and >< 1+ 2/ 2/ >< -	for |    UP >< ! cell+ over
-	\ M-cols @ 2- 2/ 2/			for |  DOWN >< ! cell+ over
-	\ _
-
-	\ M-gen-order M-rows @ 2- 2/ 1- M-cols @ 2- 2/ 1- + rseq
 ;
 
-	#19 #25 M-total-size!
-	M-total-rows @ M-rows !
-	M-total-cols @ M-cols !
-	0 M-top !
-	0 M-left !
+: draw0
+	begin
+		curr-row @ last-row @ =
+		curr-col @ last-col @ =
+		or 0 =
+	while
+
+		curr-row @ Δrow @ + M-top  @ +
+		curr-col @ Δcol @ + M-left @ + 
+		'M0 @ 
+		WALL <> if
+		 	WALL
+		 	curr-row @ M-top  @ +
+		 	curr-col @ M-left @ +
+		 	'M ! 
+		then
+		Δcol @ curr-col @ + curr-col !
+		Δrow @ curr-row @ + curr-row !
+
+	repeat
+;
+
+: draw-direction!0					\ ( dir -- )	Set draw direction
+        | emit cr 
+	| LEFT	= if left!	 0 Δcol-index !	 1 Δrow-index !	else
+	| RIGHT = if right!	 0 Δcol-index !	 1 Δrow-index !	else
+	| UP	= if up!	 1 Δcol-index !	 0 Δrow-index !	else
+	| DOWN	= if down!	 1 Δcol-index !	 0 Δrow-index !	else	
+	| curson norm cr . abort" : invalid draw direction"
+	then then then then _ ; 
+
+: draw-sequence0
+	cr ." Draw sequence 0 " cr
+	0 col-index !
+	0 row-index !
+
+	M-gen-order
+	M-rows @ 2- 2/ 1- M-cols @ 2- 2/ 1- 
+	| cr 30 + emit cr
+	+
+	for
+		." AAAAA => " 
+		M-row-indices row-index @ cells + @ 2* 2+ curr-row !
+		M-col-indices col-index @ cells + @ 2* 2+ curr-col !
+
+		| @ | emit cr 
+		draw-direction!0 draw0
+
+		row-index @ Δrow-index @ + row-index !
+		col-index @ Δcol-index @ + col-index !
+
+		cell+
+	over
+	_
+;
 
 : MAZE0
 	#19 #25 M-total-size!
@@ -366,20 +406,13 @@ maze
 	curhome
 
 	M-init
-
-	\ #27 M-rows ! #20  M-top  !
-	\ #27 M-cols ! #20 M-left !
-	\ draw-borders
-	\ M-draw-gen-wall-order
-	\ draw-sequence
-
 	M-total-rows @ M-rows !
 	M-total-cols @ M-cols !
 	0 M-top !
 	0 M-left !
 	draw-borders
 	M-draw-gen-wall-order
-	\ draw-sequence
+	\ draw-sequence0
 
 	.M
 	cr
@@ -387,10 +420,11 @@ maze
 ;
 
 
-: opti-'MM	2 ['] 'MM	optimize! ;
-: opti-M-order0 0 ['] M-order0 optimize! ;
+: opti-'M0	2 ['] 'M0	optimize! ;
 : opti-.M	0 ['] .M	optimize! ;
-: opti-MAZE	0 ['] MAZE	optimize! ;
+: opti-draws	0 ['] draw-sequence0 optimize! ;
+: opti-draw0	0 ['] draw0	optimize! ;
 : opti-MAZE0	0 ['] MAZE0	optimize! ;
+: opti-MAZE	0 ['] MAZE	optimize! ;
 
 
