@@ -156,6 +156,9 @@
 	return 
 ;
 
+: while1	1 begin 30 emit while 33 emit 0 repeat 39 emit cr ;
+: until1	-1 begin 30 emit 1+ | until _ cr ;
+: again1	begin 30 emit 1 break again then cr ;
 
 :: rows91 3 var
 :: cols91 5 var
@@ -279,7 +282,10 @@
 : opti-for8	0 ['] for8	optimize! ;
 : opti-for9	0 ['] for9	optimize! ;
 : opti-for91	0 ['] for91	optimize! ;
-: opti-'MM	2 ['] 'MM	optimize! ;
+
+: opti-while1	0 ['] while1	optimize! ;
+: opti-until1	0 ['] until1	optimize! ;
+: opti-again1	0 ['] again1	optimize! ;
 
 : opti-plus1	0 ['] plus1	optimize! ;
 : opti-plus2	0 ['] plus2	optimize! ;
@@ -327,26 +333,27 @@ maze
 
 	M-init
 
-	#27 M-rows ! #20  M-top  !
-	#27 M-cols ! #20 M-left !
+	\ #27 M-rows ! #20  M-top  !
+	\ #27 M-cols ! #20 M-left !
 	\ draw-borders
 	\ M-draw-gen-wall-order
 	\ draw-sequence
 
-	\ M-total-rows @ M-rows !
-	\ M-total-cols @ M-cols !
-	\ 0 M-top !
-	\ 0 M-left !
-	\ draw-borders
+	M-total-rows @ M-rows !
+	M-total-cols @ M-cols !
+	0 M-top !
+	0 M-left !
+	draw-borders
 	\ M-draw-gen-wall-order
 	\ draw-sequence
 
 	\ .M
-	\ cr
+	cr
 	\ curson
 ;
 
 
+: opti-'MM	2 ['] 'MM	optimize! ;
 : opti-.M	0 ['] .M	optimize! ;
 : opti-MAZE	0 ['] MAZE	optimize! ;
 : opti-MAZE0	0 ['] MAZE0	optimize! ;
