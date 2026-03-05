@@ -105,8 +105,8 @@ M-init
 
 : draw
 	begin
-		curr-row @ last-row @ = if exit then
-		curr-col @ last-col @ = if exit then
+		curr-row @ last-row @ = break
+		curr-col @ last-col @ = break
 
 		curr-row @ Δrow @ + M-top  @ +
 		curr-col @ Δcol @ + M-left @ + 
@@ -116,7 +116,7 @@ M-init
 			curr-col @ M-left @ +
 			'M ! 
 			
-			curhome \ .M
+			\ curhome \ .M
 			\ key [char] q = if abort then 
 			\ curr-col @ 2* 1+ curr-row @ at WALL uemit
 		then
@@ -124,6 +124,8 @@ M-init
 		Δrow @ curr-row @ + curr-row !
 
 	again
+	then
+	then
 ;
 
 : draw-sequence
@@ -190,11 +192,11 @@ M-init
 	\ margins? 1- -1 and 1 or 2- >< -1 and 1 or 2/ -1 and 1 or 2- M-total-size!
 	M-init
 
-	#27 M-rows ! #20  M-top  !
-	#27 M-cols ! #20 M-left !
-	draw-borders
-	M-draw-gen-wall-order
-	draw-sequence
+	\ #27 M-rows ! #20  M-top  !
+	\ #27 M-cols ! #20 M-left !
+	\ draw-borders
+	\ M-draw-gen-wall-order
+	\ draw-sequence
 
 	M-total-rows @ M-rows !
 	M-total-cols @ M-cols !
