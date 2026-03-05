@@ -215,7 +215,7 @@ syn keyword forthForth RESTORE-INPUT SAVE-INPUT SOURCE-ID
   " Forth-79
 syn keyword forthForth 79-STANDARD
   " Forth-83
-syn keyword forthForth <MARK <RESOLVE >MARK >RESOLVE ?BRANCH BRANCH -?BRANCH FORTH-83
+syn keyword forthForth <MARK <RESOLVE >MARK >RESOLVE ?BRANCH BRANCH -?BRANCH <BRANCH ?<BRANCH
   " Forth-79, Forth-83, Forth-94
 syn keyword forthForth QUERY
   " Forth-83, Forth-94
