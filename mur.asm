@@ -913,13 +913,13 @@ word	thread,,, thread, thread
 
 # EXIT
 # Exit current Forth word and return the the caller
-word	exit,,, exit, exit,,,,
+word	exit,,, exit, exit, _decomp_exit, 0,,
 _exit_regalloc:
 	jmp	_exit
 
 # XEXIT
 # Exit current Forth word and return the the caller, but w/o decompilation semantics
-word	xexit,,, xexit, xexit,,,,
+word	xexit,,, xexit, xexit, _decomp_exit, 0,,
 _xexit:
 	jmp	_exit
 
@@ -1026,6 +1026,11 @@ _branch_decomp:
 	call	_emit
 	jmp	rnext
 
+# <BRANCH ( -- )
+# Branch backwards
+word	back_branch, "<branch",,,, _branch_decomp, 0
+	jmp	_branch
+
 # ?BRANCH ( f -- )
 # Changes PC by compiled offset (in cells) if top element is zero
 word	qbranch, "?branch",,,, _branch_decomp, 0
@@ -1039,6 +1044,11 @@ _qbranch:
 	9:
 	call	_drop
 	ret
+
+# ?<BRANCH ( f -- )
+# Conditional branch backwards
+word	back_qbranch, "?<branch",,,, _branch_decomp, 0
+	jmp	_qbranch
 
 # -?BRANCH ( f -- )
 # Changes PC by compiled offset (in cells) if top element is not zero
