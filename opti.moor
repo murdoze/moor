@@ -421,7 +421,9 @@ here exec REGALLOCING ' (ending)    ] interpreting!
 % type     ;% ⊻ ⊻ ;%;
 
 % branch   @skip 1+ | opt-branch ! .(( .. ).( _ ))   ;% opt-index+ ;%;		\ ( -- )
+% <branch  @skip 1+ | opt-branch ! .(( .. ).( _ ))   ;% opt-index+ ;%;		\ ( -- )
 % ?branch  @skip 1+ | opt-branch ! .(( .. ).( _ )) ⊻ ;% opt-index+ ;%;		\ ( r # -- #-1 )
+% ?<branch @skip 1+ | opt-branch ! .(( .. ).( _ )) ⊻ ;% opt-index+ ;%;		\ ( r # -- #-1 )
 % -?branch @skip 1+ | opt-branch ! .(( .. ).( _ )) ⊻ ;% opt-index+ ;%;		\ ( r # -- #-1 )
 
 % (if)     >< { 1- phi-stack revupload } >< 1+ %;		\			Upload stack as if after ?BRANCH
@@ -455,7 +457,7 @@ here exec REGALLOCING ' (ending)    ] interpreting!
            offload
 	   tmp-stack download %;
 % (continue) %;
-% (break)  %;
+% (break)  >< { 1- phi-stack revupload } >< 1+ %;
 % (for)    1- { | ∨?∧ | >cyc } 					\ ( r # -- #-1 )	Takes counter off the stack TODO: Save counter on another stack
            <<< { { phi-stack revupload } } >>> ;%
            { _ _ } ;%;
@@ -1074,7 +1076,35 @@ $ (if)     { | |
            .(( " test" .inst .rr
 	   ).( ¦ test, ))
 	   } $;
+
+$ (break)     { | |
+           .(( " test" .inst .rr
+	   ).( ¦ test, ))
+	   } $;
+
 $ (if-post) $;
+
+$ ?<branch  
+           opt-branch @ opt-index @ + 1+
+           .(( " jz  " .inst .label-backward
+	   ).(
+	   opt-pass @
+	   | OPT-PASS-INITCODEGEN = if _
+	   	0 .z lj, branch-mark
+	   else
+	   | OPT-PASS-BRANCHLEN = if _
+	        opt-nest-level @ >< thru-index-of-backward
+	   	| label-offset@
+		ofs-is-long _ 1 if label-offset@ here 6 + start-adr @ - - .z lj, 
+		else
+		-4 shift-offsets?
+		label-offset@ 
+		here 2 + start-adr @ - - .z j, 
+		then
+	   then 
+	   then 
+	   ))
+	   $;
 
 $ ?branch  
            opt-branch @ opt-index @ + 1+
@@ -1130,6 +1160,28 @@ $ branch
 	   else
 	   | OPT-PASS-BRANCHLEN = if _
 	        opt-nest-level @ >< thru-index-of-forward
+	   	| label-offset@
+		ofs-is-long if label-offset@ here 5 + start-adr @ - - ljmp, 
+		else
+		-3 shift-offsets?
+		label-offset@
+		here 2 + start-adr @ - - sjmp, 
+		then
+	   then 
+	   then
+	   ))
+	   $;
+
+$ <branch   
+           opt-branch @ opt-index @ + 1+
+           .(( " jmp " .inst .label-backward
+	   ).( 
+	   opt-pass @
+	   | OPT-PASS-INITCODEGEN = if _
+	   	0 ljmp, branch-mark
+	   else
+	   | OPT-PASS-BRANCHLEN = if _
+	        opt-nest-level @ >< thru-index-of-backward
 	   	| label-offset@
 		ofs-is-long if label-offset@ here 5 + start-adr @ - - ljmp, 
 		else
