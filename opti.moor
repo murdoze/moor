@@ -25,7 +25,11 @@ interpretation latest behavior REGALLOCING latest does
 								\\ Register allocation
 :: #regs     10 val						\ Number of CPU registers
 :: regs      adr #regs allot					\ Register alias count
-:: used-regs adr #regs allot					\ Used registers
+:: used-regs adr #regs allot					\ Used register
+								\ System V calling ABI register order
+\                0 , 1 , 2 , 3 , 4 , 5 , 6 , 7 , 8 , 9 , a , b , c , d , e , f ,
+:: abi-regs  adr 7 , 6 , 2 , 1 , 8 , 9 , 0 , 3 , 4 , 5 , a , b , c , d , e , f ,
+
 : #r       regs + c@ ;						\ ( r -- #r )		Returns number of references for a register
 : ^        | #regs >= if . abort" invalid register" then
            | regs + | c@ 1+ >< c!  used-regs + 1 >< c! ;	\ ( r -- )		Increments reference count for a register. TODO: Add overflow/underflow checks
@@ -40,6 +44,7 @@ interpretation latest behavior REGALLOCING latest does
            then >< _ #regs >< - | ^ ;
 : ∧        | ^ ;						\ ( r -- r )		Increments reference count for a register, leaving register on the stack
 : ∨        v ;							\ ( r -- )		Decrements reference count for a register
+: #∧       abi-regs + @ ∧ ;					\ ( r -- r' )		Allocate exact registed from ABI list
 : |∨       | v ;						\ ( r -- r )		Decrement reference count for a register, leaving register on the stack
 : ∨∧       | v^ ;						\ ( r -- r 1|0 )	Free register and reallocate it, if it's not aliased. If aliased, returns 1
 : ?∧       ?^ ;
@@ -1378,9 +1383,21 @@ $ (repeat-post) $;
 : optimize!
 	( :#params :xt )
 	here 10 aligned here!
-	here | ." CODE at " .
+	here
 	{
 	regalloc-init :#params | if for ?^ over else _ then
+	:#params :xt optimize
+	}
+	(code) interpretation :xt does
+	return
+;
+
+: optimize-abi!
+	( :#params :xt )
+	here 10 aligned here!
+	here
+	{
+	regalloc-init :#params | if for :#params I - #∧ over else _ then
 	:#params :xt optimize
 	}
 	(code) interpretation :xt does

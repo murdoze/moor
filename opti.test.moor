@@ -199,6 +199,8 @@
 								\\ Optimizations
 
 : opti-fib	1 ['] fib	optimize! ;
+: opta-fib	1 ['] fib	optimize-abi! ;
+
 : opti-nup	2 ['] nup	optimize! ;
 : opti-swap2	2 ['] swap2	optimize! ;
 : opti-lswap	2 ['] lswap	optimize! ;
@@ -311,4 +313,5 @@
 
 maze
 : opti-MAZE	0 ['] MAZE	optimize! ;
+: opta-MAZE	0 ['] MAZE	optimize-abi! ;
 
