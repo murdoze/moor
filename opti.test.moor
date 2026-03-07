@@ -3,6 +3,8 @@
 \\
 								\\ Tests
 : fib		| if 0 1 >>> for >| + >< over _ then ;
+: fib3		| if 0 1 >>> for >| + >< over _ then | 1+ ;
+: res3		1 | 1+ >| ;
 : nup		>r _ r> ;
 : swap2		0 <<< <<< nup ;
 : lswap		( :c :d ) :c :d :c! :d! :c :d return ;
@@ -199,8 +201,10 @@
 								\\ Optimizations
 
 : opti-fib	1 ['] fib	optimize! ;
+: opti-fib3	1 ['] fib3	optimize! ;
 : opta-fib	1 ['] fib	optimize-abi! ;
 
+: opti-res3	0 ['] res3	optimize! ;
 : opti-nup	2 ['] nup	optimize! ;
 : opti-swap2	2 ['] swap2	optimize! ;
 : opti-lswap	2 ['] lswap	optimize! ;
