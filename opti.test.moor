@@ -1,19 +1,6 @@
 \\
 \\ Optimizer tests
 \\
-
-: optimize!
-	( :#params :xt )
-	here 10 aligned here!
-	here | ." CODE at " .
-	{
-	regalloc-init :#params | if for ?^ over else _ then 
-	:#params :xt optimize
-	}
-	(code) interpretation :xt does
-	return
-;
-
 								\\ Tests
 : fib		| if 0 1 >>> for >| + >< over _ then ;
 : nup		>r _ r> ;

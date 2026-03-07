@@ -26,7 +26,6 @@ interpretation latest behavior REGALLOCING latest does
 :: #regs     10 val						\ Number of CPU registers
 :: regs      adr #regs allot					\ Register alias count
 :: used-regs adr #regs allot					\ Used registers
-:: save-regs adr #regs allot					\ Save registers
 : #r       regs + c@ ;						\ ( r -- #r )		Returns number of references for a register
 : ^        | #regs >= if . abort" invalid register" then
            | regs + | c@ 1+ >< c!  used-regs + 1 >< c! ;	\ ( r -- )		Increments reference count for a register. TODO: Add overflow/underflow checks
@@ -1375,4 +1374,16 @@ $ (repeat-post) $;
 ;
 
 : ^>       ' optimize ;
+
+: optimize!
+	( :#params :xt )
+	here 10 aligned here!
+	here | ." CODE at " .
+	{
+	regalloc-init :#params | if for ?^ over else _ then
+	:#params :xt optimize
+	}
+	(code) interpretation :xt does
+	return
+;
 
