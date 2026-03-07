@@ -300,7 +300,7 @@
 : modrm    rs >< rd or rm or ;					\ ( rd rs -- modrm )	Returns ModR/M byte for Rd and Rs
 : modro    >< rd or rr or ;					\ ( rd op -- modrm )	Returns ModR/M byte for Rd and opcode
 : instrr   c, does> <<< >|>| rexrr.q ` >>> c@ ` modrr ` ;	\ ( op -- ) ( rd rs a -- )
-: instrr.b c, does> <<< >|>| rexrr.b ` >>> c@ ` modrr ` ;	\ ( op -- ) ( rd rs a -- )
+: instrr.b c, does> <<< >|>| rexrr.b ` >>> c@ ` modrr ` ;	\ ( op -- ) ( rd rs a -- ) WARNING! RBP requires specien handling, not supported for now
 : instmr   c, does> <<< >|>| rexrr.q ` >>> c@ ` modrm ` ;	\ ( op -- ) ( rd rs a -- )
 : instrm   c, does> <<< >|>| >< rexrr.q ` >>> c@ ` >< modrm ` ;	\ ( op -- ) ( rd rs a -- )
 : instrr2  c, c, does> <<< >|>| >< rexrr.q ` >>> | c@ `		\ ( op1 op2 -- ) ( rd rs a -- )
