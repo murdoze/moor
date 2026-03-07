@@ -526,7 +526,6 @@
 :: INTERPRETING		:state
 :: COMPILING   		:state 
 :: DECOMPILING		:state
-:: REGALLOCING		:state					\ TODO: dirty hack, see _exit_regalloc
 
 : interpretation	INTERPRETING ;
 : compilation		COMPILING ;

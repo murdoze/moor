@@ -697,7 +697,7 @@ _sigsegv_restorer:
 #
 	latest_word	= 0
 
-.macro	reserve_cfa does, reserve=(STATES - 4)
+.macro	reserve_cfa does, reserve=(STATES - 3)
 	# Execution semantics can be either code or Forth word
 
 	# Compilation semantics inside Forth words is the same: compile adress of XT
@@ -707,7 +707,7 @@ _sigsegv_restorer:
 	.endr
 .endm
 
-.macro	word	name, fname, immediate, does=code, param, decomp, decomp_param, regalloc, regalloc_param
+.macro	word	name, fname, immediate, does=code, param, decomp, decomp_param
 	.endfunc
 	.align	16
 .L\name\()_str0:
@@ -724,16 +724,6 @@ _sigsegv_restorer:
 	.quad	latest_word	/* LFA */
 
 	reserve_cfa
-
-	# DECOMPILING
-.ifc "\regalloc", ""
-	.quad	_state_notimpl
-	.quad	0
-.else
-	.quad	\regalloc
-	.quad	\regalloc_param
-.endif
-
 
 	# DECOMPILING
 .ifc "\decomp", ""
@@ -913,13 +903,12 @@ word	thread,,, thread, thread
 
 # EXIT
 # Exit current Forth word and return the the caller
-word	exit,,, exit, exit, _decomp_exit, 0,,
-_exit_regalloc:
+word	exit,,, exit, exit, _decomp_exit, 0
 	jmp	_exit
 
 # XEXIT
 # Exit current Forth word and return the the caller, but w/o decompilation semantics
-word	xexit,,, xexit, xexit, _decomp_exit, 0,,
+word	xexit,,, xexit, xexit, _decomp_exit, 0
 _xexit:
 	jmp	_exit
 
@@ -2071,7 +2060,7 @@ _bracket_close:
 
 # (INTERPRETING) IMMEDIATE
 # Switches address interpreter state to INTERPRETING
-word	interpreting_, "(interpreting)", immediate,,,,, _code, _interpreting_
+word	interpreting_, "(interpreting)", immediate,,,,
 _interpreting_:
 	mov	rstate, INTERPRETING
 	ret
@@ -2088,7 +2077,7 @@ _see_does:
 
 # INTERPRETING!
 # Switches address interpreter state to INTERPRETING
-word	interpreting__, "interpreting!",,,,_interpreting__decomp, 0, _code, _interpreting__
+word	interpreting__, "interpreting!",,,,_interpreting__decomp, 0
 _interpreting__:
 	mov	rstate, INTERPRETING
 	ret
@@ -2101,7 +2090,7 @@ _interpreting__decomp:
 
 # DECOMPILING!
 # Switches address interpreter state to DECOMPILING
-word	decompiling__, "decompiling!",,,,,, _code, _decompiling__
+word	decompiling__, "decompiling!",,,,,
 _decompiling__:
 	mov	rstate, DECOMPILING
 	pop	rpc
@@ -2295,34 +2284,13 @@ _does1:
 
 # (beginning)
 # Marker of the beginning of a word
-word _beginning_, "(beginning)",,,,,, _beginning_regalloc, 0
+word _beginning_, "(beginning)",,,,,
 	ret
-_beginning_regalloc:
-	call	_dup
-	lea	rtop, qword ptr [rip + .L_errm222]
-	call	_count
-	call	_type
-	jmp	rnext
-.L_errm222:
-	.byte .L_errm222$ - .L_errm222 - 1
-	.ascii	"\r\n\x1b[31mBEGINNING! \x1b[0m\x1b[33m \x1b[1m\x1b[7m { \x1b[0m "
-.L_errm222$:
 
 # (ending)
 # Marker of the ending of a word
-word _ending_, "(ending)",,,,,, _ending_regalloc, 0
+word _ending_, "(ending)",,,,,
 	ret
-_ending_regalloc:
-	call	_dup
-	lea	rtop, qword ptr [rip + .L_errm111]
-	call	_count
-	call	_type
-	jmp	rnext
-.L_errm111:
-	.byte .L_errm111$ - .L_errm111 - 1
-	.ascii	"\r\n\x1b[31m   ENDING! \x1b[0m\x1b[33m \x1b[1m\x1b[7m } \x1b[0m \r\n"
-.L_errm111$:
-
 
 # : ( "<name>" -- )
 # Creates a Forth word
