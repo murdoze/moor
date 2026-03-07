@@ -1277,8 +1277,8 @@ $ (repeat-post) $;
 	   bfx-stack empty
 	   -1 -1 >bfx >bfx
            rsp ∧ _						\ 			RSP should not be used as a general-purpose register
-	   rstack0 ∧ _
-	   rstack ∧ _
+	   rstack0 ∧ _						\			R15/RSTACK0 is used for storing results before used registers are restored, and thus mustbe preserved here
+	   rstack ∧ _						\			RBP/RSTACK requires special handling in ModRM, not supported for now
            used-regs #regs 0 fill
 ;
 
