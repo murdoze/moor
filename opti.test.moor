@@ -198,6 +198,14 @@
 : abort2	0 ( :flag )  :flag if abort" Optimized abort 2" then 30 emit cr return ;
 : raise1	raise ;
 
+: spill1	+ ;
+: spill2	1+ + ;
+: spill3	1 2 spill1 ;
+: spill4	1 2 spill2 ;
+: spill5	30 | { a random } _ + emit cr ;
+: spill60	>| + 2 3 + ;
+: spill6	1 2 || spill60 30 + + + + + emit cr ;
+
 								\\ Optimizations
 
 : opti-fib	1 ['] fib	optimize! ;
@@ -314,6 +322,14 @@
 : opti-rseq1	0 ['] rseq1	optimize! ;
 : opti-random0	0 ['] random32	optimize! ;
 : opti-random1	0 ['] random1	optimize! ;
+
+: opti-spill1	2 ['] spill1	optimize! ;
+: opti-spill2	1 ['] spill2	optimize! ;
+: opti-spill3	0 ['] spill3	optimize! ;
+: opti-spill4	0 ['] spill4	optimize! ;
+: opti-spill5	0 ['] spill5	optimize! ;
+: opti-spill6	0 ['] spill6	optimize! ;
+
 
 maze
 : opti-MAZE	0 ['] MAZE	optimize! ;
