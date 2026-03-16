@@ -7,9 +7,15 @@
 \\ Design
 \\
 \\ Calling conventions
-\ 1) Each callee has a list of used registers. 
-\ 2) Caller saves registers it uses prior to calling a callee
-\ 3) 
+\ 0) There are no designated preserved or scratch registers in this ABI; the ABI is GPR-only
+\ 1) Each callee's list of input parameters comply with an ABI (register indices listed in parameter order)
+\ 2) Each callee has a list of used registers
+\ 3) Each callee's list of return values corresponds to an ABI
+\ 4) Caller saves registers it currently uses and also a callee uses prior to calling a callee
+\ 5)  ...
+\ 6) PROFIT!!?
+\ 7) System V ABI interoperation can be handled via stubs/thunks, the same way as Forth interoperation is handled via a stub
+
 
 
 
@@ -35,25 +41,43 @@ interpretation latest behavior REGALLOCING latest does
 	REGALLOCING state! execute interpreting! interpretation state! ;
 
 								\\ Register allocation
-:: #regs     10 val						\ Number of CPU registers
+:: #regs      6 val						\ Number of CPU registers
+:: #realregs  10 val
 :: regs      adr #regs allot					\ Register alias count
 :: used-regs adr #regs allot					\ Used register
+
 								\ System V calling ABI register order
 \                0 , 1 , 2 , 3 , 4 , 5 , 6 , 7 , 8 , 9 , a , b , c , d , e , f ,
 :: abi-regs  adr 7 , 6 , 2 , 1 , 8 , 9 , 0 , 3 , 4 , 5 , a , b , c , d , e , f ,
 
+:: use-reg-mask	0 var
+: use-reg!   bit use-reg-mask @ >< set   use-reg-mask ! ; 	\ ( r -- )  Set bit in the mask corresponding to the register index
+: unuse-reg! bit use-reg-mask @ >< reset use-reg-mask ! ; 	\ ( r -- )  Set bit in the mask corresponding to the register index
+: use-reg? use-reg-mask @ >< bit set? 0 <> ;
+
+:: reuse-reg-stack 100 stack
+: >reuse-reg	reuse-reg-stack | s> 1+ { >s } reuse-reg-stack >s ;
+: reuse-reg>	reuse-reg-stack s> ;
+
 : #r       regs + c@ ;						\ ( r -- #r )		Returns number of references for a register
-: ^        | #regs >= if . abort" invalid register" then
-           | regs + | c@ 1+ >< c!  used-regs + 1 >< c! ;	\ ( r -- )		Increments reference count for a register. TODO: Add overflow/underflow checks
-: v        | #regs >= if . abort" invalid register" then
+: reusable?							\ ( r -- )
+           | { use-reg-mask @ } bit set? 0 = >< #r 0 <> and ;
+: ^        | #regs >= if . abort" ∧: invalid register" then	\ ( r -- )		Increments reference count for a register. TODO: Add overflow/underflow checks
+           | use-reg!
+           | regs + | c@ 1+ >< c!  
+	   used-regs + 1 >< c! ;				
+: v        | #regs >= if . abort" ∨: invalid register" then
+           | unuse-reg!
            regs + | c@ | if 1- >< c!				\ ( r -- )		Decrements reference count for a register. TODO: Or just use cells, not bytes
            else a11a501 .abort then ;
-: v^       regs + | c@ | if 1- | if >< c! 0 else _ _ 1 then 	\ ( r -- 1|0 )		If register is not aliased, then it can be reused
-           else a11a502 .abort then ;
+: v^       | regs + | c@ | if 1- | if >< c! _ 0 else _ _ _ 1 then 	\ ( r -- 1|0 )		If register is not aliased, then it can be reused
+           else _ _ a11a502 .abort then ;
 								\ 			otherwise decrement reference count and return 0
 : ?^       regs #regs for | c@ I >< -leave _ 1+ over		\ ( -- r | ABORT )	Allocates a new register, if one is available
+           #regs for #regs I - | reusable? 0 = -leave _ over
            0add bada110c .abort
-           then >< _ #regs >< - | ^ ;
+           then | >reuse-reg | v #regs >< - 
+	   then >< _ #regs >< - | ^ ;
 : ∧        | ^ ;						\ ( r -- r )		Increments reference count for a register, leaving register on the stack
 : ∨        v ;							\ ( r -- )		Decrements reference count for a register
 : #∧       abi-regs + @ ∧ ;					\ ( r -- r' )		Allocate exact registed from ABI list
@@ -65,8 +89,9 @@ interpretation latest behavior REGALLOCING latest does
 \ : &∧       &^ ;
 : ∨?∧      ∨∧ if else _ ?∧ then ;				\ ( r -- r|r')		Allocates new register, if R is aliased
 
+
 : .regs    regs #regs for | c@ . 1+ over _ ;
-: .used-regs used-regs #regs for | c@ . 1+ over _ ;
+: .used-regs used-regs #regs for | c@ . bs 1+ over _ ;
 
 								\\ Stacks for control structures
 : dirupload #|>>s ; 
@@ -95,6 +120,41 @@ interpretation latest behavior REGALLOCING latest does
 :: phi-stack 100 stack						\ Phi junction stack
 : >phi    phi-stack >s ;
 : phi>    phi-stack s> ;
+		
+								\\ Register use within a function
+:: use-depth-stack 100 stack					\ Depth of main stack at the beginning
+: >use-depth    use-depth-stack >s ;
+: use-depth>    use-depth-stack s> ;
+: use-depth@	use-depth> | >use-depth ;
+
+:: use-reg-mask-stack 100 stack					\ Stack of used register masks
+: >use-reg-mask    use-reg-mask @ use-reg-mask-stack >s ;
+: use-reg-mask>    use-reg-mask-stack s> use-reg-mask ! ;
+
+: .use-reg-mask
+	use-reg-mask @
+	#regs for
+		| 1 and if [char] . else
+			#regs I -  #r if [char] * yellow else bl then
+		then
+		emit norm
+		1 sar
+	over
+	_
+;
+
+: use-regs!							\ ( ... n -- ... n )	Sets used reg if N is more that USE-DEPTH@
+	| | if
+		>< { tmp-stack dirupload tmp> _ } ><
+		for tmp> use-reg! over
+	else _ then ;
+
+: unuse-regs!							\ ( ... n -- ... n )	Sets used reg if N is more that USE-DEPTH@
+	| | if
+		>< { tmp-stack dirupload tmp> _ } ><
+		for tmp> unuse-reg! over
+	else _ then ;
+
 
 								\\ Variables
 :: opt-definition     0 var					\ Definition currently being optimized
@@ -169,6 +229,15 @@ interpretation latest behavior REGALLOCING latest does
 	| local-indexes	+ opt-index @		>< !
 	_ ;
 
+
+:: beginning-index-stack 100 stack
+: >beginning-index	opt-index-thru @ beginning-index-stack >s ;
+: beginning-index>	beginning-index-stack s> ;
+
+:: push-reg-mask-label	adr #labels cells allot
+:: pop-reg-mask-label	adr #labels cells allot
+
+
 :: start-adr-prologue 0 var					\ Address of the prologue, which is compiled before the word
 :: start-adr 0 var						\ Address of the beginning of compiled word (16-bytes aligned preferably)
 
@@ -236,20 +305,36 @@ interpretation latest behavior REGALLOCING latest does
 	   \ ).( _ )) 
 	   ;
 
+: %.regs	
+	regs #regs for | c@ | 
+		0 = if _ [char] . white emit else
+			#regs I - #realregs >= if red else blue then
+			. bs 
+		then
+
+		1+ 
+	over _
+	norm ;
+
 : %.S      \ .((
            1b emit 5b emit 32 emit 33 emit 47 emit
            ..S
            1b emit 5b emit 34 emit 34 emit 47 emit
-	   blue .regs norm
-           1b emit 5b emit 37 emit 36 emit 47 emit
+	   %.regs
+	   bl emit
+	   .use-reg-mask
+           1b emit 5b emit 37 emit 38 emit 47 emit
 	   52 emit 3a emit bl emit ret-stack .stack
            1b emit 5b emit 38 emit 38 emit 47 emit
 	   43 emit 3a emit bl emit cyc-stack .stack
            1b emit 5b emit 39 emit 36 emit 47 emit
 	   cf emit 86 emit 3a emit bl emit phi-stack .stack
            1b emit 5b emit 31 emit 31 emit 36 emit 47 emit
-	   54 emit 3a emit bl emit tmp-stack .stack
-           1b emit 5b emit 31 emit 33 emit 35 emit 47 emit
+	   55 emit 3a emit bl emit reuse-reg-stack .stack
+	   \ 54 emit 3a emit bl emit tmp-stack .stack
+           1b emit 5b emit 31 emit 33 emit 34 emit 47 emit
+	   42 emit 3a emit bl emit beginning-index-stack .stack
+           1b emit 5b emit 31 emit 34 emit 35 emit 47 emit
            ." ¦ "
            \ 1b emit 5b emit 31 emit 33 emit 35 emit 47 emit
 	   \ .(( ).( 
@@ -294,7 +379,9 @@ $ assm     $;
            ] ;
 
 : %;       
-           compile %.S						
+           \ compile use-regs!
+
+           compile %.S compile cr
 
            compile ASSEMBLING!!
            opt-xt @
@@ -305,6 +392,8 @@ $ assm     $;
            opt-xt @
 	   compile,
 	   compile interpreting!
+
+           compile %.S
 
 	   compile opt-index+
 
@@ -382,26 +471,62 @@ interpretation ' trace behavior REGALLOCING ' trace does
 
 
 here exec REGALLOCING ' (beginning) ] interpreting!     
-	opt-thru-index-of! 
+	opt-thru-index-of!
 
-	['] (beginning) %.debug %.S  
+	opt-nest-level 1+!
+	>opt-index
+
+	>use-reg-mask
+	0 reuse-reg-stack >s
+
+	>beginning-index
+
+	unuse-regs!
+	| >use-depth
+
+	['] (beginning) %.debug %.S
+
+	opt-index+
 	
-	opt-nest-level 1+! 
-	>opt-index           
+	ASSEMBLING state!!
+	(beginning)
+	interpreting!
+	REGALLOCING state!! 
 
-	REGALLOCING state!! xexit [ does
+	xexit [ does
 
 
 here exec REGALLOCING ' (ending)    ] interpreting!
 
-	['] (ending)    %.debug %.S
+	use-depth> _
+
+	use-reg-mask>
+
+	0							\ reg mask to push/pop
+	reuse-reg> | if for
+		reuse-reg> ∧ 
+		bit set 
+	over	
+	else _ then
+
+	|
+	beginning-index>  cells push-reg-mask-label + !
+	opt-index-thru @  cells pop-reg-mask-label  + !
+
 
 	opt-nest-level 1-!
 	opt-index>
 	opt-index+
 	r> _
 
-	REGALLOCING state!! xexit [ does
+	['] (ending)    %.debug %.S
+
+	ASSEMBLING state!!
+	(ending)
+	interpreting!
+	REGALLOCING state!! 
+
+	xexit [ does
 
 \\ \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
@@ -533,8 +658,8 @@ here exec REGALLOCING ' (ending)    ] interpreting!
            { { ?∧ } } 1+ ;%
 	   { ∨ >< ∨ } 1- 1- ;%;				        \ ( rd' #-1 )
 
-% 1+       { | ∨?∧ } ;% { >< _ } ;%;				\ 			Increment and decrement do not change register allocation
-% 1-       { | ∨?∧ } ;% { >< _ } ;%;				\			Although, a new register is allocated if the destination is aliased
+% 1+       { | ∨?∧ } 1+ ;% { >< _ } 1- ;%;			\ 			Increment and decrement do not change register allocation
+% 1-       { | ∨?∧ } 1+ ;% { >< _ } 1- ;%;			\			Although, a new register is allocated if the destination is aliased
 
 % c!       ;% ⊻ ⊻ ;%;			 			\ ( rs rd # -- #-2 )
 % !        ;% ⊻ ⊻ ;%;			 			\ ( rs rd # -- #-2 )
@@ -696,6 +821,58 @@ here exec REGALLOCING ' (ending)    ] interpreting!
 
 $ noop	.(( " nop" .inst ).( nop, )) $;
 
+$ (beginning)
+	opt-index-thru @ 1- | green .bl 
+	cells push-reg-mask-label + @ | red . norm 
+	0							\ ( r )	Register to push/pop
+	><
+	begin
+		| 0 <> 
+	while
+		|
+		1 and if
+			>< |
+			.((
+				.--- " push" .inst .r 
+			).(
+				push,
+			))
+			><
+		then
+		1 sar
+		><
+		1+
+		><
+	repeat
+	_ _ 
+$;
+
+$ (ending)
+	opt-index-thru @ 1- | green .bl 
+	cells pop-reg-mask-label + @ | red . norm
+	3f							\ ( r )	Register to push/pop
+	><
+	begin
+		| 0 <> 
+	while
+		|
+		8000_0000_0000_0000 and if
+			>< |
+			.((
+				.--- " pop" .inst .r 
+			).(
+				pop,
+			))
+			><
+		then
+		1 shl
+		><
+		1-
+		><
+	repeat
+	_ _ 
+$;
+
 $ @									\ ( rs rd )
 	{ || .(( .--- .mov.rm
 	).(  ¦ mov.rm, ))
@@ -749,7 +926,6 @@ $ >=	" setf.ge" .ge  $comp $;
 
 $ sar								\ ( rd-orig rd-alloc rshift # -- <unchanged> )
 	{
-		.---
 		<<<						\ ( rshift rd-orig rd-alloc )
 		|| <> if
 		|| .(( .--- .mov.rr ).( ¦ mov, ))
@@ -769,7 +945,6 @@ $ sar								\ ( rd-orig rd-alloc rshift # -- <unchanged> )
 
 $ shl								\ ( rd-orig rd-alloc rshift # -- <unchanged> )
 	{
-		.---
 		<<<						\ ( rshift rd-orig rd-alloc )
 		|| <> if
 		|| .(( .--- .mov.rr ).( ¦ mov, ))
@@ -898,7 +1073,7 @@ $ -
 
 $ 1+
 	{ >|>| - if >|>|					\ ( rs rd )
-	.(( .mov.rr .---
+	.(( .--- .mov.rr .---
 	).( ¦ mov, ))
 	then |
 	.(( " inc" .inst .r
@@ -907,7 +1082,7 @@ $ 1+
 
 $ 1-
 	{ >|>| - if >|>|					\ ( rs rd )
-	.(( .mov.rr .---
+	.(( .--- .mov.rr .---
 	).( ¦ mov, ))
 	then |
 	.(( " dec" .inst .r
@@ -916,13 +1091,13 @@ $ 1-
 
 $ lit
 	{ |  opt-lit @ ><					\ ( rd )
-	.(( .mov .r, .lit
+	.(( .--- .mov .r, .lit
 	).( ¦ mov.i64, ))
 	} $;
 
 $ (")
 	{ |  opt-str-adr @ ><					\ ( rd )
-	.(( .mov .r, .lit
+	.(( .--- .mov .r, .lit
 	).( ¦ mov.i64, ))
 	} $;
 $;
@@ -1001,7 +1176,7 @@ ASSEMBLING ' lit behavior
 
 $ emit								\ ( rs )
 	{ |
-	.(( " emit" .inst .r
+	.(( .--- " emit" .inst .r
 	).(
 	| rdi <> if
 		rdi push,
@@ -1016,7 +1191,7 @@ $ emit								\ ( rs )
 	} $;
 $ type								\ ( r-adr r-count )
 	{ ||
-	.(( " type" .inst >< .r, .r
+	.(( .--- " type" .inst >< .r, .r
 	).(
 
 	rdi push,
@@ -1235,10 +1410,10 @@ $ (for)    { >|>| - if
 $ (over)
            {
 	   cyc> | >cyc
-	   .(( " dec" .inst .r .---
+	   .(( .--- " dec" .inst .r
 	   ).( dec, ))
            opt-index @ 2+
-	   .(( " jz " .inst .label-forward .---
+	   .(( .--- " jz " .inst .label-forward
 	   ).(
 	   opt-pass @
 	   | OPT-PASS-INITCODEGEN = if _
@@ -1295,6 +1470,8 @@ $ (repeat-post) $;
            regs #regs 0 fill
 	   label-offset #labels cells -1 fill
 	   branch-size #labels 0 fill
+           push-reg-mask-label #labels cells 0 fill
+           pop-reg-mask-label #labels cells 0 fill
 	   here start-adr-prologue !
 	   here start-adr !
 	   tmp-stack empty
@@ -1303,9 +1480,11 @@ $ (repeat-post) $;
 	   phi-stack empty
 	   bfx-stack empty
 	   -1 -1 >bfx >bfx
-           rsp ∧ _						\ 			RSP should not be used as a general-purpose register
-	   rstack0 ∧ _						\			R15/RSTACK0 is used for storing results before used registers are restored, and thus mustbe preserved here
+           
+	   rsp ∧ _						\ 			RSP should not be used as a general-purpose register
+	   \\ rstack0 ∧ _					\			R15/RSTACK0 is used for storing results before used registers are restored, and thus mustbe preserved here
 	   rstack ∧ _						\			RBP/RSTACK requires special handling in ModRM, not supported for now
+	   
            used-regs #regs 0 fill
 ;
 
@@ -1327,6 +1506,8 @@ $ (repeat-post) $;
 
            thru-indexes-clear
 
+	   | >use-depth
+
            0 opt-debug !
 	   cr white ." PASS=0a Register allocation" norm
 	   OPT-PASS-INITCODEGEN opt-pass !
@@ -1342,7 +1523,7 @@ $ (repeat-post) $;
 	   fixup-branches
 	   cr %.used-regs %.S
 	   cr .dump
-           cr .dump-thru-indexes
+           \ cr .dump-thru-indexes
 
            1 opt-debug !
 	   cr white ." PASS=1a Initial code generation DEBUG" norm
@@ -1408,6 +1589,7 @@ $ (repeat-post) $;
 
 	   cr %.S
 	   #_
+	   use-depth> _
 	   cr %.S
 
 	   cr .dump
@@ -1422,6 +1604,7 @@ $ (repeat-post) $;
 	here 10 aligned here!
 	here
 	{
+	0 use-reg-mask !
 	regalloc-init :#params | if for ?^ over else _ then
 	:#params :xt optimize
 	}
@@ -1434,6 +1617,7 @@ $ (repeat-post) $;
 	here 10 aligned here!
 	here
 	{
+	0 use-reg-mask !
 	regalloc-init :#params | if for :#params I - #∧ over else _ then
 	:#params :xt optimize
 	}
