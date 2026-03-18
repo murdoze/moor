@@ -41,7 +41,7 @@ interpretation latest behavior REGALLOCING latest does
 	REGALLOCING state! execute interpreting! interpretation state! ;
 
 								\\ Register allocation
-:: #regs      6 val						\ Number of CPU registers
+:: #regs      7 val						\ Number of CPU registers
 :: #realregs  10 val
 :: regs      adr #regs allot					\ Register alias count
 :: used-regs adr #regs allot					\ Used register
@@ -68,8 +68,8 @@ interpretation latest behavior REGALLOCING latest does
 	   used-regs + 1 >< c! ;				
 : v        | #regs >= if . abort" ∨: invalid register" then
            | unuse-reg!
-           regs + | c@ | if 1- >< c!				\ ( r -- )		Decrements reference count for a register. TODO: Or just use cells, not bytes
-           else a11a501 .abort then ;
+           | regs + | c@ | if 1- >< c! _			\ ( r -- )		Decrements reference count for a register. TODO: Or just use cells, not bytes
+           else _ _ a11a501 .abort then ;
 : v^       | regs + | c@ | if 1- | if >< c! _ 0 else _ _ _ 1 then 	\ ( r -- 1|0 )		If register is not aliased, then it can be reused
            else _ _ a11a502 .abort then ;
 								\ 			otherwise decrement reference count and return 0
@@ -143,7 +143,7 @@ interpretation latest behavior REGALLOCING latest does
 	_
 ;
 
-: use-regs!							\ ( ... n -- ... n )	Sets used reg if N is more that USE-DEPTH@
+: use-regs!----NON_USED_REMOVE					\ ( ... n -- ... n )	Sets used reg if N is more that USE-DEPTH@
 	| | if
 		>< { tmp-stack dirupload tmp> _ } ><
 		for tmp> use-reg! over
@@ -181,7 +181,7 @@ interpretation latest behavior REGALLOCING latest does
 :: OPT-PASS-BRANCHLEN   2 val					\ 2 = Branch length optimization (can run multiple times)
 
 								\\ Branch fixup
-:: #labels 1000 val						\ TODO: Check if running out of label space. Need '>' to be implemented			
+:: #labels 4000 val						\ TODO: Check if running out of label space. Need '>' to be implemented			
 :: label-offset adr #labels cells allot	
 :: branch-size adr #labels allot
 
@@ -263,7 +263,7 @@ interpretation latest behavior REGALLOCING latest does
           ffffffffffffff80 and | if ffffffffffffff80 - then ;
 
 
-:: bfx-stack 1000 stack						\ Branch fixup stack
+:: bfx-stack 4000 stack						\ Branch fixup stack
 : >bfx    bfx-stack >s ;
 : bfx>    bfx-stack s> ;
 
@@ -379,8 +379,6 @@ $ assm     $;
            ] ;
 
 : %;       
-           \ compile use-regs!
-
            compile %.S compile cr
 
            compile ASSEMBLING!!
@@ -471,10 +469,16 @@ interpretation ' trace behavior REGALLOCING ' trace does
 
 
 here exec REGALLOCING ' (beginning) ] interpreting!     
-	opt-thru-index-of!
+	
+	label-offset! 
 
 	opt-nest-level 1+!
 	>opt-index
+
+	opt-index+
+
+	opt-thru-index-of!
+
 
 	>use-reg-mask
 	0 reuse-reg-stack >s
@@ -486,8 +490,6 @@ here exec REGALLOCING ' (beginning) ] interpreting!
 
 	['] (beginning) %.debug %.S
 
-	opt-index+
-	
 	ASSEMBLING state!!
 	(beginning)
 	interpreting!
@@ -497,6 +499,8 @@ here exec REGALLOCING ' (beginning) ] interpreting!
 
 
 here exec REGALLOCING ' (ending)    ] interpreting!
+
+	label-offset! 
 
 	use-depth> _
 
@@ -651,12 +655,12 @@ here exec REGALLOCING ' (ending)    ] interpreting!
 	   { { _ _ } } 1- 1- ;%;				\ ( -- rd #-1 )
 
 % sar      							\ ( rd rshift # -- rd rd' rshift #+1 )
-           { { ?∧ } } 1+ ;%
-	   { ∨ >< ∨  } 1- 1- ;%;				\ ( rd' #-1 )
+           { { rcx use-reg! ?∧ } } 1+ ;%
+	   { rcx unuse-reg! ∨ >< ∨ } 1- 1- ;%;			\ ( rd' #-1 )
 
 % shl      							\ ( rd rshift # -- rd rd' rshift #+1 )
-           { { ?∧ } } 1+ ;%
-	   { ∨ >< ∨ } 1- 1- ;%;				        \ ( rd' #-1 )
+           { { rcx use-reg! ?∧ } } 1+ ;%
+	   { rcx unuse-reg! ∨ >< ∨ } 1- 1- ;%;		        \ ( rd' #-1 )
 
 % 1+       { | ∨?∧ } 1+ ;% { >< _ } 1- ;%;			\ 			Increment and decrement do not change register allocation
 % 1-       { | ∨?∧ } 1+ ;% { >< _ } 1- ;%;			\			Although, a new register is allocated if the destination is aliased
@@ -822,8 +826,8 @@ here exec REGALLOCING ' (ending)    ] interpreting!
 $ noop	.(( " nop" .inst ).( nop, )) $;
 
 $ (beginning)
-	opt-index-thru @ 1- | green .bl 
-	cells push-reg-mask-label + @ | red . norm 
+	opt-index-thru @ 1-
+	cells push-reg-mask-label + @
 	0							\ ( r )	Register to push/pop
 	><
 	begin
@@ -848,8 +852,8 @@ $ (beginning)
 $;
 
 $ (ending)
-	opt-index-thru @ 1- | green .bl 
-	cells pop-reg-mask-label + @ | red . norm
+	opt-index-thru @ 1-
+	cells pop-reg-mask-label + @
 	3f							\ ( r )	Register to push/pop
 	><
 	begin

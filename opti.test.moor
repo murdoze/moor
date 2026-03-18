@@ -200,11 +200,11 @@
 
 : spill1	+ ;
 : spill2	1+ + ;
-: spill3	1 2 spill1 ;
+: spill3	1 2 | spill1 ;
 : spill4	1 2 spill2 ;
-: spill5	30 | { a random } _ + emit cr ;
-: spill60	>| + 2 3 + ;
-: spill6	1 2 || spill60 30 + + + + + emit cr ;
+: spill5	111 30 | { a random } _ + | emit cr _ ;
+: spill60	+ + 1 1 1 1 + ;
+: spill6	3 1 2 3 spill60 + + 2c + + + emit cr ;
 
 								\\ Optimizations
 
@@ -333,5 +333,6 @@
 
 maze
 : opti-MAZE	0 ['] MAZE	optimize! ;
+: opti-.M	0 ['] .M	optimize! ;
 : opta-MAZE	0 ['] MAZE	optimize-abi! ;
 
