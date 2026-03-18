@@ -117,9 +117,11 @@ M-init
 			curr-col @ M-left @ +
 			'M ! 
 			
-			\ curhome \ .M
+			\ curhome .M
 			\ key [char] q = if abort then 
-			\ curr-col @ 2* 1+ curr-row @ at WALL uemit
+			curr-col @ 2* 1+ curr-row @ 1+ at WALL uemit
+			\ 1000000 nanosleep
+			\ 1000000 for over
 		then
 		Δcol @ curr-col @ + curr-col !
 		Δrow @ curr-row @ + curr-row !
@@ -184,7 +186,7 @@ M-init
 \\ Testing
 
 : MAZE
-	#19 #25 M-total-size!
+	#29 #35 M-total-size!
 
 	cursoff
 	clrscr
@@ -207,7 +209,7 @@ M-init
 	M-draw-gen-wall-order
 	draw-sequence
 
-	.M
+	\ .M
 	cr
 	curson
 ; \ latest typecheck
