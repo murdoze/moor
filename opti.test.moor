@@ -43,8 +43,11 @@
 : sar0		70 | 1 sar emit emit ;
 : sar01		1 70 | >>> sar emit emit ;
 : sar1		200 3 sar emit cr ;
-: sar2		1 200 | { 3 sar } + 201 - emit cr ;
+: sar2		1 200 | { 3 + } + 400 - 30 + emit cr ;
 : sar3		3 for 200 3 sar I +  emit over cr ;
+: sar4		1 for 3 for sar2 _ over over cr ;
+: sar5		1 for sar4 over cr ;
+: sar6		1 for sar5 over cr ;
 
 : andor1	1 3 and 2 or 40 + emit ;
 : orand1	1 3 or 2 and 40 + emit ;
@@ -206,6 +209,14 @@
 : spill60	+ + 1 1 1 1 + ;
 : spill6	3 1 2 3 spill60 + + 2c + + + emit cr ;
 
+: u2emit0	_ _ ;
+: u2emit1	_ _ 8d d6 emit emit ;
+: 6lsb0		| 3f and >< 6 sar ;
+: 6lsb1		_ _ 58d d 16 ;
+: 6lsb2		_ d 16 ;
+: 6lsb3		16 ;
+: spill7	1 | | for 1 1 for 58d 6lsb3 u2emit over _ over _ _ cr ;
+
 								\\ Optimizations
 
 : opti-fib	1 ['] fib	optimize! ;
@@ -228,6 +239,9 @@
 : opti-sar1	0 ['] sar1	optimize! ;
 : opti-sar2	0 ['] sar2	optimize! ;
 : opti-sar3	0 ['] sar3	optimize! ;
+: opti-sar4	0 ['] sar4	optimize! ;
+: opti-sar5	0 ['] sar5	optimize! ;
+: opti-sar6	0 ['] sar6	optimize! ;
 
 : opti-andor1	0 ['] andor1	optimize! ;
 : opti-orand1	0 ['] orand1	optimize! ;
@@ -329,6 +343,7 @@
 : opti-spill4	0 ['] spill4	optimize! ;
 : opti-spill5	0 ['] spill5	optimize! ;
 : opti-spill6	0 ['] spill6	optimize! ;
+: opti-spill7	0 ['] spill7	optimize! ;
 
 
 maze

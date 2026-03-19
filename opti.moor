@@ -41,7 +41,7 @@ interpretation latest behavior REGALLOCING latest does
 	REGALLOCING state! execute interpreting! interpretation state! ;
 
 								\\ Register allocation
-:: #regs      b val						\ Number of CPU registers
+:: #regs      f val						\ Number of CPU registers
 :: #realregs  10 val
 :: regs      adr #regs allot					\ Register alias count
 :: used-regs adr #regs allot					\ Used register
@@ -552,8 +552,8 @@ here exec REGALLOCING ' (ending)    ] interpreting!
 % >>|      1+ { >>| ∧ } %;				 	\ ( r1 r2 r3 # -- r1 r2 r3 r1 #+1 )
 % >|>|     1+ 1+ { >|>| ∧ >< ∧ >< } %;
 
-% (>r)		1- { | unuse-reg! >ret } %;
-% (r>)		1+ { ret> | use-reg! } %;
+% (>r)		1- { >ret } %;
+% (r>)		1+ { ret> } %;
 
 % locals(	%;
 % -locals-	%;
@@ -1460,7 +1460,7 @@ $ (over)
 	   	0 ljmp, branch-mark
 	   else
 	   | OPT-PASS-BRANCHLEN = if _
-	        opt-nest-level @ >< 1+ thru-index-of-backward
+	        opt-nest-level @ >< thru-index-of-backward
 	   	| label-offset@
 		ofs-is-long _ 1 if		\ TODO: Dirty hack, jz above does not know if this branch will be short or long and generates wrong target. 
 			label-offset@ here 5 + start-adr @ - - ljmp,
