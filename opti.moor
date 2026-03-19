@@ -143,12 +143,6 @@ interpretation latest behavior REGALLOCING latest does
 	_
 ;
 
-: use-regs!----NON_USED_REMOVE					\ ( ... n -- ... n )	Sets used reg if N is more that USE-DEPTH@
-	| | if
-		>< { tmp-stack dirupload tmp> _ } ><
-		for tmp> use-reg! over
-	else _ then ;
-
 : unuse-regs!							\ ( ... n -- ... n )	Sets used reg if N is more that USE-DEPTH@
 	| | if
 		>< { tmp-stack dirupload tmp> _ } ><
