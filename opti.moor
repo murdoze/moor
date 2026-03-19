@@ -41,7 +41,7 @@ interpretation latest behavior REGALLOCING latest does
 	REGALLOCING state! execute interpreting! interpretation state! ;
 
 								\\ Register allocation
-:: #regs      6 val						\ Number of CPU registers
+:: #regs      7 val						\ Number of CPU registers
 :: #realregs  10 val
 :: regs      adr #regs allot					\ Register alias count
 :: used-regs adr #regs allot					\ Used register
@@ -73,6 +73,9 @@ interpretation latest behavior REGALLOCING latest does
 : v^       | regs + | c@ | if 1- | if >< c! _ 0 else _ _ _ 1 then 	\ ( r -- 1|0 )		If register is not aliased, then it can be reused
            else _ _ a11a502 .abort then ;
 								\ 			otherwise decrement reference count and return 0
+: ?^0      regs #regs for | c@ I >< -leave _ 1+ over		\ ( -- r | ABORT )	Allocates a new register, if one is available
+           0add bada110c .abort
+           then >< _ #regs >< - | ^ ;
 : ?^       regs #regs for | c@ I >< -leave _ 1+ over		\ ( -- r | ABORT )	Allocates a new register, if one is available
            #regs for #regs I - | reusable? 0 = -leave _ over
            0add bada110c .abort
@@ -499,8 +502,6 @@ here exec REGALLOCING ' (ending)    ] interpreting!
 
 	label-offset! 
 
-	use-reg-mask>
-
 	0							\ reg mask to push/pop
 	reuse-reg> | if for
 		reuse-reg> ∧ 
@@ -508,14 +509,8 @@ here exec REGALLOCING ' (ending)    ] interpreting!
 	over	
 	else _ then
 
-	#regs for
-		I 1- #r ref> 
-		|| - if
-		cr I 1- red ." #" . norm blue . norm ." => " yellow . norm
-		else
-		__
-		then
-	over
+	use-reg-mask>
+
 
 	|
 	beginning-index>  cells push-reg-mask-label + !
@@ -867,6 +862,28 @@ $ (beginning)
 $;
 
 $ (ending)
+	#regs for
+		I 1- #r ref> | if
+		|| > if
+		cr I 1- red ." #" | . use-reg! norm blue . norm ." => " yellow . norm
+		." #" ?^ | | . I 1- ∨ 
+		I 1- ><
+		.((
+			.--- .mov.rr
+			
+		).(
+			>< mov,
+		))
+		.---
+		<<< >< _
+		.---
+
+		else
+		__
+		then
+		else _ _ then
+	over
+
 	opt-index-thru @
 	cells pop-reg-mask-label + @
 	3f							\ ( r )	Register to push/pop
@@ -890,6 +907,8 @@ $ (ending)
 		><
 	repeat
 	_ _ 
+
+	.---
 $;
 
 $ @									\ ( rs rd )
@@ -1451,6 +1470,7 @@ $ (over)
 	   then
 	   ))
 	   }
+	   .---
            <φ
            { .---
            opt-branch @ opt-index @ + 1+

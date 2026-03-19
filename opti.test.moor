@@ -215,7 +215,8 @@
 : 6lsb1		_ _ 58d d 16 ;
 : 6lsb2		_ d 16 ;
 : 6lsb3		16 ;
-: spill7	1 | | for 1 1 for 58d 6lsb3 u2emit over _ over _ _ cr ;
+: spill70	1 1 for 58d 6lsb0 u2emit over _ ;
+: spill7	1 | | for spill70 over _ _ cr ;
 
 								\\ Optimizations
 
