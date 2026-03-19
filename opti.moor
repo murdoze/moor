@@ -41,7 +41,7 @@ interpretation latest behavior REGALLOCING latest does
 	REGALLOCING state! execute interpreting! interpretation state! ;
 
 								\\ Register allocation
-:: #regs      7 val						\ Number of CPU registers
+:: #regs      b val						\ Number of CPU registers
 :: #realregs  10 val
 :: regs      adr #regs allot					\ Register alias count
 :: used-regs adr #regs allot					\ Used register
@@ -244,9 +244,12 @@ interpretation latest behavior REGALLOCING latest does
 : opt-index-word!  opt-index @ opt-index-word ! ;
 : opt-index+	opt-index 1+! opt-index-thru 1+! ;
 : label-offset@ cells label-offset + @ ; 			\ ( index -- ofs )
+: label-offset!!
+	start-adr @ here >< - 
+	label-offset opt-index-thru @ cells + !
+;
 : label-offset! opt-pass @ OPT-PASS-INITCODEGEN = if
-		  start-adr @ here >< - 
-		  label-offset opt-index-thru @ cells + !
+			label-offset!!
 	        then ;
 : branch-is-short@ branch-size + c@ ;				\ ( index -- 1|0 )	Returns whether the compiled branch at index is short (1) or long (0)
 : branch-is-short! branch-size + 1 >< c! ;			\ ( index -- )		Marks branch as short
@@ -475,11 +478,6 @@ here exec REGALLOCING ' (beginning) ] interpreting!
 	opt-nest-level 1+!
 	>opt-index
 
-	opt-index+
-
-	opt-thru-index-of!
-
-
 	>use-reg-mask
 	0 reuse-reg-stack >s
 
@@ -492,7 +490,12 @@ here exec REGALLOCING ' (beginning) ] interpreting!
 
 	ASSEMBLING state!!
 	(beginning)
+
 	interpreting!
+
+	opt-index+
+	opt-thru-index-of!
+
 	REGALLOCING state!! 
 
 	xexit [ does
@@ -520,14 +523,18 @@ here exec REGALLOCING ' (ending)    ] interpreting!
 
 	opt-nest-level 1-!
 	opt-index>
-	opt-index+
 	r> _
 
 	['] (ending)    %.debug %.S
 
 	ASSEMBLING state!!
 	(ending)
+
 	interpreting!
+
+	opt-index+
+	opt-thru-index-of!
+
 	REGALLOCING state!! 
 
 	xexit [ does
@@ -545,8 +552,8 @@ here exec REGALLOCING ' (ending)    ] interpreting!
 % >>|      1+ { >>| ∧ } %;				 	\ ( r1 r2 r3 # -- r1 r2 r3 r1 #+1 )
 % >|>|     1+ 1+ { >|>| ∧ >< ∧ >< } %;
 
-% (>r)		1- { >ret } %;
-% (r>)		1+ { ret> } %;
+% (>r)		1- { | unuse-reg! >ret } %;
+% (r>)		1+ { ret> | use-reg! } %;
 
 % locals(	%;
 % -locals-	%;
@@ -603,11 +610,11 @@ here exec REGALLOCING ' (ending)    ] interpreting!
 	   tmp-stack download %;
 % (continue) %;
 % (break)  >< { 1- phi-stack revupload } >< 1+ %;
-% (for)    1- { | ∨?∧ | >cyc } 					\ ( r # -- #-1 )	Takes counter off the stack TODO: Save counter on another stack
+% (for)    1- { | ∨?∧ | | unuse-reg! >cyc } 					\ ( r # -- #-1 )	Takes counter off the stack TODO: Save counter on another stack
            <<< { { phi-stack revupload } } >>> ;%
            { _ _ } ;%;
 % (for-post) %;
-% I        1+ { cyc> ∧ | >cyc } %;
+% I        1+ { cyc> ∧ | | unuse-reg! >cyc } %;
 % (over)   @skip | opt-branch ! .. ;% opt-index+
            { cyc> ∨ } ;%;
 % (over-post) %;
@@ -826,7 +833,8 @@ here exec REGALLOCING ' (ending)    ] interpreting!
 $ noop	.(( " nop" .inst ).( nop, )) $;
 
 $ (beginning)
-	opt-index-thru @ 1-
+	here
+	opt-index-thru @ | red . norm
 	cells push-reg-mask-label + @
 	0							\ ( r )	Register to push/pop
 	><
@@ -848,11 +856,17 @@ $ (beginning)
 		1+
 		><
 	repeat
-	_ _ 
+	_ _
+	here >< - 
+	.(( _ ).(
+	opt-pass @ OPT-PASS-BRANCHLEN = if
+		shift-offsets? 
+	else _ then
+	))
 $;
 
 $ (ending)
-	opt-index-thru @ 1-
+	opt-index-thru @
 	cells pop-reg-mask-label + @
 	3f							\ ( r )	Register to push/pop
 	><
@@ -1284,12 +1298,12 @@ $;
 								\ Control
 
 $ (if)     { | |
-           .(( " test" .inst .rr
+           .(( .--- " test" .inst .rr
 	   ).( ¦ test, ))
 	   } $;
 
 $ (break)     { | |
-           .(( " test" .inst .rr
+           .(( .--- " test" .inst .rr
 	   ).( ¦ test, ))
 	   } $;
 
@@ -1297,7 +1311,7 @@ $ (if-post) $;
 
 $ ?<branch  
            opt-branch @ opt-index @ + 1+
-           .(( " jz  " .inst .label-backward
+           .(( .--- " jz  " .inst .label-backward
 	   ).(
 	   opt-pass @
 	   | OPT-PASS-INITCODEGEN = if _
@@ -1319,7 +1333,7 @@ $ ?<branch
 
 $ ?branch  
            opt-branch @ opt-index @ + 1+
-           .(( " jz  " .inst .label-forward
+           .(( .--- " jz  " .inst .label-forward
 	   ).(
 	   opt-pass @
 	   | OPT-PASS-INITCODEGEN = if _
@@ -1341,7 +1355,7 @@ $ ?branch
 
 $ -?branch 
            opt-branch @ opt-index @ + 1+
-           .(( " jnz " .inst .label-forward
+           .(( .--- " jnz " .inst .label-forward
 	   ).(
 	   opt-pass @
 	   | OPT-PASS-INITCODEGEN = if _
@@ -1363,7 +1377,7 @@ $ -?branch
 
 $ branch   
            opt-branch @ opt-index @ + 1+
-           .(( " jmp " .inst .label-forward
+           .(( .--- " jmp " .inst .label-forward
 	   ).( 
 	   opt-pass @
 	   | OPT-PASS-INITCODEGEN = if _
@@ -1385,7 +1399,7 @@ $ branch
 
 $ <branch   
            opt-branch @ opt-index @ + 1+
-           .(( " jmp " .inst .label-backward
+           .(( .--- " jmp " .inst .label-backward
 	   ).( 
 	   opt-pass @
 	   | OPT-PASS-INITCODEGEN = if _
@@ -1408,7 +1422,7 @@ $ <branch
 
 $ (for)    { >|>| - if
            >|>|
-	   .(( .mov.rr
+	   .(( .--- .mov.rr
 	   ).( ¦ mov, ))
            then } $;
 $ (over)

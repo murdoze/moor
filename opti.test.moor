@@ -54,7 +54,7 @@
 : mul1		2 3 * ;
 
 
-: uemit1	4351 uemit cr ;
+: uemit1	uemit cr ;
 : u2emit1	7 9 u2emit cr ;
 : u2emit2	407 6lsb u2emit cr ;
 : uemit3
@@ -202,7 +202,7 @@
 : spill2	1+ + ;
 : spill3	1 2 | spill1 ;
 : spill4	1 2 spill2 ;
-: spill5	111 30 | { a random } _ + | emit cr _ ;
+: spill5	111 30 | { a random } _ + | emit cr _ _ ;
 : spill60	+ + 1 1 1 1 + ;
 : spill6	3 1 2 3 spill60 + + 2c + + + emit cr ;
 
@@ -237,7 +237,7 @@
 : opti-mul1	0 ['] mul1	optimize! ;
 
 
-: opti-uemit1	0 ['] uemit1	optimize! ;
+: opti-uemit1	1 ['] uemit1	optimize! ;
 : opti-u2emit1	0 ['] u2emit1	optimize! ;
 : opti-u2emit2	0 ['] u2emit2	optimize! ;
 : opti-uemit3	1 ['] uemit3	optimize! ;
