@@ -41,7 +41,7 @@ interpretation latest behavior REGALLOCING latest does
 	REGALLOCING state! execute interpreting! interpretation state! ;
 
 								\\ Register allocation
-:: #regs      f val						\ Number of CPU registers
+:: #regs      6 val						\ Number of CPU registers
 :: #realregs  10 val
 :: regs      adr #regs allot					\ Register alias count
 :: used-regs adr #regs allot					\ Used register
@@ -120,13 +120,9 @@ interpretation latest behavior REGALLOCING latest does
 :: phi-stack 100 stack						\ Phi junction stack
 : >phi    phi-stack >s ;
 : phi>    phi-stack s> ;
-		
-								\\ Register use within a function
-:: use-depth-stack 100 stack					\ Depth of main stack at the beginning
-: >use-depth    use-depth-stack >s ;
-: use-depth>    use-depth-stack s> ;
-: use-depth@	use-depth> | >use-depth ;
 
+:: ref-stack 100 stack						\ Register ref at the beginning of each function
+		
 :: use-reg-mask-stack 100 stack					\ Stack of used register masks
 : >use-reg-mask    use-reg-mask @ use-reg-mask-stack >s ;
 : use-reg-mask>    use-reg-mask-stack s> use-reg-mask ! ;
@@ -478,7 +474,6 @@ here exec REGALLOCING ' (beginning) ] interpreting!
 	>beginning-index
 
 	unuse-regs!
-	| >use-depth
 
 	['] (beginning) %.debug %.S
 
@@ -498,8 +493,6 @@ here exec REGALLOCING ' (beginning) ] interpreting!
 here exec REGALLOCING ' (ending)    ] interpreting!
 
 	label-offset! 
-
-	use-depth> _
 
 	use-reg-mask>
 
@@ -1518,8 +1511,6 @@ $ (repeat-post) $;
 
            thru-indexes-clear
 
-	   | >use-depth
-
            0 opt-debug !
 	   cr white ." PASS=0a Register allocation" norm
 	   OPT-PASS-INITCODEGEN opt-pass !
@@ -1601,7 +1592,6 @@ $ (repeat-post) $;
 
 	   cr %.S
 	   #_
-	   use-depth> _
 	   cr %.S
 
 	   cr .dump
