@@ -121,7 +121,12 @@ interpretation latest behavior REGALLOCING latest does
 : >phi    phi-stack >s ;
 : phi>    phi-stack s> ;
 
-:: ref-stack 100 stack						\ Register ref at the beginning of each function
+:: ref-stack 100 stack						\ Register refs at the beginning of each function
+: >>ref
+	regs #regs for
+		| c@ ref-stack >s 1+
+	over _ ;
+: ref>	ref-stack s> ;
 		
 :: use-reg-mask-stack 100 stack					\ Stack of used register masks
 : >use-reg-mask    use-reg-mask @ use-reg-mask-stack >s ;
@@ -135,9 +140,7 @@ interpretation latest behavior REGALLOCING latest does
 		then
 		emit norm
 		1 sar
-	over
-	_
-;
+	over _ ;
 
 : unuse-regs!							\ ( ... n -- ... n )	Sets used reg if N is more that USE-DEPTH@
 	| | if
@@ -471,6 +474,8 @@ here exec REGALLOCING ' (beginning) ] interpreting!
 	>use-reg-mask
 	0 reuse-reg-stack >s
 
+	>>ref
+
 	>beginning-index
 
 	unuse-regs!
@@ -503,6 +508,15 @@ here exec REGALLOCING ' (ending)    ] interpreting!
 	over	
 	else _ then
 
+	#regs for
+		I 1- #r ref> 
+		|| - if
+		cr I 1- red ." #" . norm blue . norm ." => " yellow . norm
+		else
+		__
+		then
+	over
+
 	|
 	beginning-index>  cells push-reg-mask-label + !
 	opt-index-thru @  cells pop-reg-mask-label  + !
@@ -512,7 +526,7 @@ here exec REGALLOCING ' (ending)    ] interpreting!
 	opt-index>
 	r> _
 
-	['] (ending)    %.debug %.S
+	['] (ending)    %.debug	%.S
 
 	ASSEMBLING state!!
 	(ending)
