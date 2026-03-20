@@ -41,7 +41,7 @@ interpretation latest behavior REGALLOCING latest does
 	REGALLOCING state! execute interpreting! interpretation state! ;
 
 								\\ Register allocation
-:: #regs      7 val						\ Number of CPU registers
+:: #regs      6 val						\ Number of CPU registers
 :: #realregs  10 val
 :: regs      adr #regs allot					\ Register alias count
 :: used-regs adr #regs allot					\ Used register
@@ -867,7 +867,7 @@ $ (ending)
 		I 1- #r ref> | if
 		|| > if
 		cr I 1- red ." #" | . use-reg! norm blue . norm ." => " yellow . norm
-		." #" ?^ | | . 
+		." #" ?^0 | | . 
 		I 1- | unuse-reg! ∨ 
 		I 1- ><
 		.((
