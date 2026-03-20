@@ -862,11 +862,13 @@ $ (beginning)
 $;
 
 $ (ending)
+	0 >tmp
 	#regs for
 		I 1- #r ref> | if
 		|| > if
 		cr I 1- red ." #" | . use-reg! norm blue . norm ." => " yellow . norm
-		." #" ?^ | | . I 1- ∨ 
+		." #" ?^ | | . 
+		I 1- | unuse-reg! ∨ 
 		I 1- ><
 		.((
 			.--- .mov.rr
@@ -874,15 +876,15 @@ $ (ending)
 		).(
 			>< mov,
 		))
-		.---
-		<<< >< _
-		.---
-
+		tmp> 1+ { >tmp } >tmp
+		>< _
 		else
 		__
 		then
 		else _ _ then
 	over
+	{ tmp-stack onload _ }
+	.---
 
 	opt-index-thru @
 	cells pop-reg-mask-label + @
