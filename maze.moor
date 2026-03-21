@@ -9,7 +9,9 @@ maze definitions
 
 \ Maze entities
 :: EMPTY	3000 val
+:: TRACE	1f578 val
 :: WALL		1f9f1 val
+:: HERO		1f98a _ 1f995 val
 
 \ Generation order
 :: LEFT		char L val
@@ -177,9 +179,55 @@ M-init
 	M-gen-order M-rows @ 2- 2/ 1- M-cols @ 2- 2/ 1- + rseq
 ;
 
+\\ Hero moving
 
+:: ?quit	0 var
+:: hero-col	1 var
+:: hero-row	1 var
+:: hero-Δcol	0 var
+:: hero-Δrow	0 var
 
+: hero-at	hero-col @ 2* 1+ 1+ hero-row @ 1+ at ;
+: move-hero
+	hero-Δrow @ hero-row @ + M-top  @ +
+	hero-Δcol @ hero-col @ + M-left @ +
+	|| 'M @ WALL = if
+		_ _ 
+	else
+		hero-col ! hero-row !
+	then
 
+	0 hero-Δcol !
+	0 hero-Δrow !
+
+	hero-col @ |	0 < if 0 hero-col ! then
+			M-cols @ > if M-cols @ hero-col ! then
+	hero-row @ |	1 < if 1 hero-row ! then
+			M-rows @ > if M-rows @ hero-row ! then
+;
+
+: ML
+	cursoff
+	0 ?quit !
+	0 hero-col !
+	M-rows @ 2 - hero-row !
+	begin
+		hero-at TRACE uemit move-hero hero-at HERO uemit
+
+		?quit @ 0 = 
+	while
+		key					\ | red 30 1 at . norm yellow hero-row @ hero-col @ || . . 'M @ uemit norm
+
+		| [char] q =	if 1 ?quit ! then
+		| [char] A =	if -1 hero-Δrow !  0 hero-Δcol ! then
+		| [char] B =	if  1 hero-Δrow !  0 hero-Δcol ! then
+		| [char] C =	if  1 hero-Δcol !  0 hero-Δrow ! then
+		| [char] D =	if -1 hero-Δcol !  0 hero-Δrow ! then
+		_
+	repeat
+	curson
+	cr
+;
 
 \\ Testing
 
@@ -190,14 +238,14 @@ M-init
 	clrscr
 	curhome
 
-	\ margins? 1- -1 and 1 or 2- >< -1 and 1 or 2/ -1 and 1 or 2- M-total-size!
+	margins? 1- -1 and 1 or 2- >< -1 and 1 or 2/ -1 and 1 or 2- M-total-size!
 	M-init
 
-	\ #27 M-rows ! #20  M-top  !
-	\ #27 M-cols ! #20 M-left !
-	\ draw-borders
-	\ M-draw-gen-wall-order
-	\ draw-sequence
+	#27 M-rows ! #10 M-top  !
+	#27 M-cols ! #20 M-left !
+	draw-borders
+	M-draw-gen-wall-order
+	draw-sequence
 
 	M-total-rows @ M-rows !
 	M-total-cols @ M-cols !
